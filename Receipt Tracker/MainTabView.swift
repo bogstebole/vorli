@@ -1,0 +1,28 @@
+//
+//  MainTabView.swift
+//  Receipt Tracker
+//
+//  Created by Bogdan Stefanovic on 15. 12. 2025..
+//
+
+import SwiftUI
+
+struct MainTabView: View {
+    var body: some View {
+        TabView {
+            ContentView()
+                .tabItem {
+                    Label("Receipts", systemImage: "receipt")
+                }
+            
+            DebugParserView()
+                .tabItem {
+                    Label("Debug", systemImage: "hammer.fill")
+                }
+        }
+    }
+}
+
+#Preview {
+    MainTabView()
+}
