@@ -124,7 +124,7 @@ struct ContentView: View {
     private var currentMonthName: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
-        formatter.locale = Locale(identifier: "sr_RS")
+        formatter.locale = Locale(identifier: "en_US") // Using English locale for Latin script
         return formatter.string(from: selectedMonth)
     }
     
@@ -181,7 +181,7 @@ struct CustomHeader: View {
         HStack {
             // Title
             Text("Receipts")
-                .font(.system(.title3, design: .monospaced, weight: .semibold))
+                .font(.system(.title3, design: .monospaced, weight: .regular))
                 .foregroundStyle(.primary)
             
             Spacer()

@@ -14,15 +14,21 @@ struct MonthBalanceCard: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Month Title
-            Text(month)
-                .font(.system(.title, design: .monospaced, weight: .regular))
-                .foregroundStyle(.primary)
-                .padding(.bottom, 8)
+            // Month Title with different colors for month and year
+            HStack(spacing: 4) {
+                Text(monthName)
+                    .font(.system(.title, design: .monospaced, weight: .regular))
+                    .foregroundStyle(.primary)
+                
+                Text(yearString)
+                    .font(.system(.title, design: .monospaced, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.bottom, 8)
             
             // Current Balance
             HStack(spacing: 4) {
-                Text("Current balance")
+                Text("Current balance:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                 
@@ -33,7 +39,7 @@ struct MonthBalanceCard: View {
             
             // Spent This Month
             HStack(spacing: 4) {
-                Text("Spent")
+                Text("Spent:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                 
@@ -44,17 +50,35 @@ struct MonthBalanceCard: View {
             
             Spacer()
         }
+        .padding(.vertical, 16)
+        .padding(.bottom, 8)
         .padding(.horizontal, 20)
-        .padding(.top, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var monthName: String {
+        // Extract month name from the month string (e.g., "December" from "December 2025")
+        let components = month.components(separatedBy: " ")
+        return components.first ?? month
+    }
+    
+    private var yearString: String {
+        // Extract year from the month string (e.g., "2025" from "December 2025")
+        let components = month.components(separatedBy: " ")
+        return components.count > 1 ? components.last ?? "" : ""
     }
     
     private func formatCurrency(_ amount: Decimal) -> String {
         let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "RSD"
-        formatter.locale = Locale(identifier: "sr_RS")
-        return formatter.string(from: amount as NSDecimalNumber) ?? "0 RSD"
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        formatter.groupingSeparator = ","
+        formatter.decimalSeparator = "."
+        let formattedNumber = formatter.string(from: amount as NSDecimalNumber) ?? "0.00"
+        return "\(formattedNumber) RSD"
     }
 }
 
