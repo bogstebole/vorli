@@ -27,7 +27,7 @@ class ReceiptService {
             predicate: #Predicate { $0.url == url }
         )
         
-        if let existingReceipt = try? modelContext.fetch(descriptor).first {
+        if (try? modelContext.fetch(descriptor).first) != nil {
             throw ReceiptError.duplicateReceipt
         }
         

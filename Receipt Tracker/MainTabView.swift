@@ -19,6 +19,11 @@ struct MainTabView: View {
                 .tabItem {
                     Label("Debug", systemImage: "hammer.fill")
                 }
+            
+            ReceiptHTMLDebugView()
+                .tabItem {
+                    Label("HTML", systemImage: "doc.text")
+                }
         }
     }
 }
