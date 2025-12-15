@@ -6,8 +6,23 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		E82F3CB62EF0655500ABCF0D /* ReceiptCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CB52EF0655500ABCF0D /* ReceiptCardView.swift */; };
+		E82F3CB82EF0656000ABCF0D /* MonthBalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CB72EF0656000ABCF0D /* MonthBalanceCard.swift */; };
+		E82F3CBA2EF0656800ABCF0D /* SectionDivider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CB92EF0656800ABCF0D /* SectionDivider.swift */; };
+		E82F3CBC2EF0657700ABCF0D /* AddBalanceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */; };
+		E82F3CBE2EF0658C00ABCF0D /* DashboardSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */; };
+		E82F3CC02EF0662000ABCF0D /* UI_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = E82F3CBF2EF0662000ABCF0D /* UI_IMPLEMENTATION.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		E82F3C8D2EF048AA00ABCF0D /* Receipt Tracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Receipt Tracker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E82F3CB52EF0655500ABCF0D /* ReceiptCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptCardView.swift; sourceTree = "<group>"; };
+		E82F3CB72EF0656000ABCF0D /* MonthBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthBalanceCard.swift; sourceTree = "<group>"; };
+		E82F3CB92EF0656800ABCF0D /* SectionDivider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionDivider.swift; sourceTree = "<group>"; };
+		E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBalanceSheet.swift; sourceTree = "<group>"; };
+		E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSheet.swift; sourceTree = "<group>"; };
+		E82F3CBF2EF0662000ABCF0D /* UI_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_IMPLEMENTATION.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -34,6 +49,12 @@
 			children = (
 				E82F3C8F2EF048AA00ABCF0D /* Receipt Tracker */,
 				E82F3C8E2EF048AA00ABCF0D /* Products */,
+				E82F3CB52EF0655500ABCF0D /* ReceiptCardView.swift */,
+				E82F3CB72EF0656000ABCF0D /* MonthBalanceCard.swift */,
+				E82F3CB92EF0656800ABCF0D /* SectionDivider.swift */,
+				E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */,
+				E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */,
+				E82F3CBF2EF0662000ABCF0D /* UI_IMPLEMENTATION.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -109,6 +130,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E82F3CC02EF0662000ABCF0D /* UI_IMPLEMENTATION.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +141,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E82F3CBE2EF0658C00ABCF0D /* DashboardSheet.swift in Sources */,
+				E82F3CB62EF0655500ABCF0D /* ReceiptCardView.swift in Sources */,
+				E82F3CBA2EF0656800ABCF0D /* SectionDivider.swift in Sources */,
+				E82F3CBC2EF0657700ABCF0D /* AddBalanceSheet.swift in Sources */,
+				E82F3CB82EF0656000ABCF0D /* MonthBalanceCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

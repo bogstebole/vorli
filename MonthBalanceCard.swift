@@ -13,46 +13,40 @@ struct MonthBalanceCard: View {
     let spent: Decimal
     
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             // Month Title
             Text(month)
-                .font(.system(.subheadline, design: .monospaced, weight: .medium))
-                .foregroundStyle(.secondary)
+                .font(.system(.title, design: .monospaced, weight: .regular))
+                .foregroundStyle(.primary)
+                .padding(.bottom, 8)
             
             // Current Balance
-            VStack(spacing: 4) {
+            HStack(spacing: 4) {
                 Text("Current balance")
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(.secondary)
                 
                 Text(formatCurrency(currentBalance))
-                    .font(.system(.title, design: .monospaced, weight: .bold))
-                    .foregroundStyle(currentBalance >= 0 ? .primary : .red)
+                    .font(.system(.body, design: .monospaced, weight: .regular))
+                    .foregroundStyle(currentBalance >= 0 ? .primary : .primary)
             }
-            
-            Divider()
-                .padding(.horizontal, 20)
             
             // Spent This Month
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Spent")
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(.tertiary)
-                    
-                    Text(formatCurrency(spent))
-                        .font(.system(.title3, design: .monospaced, weight: .semibold))
-                        .foregroundStyle(.red)
-                }
+            HStack(spacing: 4) {
+                Text("Spent")
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(.secondary)
                 
-                Spacer()
+                Text(formatCurrency(spent))
+                    .font(.system(.body, design: .monospaced, weight: .regular))
+                    .foregroundStyle(.primary)
             }
-            .padding(.horizontal, 20)
+            
+            Spacer()
         }
-        .padding(.vertical, 20)
-        .frame(maxWidth: .infinity)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     
     private func formatCurrency(_ amount: Decimal) -> String {

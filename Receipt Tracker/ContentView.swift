@@ -10,100 +10,85 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Receipt.timestamp, order: .reverse) private var receipts: [Receipt]
+    @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
     @State private var budget: Budget?
     
-    @State private var isProcessing = false
+    @State private var selectedMonth: Date = Date()
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var showScanner = false
-    
-    // Test URL - replace with your actual scanned URL
-    private let testURL = "https://suf.purs.gov.rs/v/?vl=AzRUOUpOOVZHNFQ5Sk45VkcWxgAA7qwAABCHPQgAAAAAAAABmqbMEogAAABdMzXT8/YZwZB1Ik5vOgoMg+PdpM6Ylru25/vnBD5zKf1ZV/d6qah8NlQf1kEzXglOqc5y7A/37F6E3UO5xPMCKMAg5/tWDRubiMaDaPLK9Fv/DXY6ED/H4TY2pi0sacHTUB30WXX1R5bqQ+4TExniiQRq5CyPFRVrJkBqaP7TEasM6rgFnYNzhKyLljOMa6xHkS3LwqQMIqKvSwuxw3qR3y71b2mOaxrwSC1wN0pDVRfVt7HB1XWEOaK6qOgJw/N5tfRXu6wiiBW/WgIzF364QMUu4vHW3JidwUpxkNcsyuOHboXIk/Q8x1BN1b5SxezE98ycxbhbj2Wicmg+bJVwPdo7vqpM0q7oIyt8gx4N37B0FYi7iYJ0gIXIO9AppmffqmpNSrmZp+aT+SkROHwOIVYIUytcCytaxr3imSlpcTp/BLdhlgugEZ54nNK9eAwfx/PnfwBk8tTSqLj/d0z+HP6H2zeGKQh9qgIfqQSuavmOCuGQqQr4vCHHdwVD6rnCSu56Dw3yscp0+vnexhXenDMvyrVqCrjUDFFTiP068pV4BbW7QCaZPJb3HGW/SI9MgOf/GycOetfEsJyyrPMaVhSKXFBMQBpwo5ggtSy07XxpiULpBf/jExtPtHQc+Gj66duVN99i+G7805twEA7+1SYq2rHB6l6OCks9Cdm21uT5/xKFZJ6UZeibOht1cv4%3D"
+    @State private var showAddBalance = false
+    @State private var showDashboard = false
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                // Budget Display
-                if let budget = budget {
-                    VStack(spacing: 8) {
-                        Text("Current Balance")
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.secondary)
+            VStack(spacing: 0) {
+                // Custom Header
+                CustomHeader()
+                
+                // Main Content - Scrollable
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Month/Balance Card
+                        if let budget = budget {
+                            MonthBalanceCard(
+                                month: currentMonthName,
+                                currentBalance: budget.currentBalance,
+                                spent: currentMonthSpent
+                            )
+                        }
                         
-                        Text(formatCurrency(budget.currentBalance))
-                            .font(.system(.largeTitle, design: .monospaced, weight: .bold))
-                            .foregroundStyle(budget.currentBalance >= 0 ? .green : .red)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                }
-                
-                // Action Buttons
-                HStack(spacing: 12) {
-                    // Scan QR Code Button
-                    Button {
-                        showScanner = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "qrcode.viewfinder")
-                            Text("Scan Receipt")
-                                .font(.system(.body, design: .monospaced))
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.blue.gradient)
-                        .foregroundStyle(.white)
-                        .clipShape(Capsule())
-                    }
-                    
-                    // Test Parser Button (for debugging)
-                    Button {
-                        Task {
-                            await processReceipt(from: testURL)
-                        }
-                    } label: {
-                        HStack {
-                            if isProcessing {
-                                ProgressView()
-                                    .tint(.white)
-                            } else {
-                                Image(systemName: "hammer")
+                        // Section Divider
+                        SectionDivider(title: "Računi")
+                            .padding(.horizontal)
+                            .padding(.top, 8)
+                        
+                        // Receipt Cards
+                        if filteredReceipts.isEmpty {
+                            EmptyReceiptsView()
+                                .padding(.top, 40)
+                        } else {
+                            LazyVStack(spacing: 12) {
+                                ForEach(filteredReceipts) { receipt in
+                                    NavigationLink {
+                                        ReceiptDetailView(receipt: receipt)
+                                    } label: {
+                                        ReceiptCardView(receipt: receipt)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            deleteReceipt(receipt)
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                                }
                             }
-                            Text("Test")
-                                .font(.system(.body, design: .monospaced))
+                            .padding(.horizontal)
+                            .padding(.bottom, 100) // Space for toolbar
                         }
-                        .frame(width: 100)
-                        .padding()
-                        .background(Color.gray.gradient)
-                        .foregroundStyle(.white)
-                        .clipShape(Capsule())
                     }
-                    .disabled(isProcessing)
                 }
                 
-                // Receipts List
-                List {
-                    ForEach(receipts) { receipt in
-                        NavigationLink {
-                            ReceiptDetailView(receipt: receipt)
-                        } label: {
-                            ReceiptRowView(receipt: receipt)
-                        }
+                // Bottom Toolbar
+                CustomToolbar(
+                    onAddBalance: {
+                        showAddBalance = true
+                    },
+                    onFilter: {
+                        // TODO: Implement filter
+                        print("Filter tapped")
+                    },
+                    onDashboard: {
+                        showDashboard = true
+                    },
+                    onScan: {
+                        showScanner = true
                     }
-                    .onDelete(perform: deleteReceipts)
-                }
-                .listStyle(.plain)
+                )
             }
-            .padding()
-            .navigationTitle("ScanSpend")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-            }
+            .navigationBarHidden(true)
             .alert("Error", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -118,11 +103,43 @@ struct ContentView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showAddBalance) {
+                AddBalanceSheet { amount in
+                    addBalance(amount)
+                }
+            }
+            .sheet(isPresented: $showDashboard) {
+                DashboardSheet(receipts: allReceipts) { month in
+                    selectedMonth = month
+                }
+            }
         }
         .task {
             loadBudget()
         }
     }
+    
+    // MARK: - Computed Properties
+    
+    private var currentMonthName: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        formatter.locale = Locale(identifier: "sr_RS")
+        return formatter.string(from: selectedMonth)
+    }
+    
+    private var filteredReceipts: [Receipt] {
+        let calendar = Calendar.current
+        return allReceipts.filter { receipt in
+            calendar.isDate(receipt.timestamp, equalTo: selectedMonth, toGranularity: .month)
+        }
+    }
+    
+    private var currentMonthSpent: Decimal {
+        filteredReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
+    }
+    
+    // MARK: - Methods
     
     private func loadBudget() {
         let service = ReceiptService(modelContext: modelContext)
@@ -132,128 +149,161 @@ struct ContentView: View {
     }
     
     private func processReceipt(from urlString: String) async {
-        isProcessing = true
-        errorMessage = nil
-        
         do {
             let service = ReceiptService(modelContext: modelContext)
             _ = try await service.processReceipt(from: urlString)
-            
-            // Reload budget
             loadBudget()
         } catch {
             errorMessage = error.localizedDescription
             showError = true
         }
-        
-        isProcessing = false
     }
     
-    private func deleteReceipts(offsets: IndexSet) {
+    private func deleteReceipt(_ receipt: Receipt) {
         let service = ReceiptService(modelContext: modelContext)
-        
-        for index in offsets {
-            let receipt = receipts[index]
-            try? service.deleteReceipt(receipt)
-        }
-        
+        try? service.deleteReceipt(receipt)
         loadBudget()
     }
     
-    private func formatCurrency(_ amount: Decimal) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "RSD"
-        formatter.locale = Locale(identifier: "sr_RS")
-        return formatter.string(from: amount as NSDecimalNumber) ?? "0"
+    private func addBalance(_ amount: Decimal) {
+        let service = ReceiptService(modelContext: modelContext)
+        if let currentBudget = budget {
+            try? service.updateBudget(newBalance: currentBudget.currentBalance + amount)
+            loadBudget()
+        }
     }
 }
 
-// MARK: - Receipt Row View
+// MARK: - Custom Header
 
-struct ReceiptRowView: View {
-    let receipt: Receipt
-    
+struct CustomHeader: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header: Merchant and Amount
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(receipt.merchantName)
-                        .font(.system(.headline, design: .monospaced))
-                        .lineLimit(1)
-                    
-                    if !receipt.merchantCity.isEmpty {
-                        Text(receipt.merchantCity)
-                            .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(.tertiary)
-                            .lineLimit(1)
-                    }
-                }
-                
-                Spacer()
-                
-                Text(formatCurrency(receipt.totalAmount))
-                    .font(.system(.title3, design: .monospaced, weight: .bold))
-                    .foregroundStyle(.red)
-            }
+        HStack {
+            // Title
+            Text("Receipts")
+                .font(.system(.title3, design: .monospaced, weight: .semibold))
+                .foregroundStyle(.primary)
             
-            // Date and Article Count
-            HStack {
-                HStack(spacing: 4) {
-                    Image(systemName: "calendar")
-                        .font(.caption2)
-                    Text(receipt.timestamp, style: .date)
-                        .font(.system(.caption, design: .monospaced))
-                }
-                .foregroundStyle(.secondary)
-                
-                Spacer()
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "list.bullet.rectangle")
-                        .font(.caption2)
-                    Text("\(receipt.items.count) артикал\(receipt.items.count == 1 ? "" : "а")")
-                        .font(.system(.caption, design: .monospaced))
-                }
-                .foregroundStyle(.secondary)
-            }
+            Spacer()
             
-            // Sample items preview (first 2)
-            if !receipt.items.isEmpty {
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(receipt.items.prefix(2)) { item in
-                        HStack(spacing: 6) {
-                            Text("•")
-                                .font(.system(.caption2, design: .monospaced))
-                                .foregroundStyle(.quaternary)
-                            Text(item.name)
-                                .font(.system(.caption2, design: .monospaced))
-                                .foregroundStyle(.tertiary)
-                                .lineLimit(1)
-                        }
-                    }
-                    
-                    if receipt.items.count > 2 {
-                        Text("... и још \(receipt.items.count - 2)")
-                            .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(.quaternary)
-                            .padding(.leading, 12)
-                    }
-                }
+            // Avatar Button
+            Button {
+                // TODO: Navigate to settings
+                print("Settings tapped")
+            } label: {
+                Image("avatar") // Replace with your actual image asset name
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 27, height: 36)
+                    .clipped()
+                    .background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+                    .shadow(color: .black.opacity(0.1), radius: 1.5, x: 0, y: 1)
+                    .shadow(color: .black.opacity(0.09), radius: 2.5, x: 0, y: 5)
+                    .shadow(color: .black.opacity(0.05), radius: 3.5, x: 1, y: 12)
+                    .shadow(color: .black.opacity(0.01), radius: 4, x: 1, y: 21)
+                    .shadow(color: .black.opacity(0), radius: 4.5, x: 2, y: 33)
+                    .rotationEffect(Angle(degrees: -5))
             }
         }
-        .padding(.vertical, 8)
-    }
-    
-    private func formatCurrency(_ amount: Decimal) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "RSD"
-        formatter.locale = Locale(identifier: "sr_RS")
-        return formatter.string(from: amount as NSDecimalNumber) ?? "0"
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
     }
 }
+
+// MARK: - Custom Toolbar
+
+struct CustomToolbar: View {
+    let onAddBalance: () -> Void
+    let onFilter: () -> Void
+    let onDashboard: () -> Void
+    let onScan: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Left Button Group
+            HStack(spacing: 12) {
+                ToolbarButton(icon: "plus", color: .green, action: onAddBalance)
+                ToolbarButton(icon: "line.3.horizontal.decrease.circle", color: .gray, action: onFilter)
+                ToolbarButton(icon: "square.grid.2x2", color: .blue, action: onDashboard)
+            }
+            
+            Spacer()
+            
+            // QR Scanner CTA
+            Button(action: onScan) {
+                HStack(spacing: 8) {
+                    Image(systemName: "qrcode.viewfinder")
+                        .font(.system(.body, design: .monospaced, weight: .semibold))
+                    
+                    Text("Scan")
+                        .font(.system(.body, design: .monospaced, weight: .semibold))
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(.blue.gradient)
+                .foregroundStyle(.white)
+                .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial)
+        .overlay(
+            Rectangle()
+                .frame(height: 0.5)
+                .foregroundStyle(.tertiary),
+            alignment: .top
+        )
+    }
+}
+
+struct ToolbarButton: View {
+    let icon: String
+    let color: Color
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(.title3, design: .monospaced))
+                .foregroundStyle(color)
+                .frame(width: 44, height: 44)
+                .background(color.opacity(0.1))
+                .clipShape(Circle())
+        }
+    }
+}
+
+// MARK: - Empty State
+
+struct EmptyReceiptsView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "receipt")
+                .font(.system(size: 60))
+                .foregroundStyle(.tertiary)
+            
+            Text("No receipts this month")
+                .font(.system(.headline, design: .monospaced))
+                .foregroundStyle(.secondary)
+            
+            Text("Scan a QR code to add your first receipt")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .padding(.vertical, 40)
+    }
+}
+
+#Preview {
+    ContentView()
+        .modelContainer(for: [Receipt.self, Budget.self], inMemory: true)
+}
+
+
 
 #Preview {
     ContentView()
