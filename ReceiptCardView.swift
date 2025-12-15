@@ -11,20 +11,28 @@ struct ReceiptCardView: View {
     let receipt: Receipt
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 6) {
             // Company Name
-            Text(receipt.merchantName)
-                .font(.system(.headline, design: .monospaced, weight: .semibold))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
+            HStack(alignment: .top, spacing: 16) {
+                Text(receipt.merchantName)
+                    .font(.system(.subheadline, design: .monospaced, weight: .regular))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                
+                Spacer()
+                
+                // Amount
+                Text(formatCurrency(receipt.totalAmount))
+                    .font(.system(.subheadline, design: .monospaced, weight: .regular))
+                    .foregroundStyle(.primary)
+            }
+            .padding(0)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            
             
             HStack {
                 // Date and Time
                 HStack(spacing: 6) {
-                    Image(systemName: "calendar")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    
                     Text(receipt.timestamp, style: .date)
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
@@ -37,19 +45,17 @@ struct ReceiptCardView: View {
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
-                
-                Spacer()
-                
-                // Amount
-                Text(formatCurrency(receipt.totalAmount))
-                    .font(.system(.title3, design: .monospaced, weight: .bold))
-                    .foregroundStyle(.primary)
             }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.ultraThinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.04), radius: 1.5, x: 0, y: 1)
+        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.03), radius: 3, x: 0, y: 6)
+        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.02), radius: 4, x: 0, y: 13)
+        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.01), radius: 4.5, x: 0, y: 24)
+        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0), radius: 5, x: 0, y: 37)
     }
     
     private func formatCurrency(_ amount: Decimal) -> String {
