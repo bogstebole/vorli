@@ -28,7 +28,7 @@ struct ContentView: View {
                 
                 // Main Content - Scrollable
                 ScrollView {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 12) {
                         // Month/Balance Card
                         if let budget = budget {
                             MonthBalanceCard(
@@ -39,9 +39,8 @@ struct ContentView: View {
                         }
                         
                         // Section Divider
-                        SectionDivider(title: "Računi")
+                        SectionDivider(title: "Receipts")
                             .padding(.horizontal)
-                            .padding(.top, 8)
                         
                         // Receipt Cards
                         if filteredReceipts.isEmpty {

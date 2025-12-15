@@ -24,7 +24,7 @@ struct MonthBalanceCard: View {
                     .font(.system(.title, design: .monospaced, weight: .regular))
                     .foregroundStyle(.secondary)
             }
-            .padding(.bottom, 8)
+            .padding(.bottom, 6)
             
             // Current Balance
             HStack(spacing: 4) {
@@ -50,8 +50,7 @@ struct MonthBalanceCard: View {
             
             Spacer()
         }
-        .padding(.vertical, 16)
-        .padding(.bottom, 8)
+        .padding(.top, 16)
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
