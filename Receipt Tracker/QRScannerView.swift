@@ -195,6 +195,7 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
         reticleView.layer.cornerRadius = 20
         
         view.addSubview(reticleView)
+        view.accessibilityViewIsModal = true
         
         NSLayoutConstraint.activate([
             reticleView.centerXAnchor.constraint(equalTo: view.centerXAnchor),

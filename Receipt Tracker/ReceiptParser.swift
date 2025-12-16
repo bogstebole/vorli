@@ -179,7 +179,8 @@ struct ReceiptParser {
                line.contains("---") || 
                line.contains("Назив") ||
                line.contains("Цена") ||
-               line.contains("Кол.") {
+               line.contains("Кол.") ||
+               line.contains("Укупно") {
                 i += 1
             } else {
                 break
@@ -194,10 +195,14 @@ struct ReceiptParser {
             let line = lines[i]
             let lineTrimmed = line.trimmingCharacters(in: .whitespaces)
             
-            // Skip separator or empty lines
+            // Skip separator, empty lines, or header lines
             if lineTrimmed.contains("---") || 
                lineTrimmed.contains("===") || 
-               lineTrimmed.isEmpty {
+               lineTrimmed.isEmpty ||
+               lineTrimmed.contains("Назив") ||
+               lineTrimmed.contains("Цена") ||
+               lineTrimmed.contains("Кол.") ||
+               lineTrimmed.contains("Укупно") {
                 i += 1
                 continue
             }
