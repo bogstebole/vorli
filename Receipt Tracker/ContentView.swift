@@ -65,29 +65,44 @@ struct ContentView: View {
                                 }
                             }
                             .padding(.horizontal)
-                            .padding(.bottom, 100) // Space for toolbar
+                            .padding(.bottom, 20) // Reduced space since native toolbar handles this
                         }
                     }
                 }
-                
-                // Bottom Toolbar
-                CustomToolbar(
-                    onAddBalance: {
-                        showAddBalance = true
-                    },
-                    onFilter: {
-                        // TODO: Implement filter
-                        print("Filter tapped")
-                    },
-                    onDashboard: {
-                        showDashboard = true
-                    },
-                    onScan: {
-                        showScanner = true
-                    }
-                )
             }
             .navigationBarHidden(true)
+            .toolbar {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    // Leading group of actions
+                    Button {
+                        showAddBalance = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    
+                    Button {
+                        // TODO: Implement filter
+                        print("Filter tapped")
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                    }
+                    
+                    Button {
+                        showDashboard = true
+                    } label: {
+                        Image(systemName: "square.grid.2x2")
+                    }
+                    
+                    Spacer()
+                    
+                    // Trailing scan action
+                    Button {
+                        showScanner = true
+                    } label: {
+                        Image(systemName: "qrcode.viewfinder")
+                    }
+                }
+            }
             .alert("Error", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -207,70 +222,6 @@ struct CustomHeader: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-    }
-}
-
-// MARK: - Custom Toolbar
-
-struct CustomToolbar: View {
-    let onAddBalance: () -> Void
-    let onFilter: () -> Void
-    let onDashboard: () -> Void
-    let onScan: () -> Void
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            // Left Button Group
-            HStack(spacing: 12) {
-                ToolbarButton(icon: "plus", color: .green, action: onAddBalance)
-                ToolbarButton(icon: "line.3.horizontal.decrease.circle", color: .gray, action: onFilter)
-                ToolbarButton(icon: "square.grid.2x2", color: .blue, action: onDashboard)
-            }
-            
-            Spacer()
-            
-            // QR Scanner CTA
-            Button(action: onScan) {
-                HStack(spacing: 8) {
-                    Image(systemName: "qrcode.viewfinder")
-                        .font(.system(.body, design: .monospaced, weight: .semibold))
-                    
-                    Text("Scan")
-                        .font(.system(.body, design: .monospaced, weight: .semibold))
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(.blue.gradient)
-                .foregroundStyle(.white)
-                .clipShape(Capsule())
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(.ultraThinMaterial)
-        .overlay(
-            Rectangle()
-                .frame(height: 0.5)
-                .foregroundStyle(.tertiary),
-            alignment: .top
-        )
-    }
-}
-
-struct ToolbarButton: View {
-    let icon: String
-    let color: Color
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(.title3, design: .monospaced))
-                .foregroundStyle(color)
-                .frame(width: 44, height: 44)
-                .background(color.opacity(0.1))
-                .clipShape(Circle())
-        }
     }
 }
 
