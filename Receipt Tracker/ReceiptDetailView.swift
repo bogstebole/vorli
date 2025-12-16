@@ -13,17 +13,17 @@ struct ReceiptDetailView: View {
     
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 12) {
                 // Header Card - Merchant Info
                 VStack(spacing: 12) {
                     Text(receipt.merchantName)
-                        .font(.system(.title2, design: .monospaced, weight: .bold))
+                        .font(.system(.body, design: .monospaced, weight: .medium))
                         .multilineTextAlignment(.center)
                     
                     VStack(spacing: 4) {
                         Text(receipt.merchantAddress)
                             .font(.system(.subheadline, design: .monospaced))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary)
                         
                         if !receipt.merchantCity.isEmpty {
                             Text(receipt.merchantCity)
@@ -31,74 +31,66 @@ struct ReceiptDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    
-                    Divider()
-                        .padding(.vertical, 4)
+
                     
                     Text(receipt.timestamp.asSerbianDateTime)
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.tertiary)
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                
-                // Articles Section
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("АРТИКЛИ")
-                        .font(.system(.caption, design: .monospaced, weight: .bold))
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal)
                     
+                    Divider()
+                    
+                    // Totals Section
                     VStack(spacing: 12) {
+                        HStack {
+                            Text("Total balance:")
+                                .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text(receipt.totalAmount.asRSD)
+                                .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.primary)
+                        }
+                        
+                        HStack {
+                            Text("PDV (20%):")
+                                .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Text(receipt.totalTax.asRSD)
+                                .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.primary)
+                        }
+                        
+                        HStack {
+                            Text("Payment method:")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                            Spacer()
+                            Text(receipt.paymentMethod)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                }
+                .frame(maxWidth: .infinity)
+                
+            
+                // Articles Section
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionDivider(title: "Articles")
+                        
+                    
+                    VStack(spacing: 0) {
                         ForEach(receipt.items) { item in
                             ArticleRowView(item: item)
                         }
                     }
                 }
-                .padding()
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.ultraThinMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
                 
-                // Totals Section
-                VStack(spacing: 12) {
-                    HStack {
-                        Text("УКУПАН ИЗНОС:")
-                            .font(.system(.headline, design: .monospaced))
-                        Spacer()
-                        Text(receipt.totalAmount.asRSD)
-                            .font(.system(.title2, design: .monospaced, weight: .bold))
-                            .foregroundStyle(.primary)
-                    }
-                    
-                    Divider()
-                    
-                    HStack {
-                        Text("ПДВ (20%):")
-                            .font(.system(.subheadline, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text(receipt.totalTax.asRSD)
-                            .font(.system(.subheadline, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Плаћање:")
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.tertiary)
-                        Spacer()
-                        Text(receipt.paymentMethod)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                
                 
                 // Receipt Number
                 VStack(spacing: 4) {
@@ -154,32 +146,33 @@ struct ArticleRowView: View {
                 // Unit Price
                 HStack(spacing: 4) {
                     Text(item.unitPrice.asSerbianNumber)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundStyle(.secondary)
                     Text("RSD")
-                        .font(.system(.caption2, design: .monospaced))
+                        .font(.system(.subheadline, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
                 
                 // Quantity
                 HStack(spacing: 4) {
                     Text("×")
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.system(.subheadline, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Text(formatQuantity(item.quantity))
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundStyle(.secondary)
                 }
                 
                 Spacer()
                 
                 // Line Total
                 Text(item.lineTotal.asRSD)
-                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .font(.system(.subheadline, design: .monospaced, weight: .regular))
                     .foregroundStyle(.primary)
             }
         }
         .padding()
-        .background(.quaternary.opacity(0.3))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+
     }
     
     private func formatQuantity(_ quantity: Double) -> String {
