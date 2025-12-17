@@ -19,6 +19,7 @@ struct ContentView: View {
     @State private var showScanner = false
     @State private var showAddBalance = false
     @State private var showDashboard = false
+    @State private var scannedReceipt: Receipt?
     
     var body: some View {
         NavigationStack {
@@ -127,6 +128,9 @@ struct ContentView: View {
                     selectedMonth = month
                 }
             }
+            .navigationDestination(item: $scannedReceipt) { receipt in
+                ReceiptDetailView(receipt: receipt)
+            }
         }
         .task {
             loadBudget()
@@ -165,8 +169,9 @@ struct ContentView: View {
     private func processReceipt(from urlString: String) async {
         do {
             let service = ReceiptService(modelContext: modelContext)
-            _ = try await service.processReceipt(from: urlString)
+            let receipt = try await service.processReceipt(from: urlString)
             loadBudget()
+            scannedReceipt = receipt
         } catch {
             errorMessage = error.localizedDescription
             showError = true
