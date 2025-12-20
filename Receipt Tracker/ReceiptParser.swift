@@ -187,10 +187,9 @@ struct ReceiptParser {
             }
         }
         
-        // Parse items: Each item consists of 2-3 lines:
-        // Line 1: Item name (may start with optional 7-digit SKU)
-        // Line 2: Name continuation (optional - only if next line is NOT indented and NOT a price line)
-        // Line 3: Price line (ALWAYS indented with spaces at the start)
+        // Parse items: Each item consists of 2 lines:
+        // Line 1: Item name (lightly indented with 1-2 spaces, mostly text)
+        // Line 2: Price line (heavily indented with 5+ spaces, contains 3 numbers)
         while i < itemsEndIndex {
             let line = lines[i]
             let lineTrimmed = line.trimmingCharacters(in: .whitespaces)
@@ -207,192 +206,183 @@ struct ReceiptParser {
                 continue
             }
             
-            // Check if this line is NOT indented (potential item name or SKU)
-            // Item names start at the left (no leading spaces)
-            if !line.hasPrefix(" ") && !line.hasPrefix("\t") && !lineTrimmed.isEmpty {
-                print("Debug: Found potential item at line \(i): '\(lineTrimmed)'")
+            // Count leading spaces
+            let leadingSpaces = line.prefix(while: { $0 == " " }).count
+            
+            // Detect if this is a price line (heavily indented + contains multiple numbers)
+            let hasPricePattern = lineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
+            let isPriceLine = leadingSpaces >= 5 && hasPricePattern
+            
+            print("Debug: Line \(i) has \(leadingSpaces) spaces, isPriceLine=\(isPriceLine): '\(lineTrimmed)'")
+            
+            // If this is a price line without a preceding item name, skip it
+            if isPriceLine {
+                print("Debug: Skipping orphaned price line at \(i)")
+                i += 1
+                continue
+            }
+            
+            // This should be an item name line (lightly indented or not indented)
+            // Collect the full item name (may span multiple lines)
+            var nameParts: [String] = []
+            
+            // Check if this line is ONLY a SKU (7 digits only)
+            let isOnlySKU = lineTrimmed.range(of: "^[0-9]{7}$", options: .regularExpression) != nil
+            
+            if isOnlySKU {
+                // SKU is on its own line - the actual name is on the NEXT line
+                print("Debug: Line \(i) is SKU-only, name should be on next line")
+                i += 1
                 
-                // Build the full name
-                var nameParts: [String] = []
-                
-                // Check if this line is ONLY a SKU (7 digits only)
-                let isOnlySKU = lineTrimmed.range(of: "^[0-9]{7}$", options: .regularExpression) != nil
-                
-                if isOnlySKU {
-                    // SKU is on its own line - the actual name is on the NEXT line
-                    print("Debug: Line \(i) is SKU-only, name should be on next line")
-                    i += 1
+                // Now collect the actual item name from subsequent lines
+                while i < itemsEndIndex {
+                    let nextLine = lines[i]
+                    let nextLineTrimmed = nextLine.trimmingCharacters(in: .whitespaces)
                     
-                    // Now collect the actual item name from subsequent lines
-                    while i < itemsEndIndex {
-                        let nextLine = lines[i]
-                        let nextLineTrimmed = nextLine.trimmingCharacters(in: .whitespaces)
-                        
-                        // Skip empty lines
-                        if nextLineTrimmed.isEmpty {
-                            i += 1
-                            continue
-                        }
-                        
-                        // Check if this is a price line (indented + contains price pattern)
-                        let isIndented = nextLine.hasPrefix(" ") || nextLine.hasPrefix("\t")
-                        let hasPricePattern = nextLineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
-                        
-                        if isIndented && hasPricePattern {
-                            // This is the price line - we're done collecting name
-                            print("Debug: Found price line at \(i)")
-                            break
-                        }
-                        
-                        // Check if this looks like a new item (starts with 7-digit SKU)
-                        let startsWithSKU = nextLineTrimmed.range(of: "^[0-9]{7}", options: .regularExpression) != nil
-                        
-                        if startsWithSKU && !isIndented {
-                            // This is a new item - stop collecting name parts
-                            print("Debug: Found new item with SKU at \(i)")
-                            break
-                        }
-                        
-                        // This is part of the item name if:
-                        // 1. Not indented
-                        // 2. Doesn't look like a standalone price line
-                        // 3. Contains some text content
-                        let looksLikeNamePart = !isIndented && 
-                                                nextLineTrimmed.count <= 50 && 
-                                                !nextLineTrimmed.allSatisfy({ $0.isNumber || $0 == "," || $0 == "." || $0.isWhitespace })
-                        
-                        if looksLikeNamePart {
-                            nameParts.append(nextLineTrimmed)
-                            print("Debug: Added name part: '\(nextLineTrimmed)'")
-                            i += 1
-                        } else {
-                            // Unknown line type, stop
-                            print("Debug: Stopping name collection at line \(i): '\(nextLineTrimmed)'")
-                            break
-                        }
-                    }
-                } else {
-                    // No SKU, or SKU + name on same line
-                    var itemName = lineTrimmed
-                    
-                    // Try to extract SKU if present (7-digit number at start)
-                    let skuPattern = "^([0-9]{7})\\s+"
-                    if let skuRegex = try? NSRegularExpression(pattern: skuPattern),
-                       let match = skuRegex.firstMatch(in: lineTrimmed, range: NSRange(lineTrimmed.startIndex..., in: lineTrimmed)),
-                       let range = Range(match.range(at: 1), in: lineTrimmed),
-                       let fullMatchRange = Range(match.range(at: 0), in: lineTrimmed) {
-                        // Remove SKU from name (but keep the rest)
-                        let sku = String(lineTrimmed[range])
-                        itemName = String(lineTrimmed[fullMatchRange.upperBound...]).trimmingCharacters(in: .whitespaces)
-                        print("Debug: Found SKU: \(sku), Name after SKU: '\(itemName)'")
-                    }
-                    
-                    // Add first line of name
-                    if !itemName.isEmpty {
-                        nameParts.append(itemName)
-                    }
-                    
-                    i += 1
-                    
-                    // Check next lines for name continuation
-                    // Continue collecting lines until we hit:
-                    // 1. An indented line (price line)
-                    // 2. An empty line followed by indented line
-                    // 3. A new item (starts with SKU)
-                    while i < itemsEndIndex {
-                        let nextLine = lines[i]
-                        let nextLineTrimmed = nextLine.trimmingCharacters(in: .whitespaces)
-                        
-                        // Skip empty lines
-                        if nextLineTrimmed.isEmpty {
-                            i += 1
-                            continue
-                        }
-                        
-                        // Check if this is a price line (indented + contains price pattern)
-                        let isIndented = nextLine.hasPrefix(" ") || nextLine.hasPrefix("\t")
-                        let hasPricePattern = nextLineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
-                        
-                        if isIndented && hasPricePattern {
-                            // This is the price line - stop collecting name parts
-                            print("Debug: Found price line at \(i)")
-                            break
-                        }
-                        
-                        // Check if this looks like a new item (optional: starts with 7-digit SKU)
-                        let startsWithSKU = nextLineTrimmed.range(of: "^[0-9]{7}", options: .regularExpression) != nil
-                        
-                        if startsWithSKU && !isIndented {
-                            // This is a new item - stop collecting name parts
-                            print("Debug: Found new item with SKU at \(i)")
-                            break
-                        }
-                        
-                        // Check if this line is TOO SHORT to be a valid name continuation
-                        // Lines like "(Ђ)" or ")" are probably artifacts, not real content
-                        // But we still want to collect them as they complete words like "re-cikl" or measurements
-                        
-                        // This is a name continuation line if:
-                        // 1. Not indented
-                        // 2. Doesn't look like a standalone price line
-                        // 3. Contains some text content (letters, parentheses, slashes, etc.)
-                        let looksLikeNamePart = !isIndented && 
-                                                nextLineTrimmed.count <= 50 && // Reasonable line length
-                                                !nextLineTrimmed.allSatisfy({ $0.isNumber || $0 == "," || $0 == "." || $0.isWhitespace })
-                        
-                        if looksLikeNamePart {
-                            nameParts.append(nextLineTrimmed)
-                            print("Debug: Added name continuation: '\(nextLineTrimmed)'")
-                            i += 1
-                        } else {
-                            // Unknown line type, stop
-                            print("Debug: Stopping name collection at line \(i): '\(nextLineTrimmed)'")
-                            break
-                        }
-                    }
-                }
-                
-                let fullName = nameParts.joined(separator: " ")
-                print("Debug: Full name assembled: '\(fullName)'")
-                
-                // Now parse the price line
-                if i < itemsEndIndex {
-                    let priceLine = lines[i]
-                    let priceLineTrimmed = priceLine.trimmingCharacters(in: .whitespaces)
-                    
-                    // Check if this is an indented price line
-                    if (priceLine.hasPrefix(" ") || priceLine.hasPrefix("\t")) && !priceLineTrimmed.isEmpty {
-                        print("Debug: Processing price line: '\(priceLineTrimmed)'")
-                        
-                        // Extract prices and quantity using regex
-                        guard let unitPrice = extractDecimal(from: priceLineTrimmed) else {
-                            print("Debug: Failed to extract unit price from: '\(priceLineTrimmed)'")
-                            i += 1
-                            continue
-                        }
-                        
-                        let lineTotal = extractLineTotal(from: priceLineTrimmed) ?? unitPrice
-                        let quantity = extractQuantity(from: priceLineTrimmed)
-                        
-                        let item = ParsedReceiptItem(
-                            name: fullName,
-                            quantity: quantity,
-                            unitPrice: unitPrice,
-                            lineTotal: lineTotal
-                        )
-                        
-                        items.append(item)
-                        print("Debug: ✅ Parsed item #\(items.count): '\(fullName)', Qty=\(quantity), Price=\(unitPrice), Total=\(lineTotal)")
-                        
+                    // Skip empty lines
+                    if nextLineTrimmed.isEmpty {
                         i += 1
-                    } else {
-                        print("Debug: Expected indented price line but got: '\(priceLineTrimmed)'")
-                        i += 1
+                        continue
                     }
+                    
+                    let nextLeadingSpaces = nextLine.prefix(while: { $0 == " " }).count
+                    let nextHasPricePattern = nextLineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
+                    let nextIsPriceLine = nextLeadingSpaces >= 5 && nextHasPricePattern
+                    
+                    if nextIsPriceLine {
+                        // This is the price line - we're done collecting name
+                        print("Debug: Found price line at \(i)")
+                        break
+                    }
+                    
+                    // Check if this looks like a new item (starts with 7-digit SKU or is another SKU-only line)
+                    let startsWithSKU = nextLineTrimmed.range(of: "^[0-9]{7}", options: .regularExpression) != nil
+                    
+                    if startsWithSKU && nextLeadingSpaces < 5 {
+                        // This is a new item - stop collecting name parts
+                        print("Debug: Found new item with SKU at \(i)")
+                        break
+                    }
+                    
+                    // This is part of the item name
+                    nameParts.append(nextLineTrimmed)
+                    print("Debug: Added name part: '\(nextLineTrimmed)'")
+                    i += 1
                 }
             } else {
-                // Line is indented or doesn't look like an item start
+                // Item name (possibly with SKU on same line)
+                var itemName = lineTrimmed
+                
+                // Try to extract SKU if present (7-digit number at start)
+                let skuPattern = "^([0-9]{7})\\s+"
+                if let skuRegex = try? NSRegularExpression(pattern: skuPattern),
+                   let match = skuRegex.firstMatch(in: lineTrimmed, range: NSRange(lineTrimmed.startIndex..., in: lineTrimmed)),
+                   let range = Range(match.range(at: 1), in: lineTrimmed),
+                   let fullMatchRange = Range(match.range(at: 0), in: lineTrimmed) {
+                    // Remove SKU from name (but keep the rest)
+                    let sku = String(lineTrimmed[range])
+                    itemName = String(lineTrimmed[fullMatchRange.upperBound...]).trimmingCharacters(in: .whitespaces)
+                    print("Debug: Found SKU: \(sku), Name after SKU: '\(itemName)'")
+                }
+                
+                // Add first line of name
+                if !itemName.isEmpty {
+                    nameParts.append(itemName)
+                }
+                
                 i += 1
+                
+                // Check next lines for name continuation
+                // Continue collecting lines until we hit a price line or a new item
+                while i < itemsEndIndex {
+                    let nextLine = lines[i]
+                    let nextLineTrimmed = nextLine.trimmingCharacters(in: .whitespaces)
+                    
+                    // Skip empty lines
+                    if nextLineTrimmed.isEmpty {
+                        i += 1
+                        continue
+                    }
+                    
+                    let nextLeadingSpaces = nextLine.prefix(while: { $0 == " " }).count
+                    let nextHasPricePattern = nextLineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
+                    let nextIsPriceLine = nextLeadingSpaces >= 5 && nextHasPricePattern
+                    
+                    if nextIsPriceLine {
+                        // This is the price line - stop collecting name parts
+                        print("Debug: Found price line at \(i)")
+                        break
+                    }
+                    
+                    // Check if this looks like a new item (starts with 7-digit SKU)
+                    let startsWithSKU = nextLineTrimmed.range(of: "^[0-9]{7}", options: .regularExpression) != nil
+                    
+                    if startsWithSKU && nextLeadingSpaces < 5 {
+                        // This is a new item - stop collecting name parts
+                        print("Debug: Found new item with SKU at \(i)")
+                        break
+                    }
+                    
+                    // This is a name continuation line if:
+                    // 1. Lightly indented (< 5 spaces)
+                    // 2. Doesn't look like a standalone price line
+                    // 3. Contains some text content (letters, parentheses, slashes, etc.)
+                    let looksLikeNamePart = nextLeadingSpaces < 5 && 
+                                            nextLineTrimmed.count <= 50 && 
+                                            !nextLineTrimmed.allSatisfy({ $0.isNumber || $0 == "," || $0 == "." || $0.isWhitespace })
+                    
+                    if looksLikeNamePart {
+                        nameParts.append(nextLineTrimmed)
+                        print("Debug: Added name continuation: '\(nextLineTrimmed)'")
+                        i += 1
+                    } else {
+                        // Unknown line type, stop
+                        print("Debug: Stopping name collection at line \(i): '\(nextLineTrimmed)'")
+                        break
+                    }
+                }
+            }
+            
+            let fullName = nameParts.joined(separator: " ")
+            print("Debug: Full name assembled: '\(fullName)'")
+            
+            // Now parse the price line
+            if i < itemsEndIndex {
+                let priceLine = lines[i]
+                let priceLineTrimmed = priceLine.trimmingCharacters(in: .whitespaces)
+                let priceLeadingSpaces = priceLine.prefix(while: { $0 == " " }).count
+                
+                // Check if this is a heavily indented price line
+                let hasPricePattern = priceLineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
+                
+                if priceLeadingSpaces >= 5 && hasPricePattern && !priceLineTrimmed.isEmpty {
+                    print("Debug: Processing price line: '\(priceLineTrimmed)'")
+                    
+                    // Extract prices and quantity using regex
+                    guard let unitPrice = extractDecimal(from: priceLineTrimmed) else {
+                        print("Debug: Failed to extract unit price from: '\(priceLineTrimmed)'")
+                        i += 1
+                        continue
+                    }
+                    
+                    let lineTotal = extractLineTotal(from: priceLineTrimmed) ?? unitPrice
+                    let quantity = extractQuantity(from: priceLineTrimmed)
+                    
+                    let item = ParsedReceiptItem(
+                        name: fullName,
+                        quantity: quantity,
+                        unitPrice: unitPrice,
+                        lineTotal: lineTotal
+                    )
+                    
+                    items.append(item)
+                    print("Debug: ✅ Parsed item #\(items.count): '\(fullName)', Qty=\(quantity), Price=\(unitPrice), Total=\(lineTotal)")
+                    
+                    i += 1
+                } else if !fullName.isEmpty {
+                    print("Debug: Warning - Item name found but no valid price line: '\(priceLineTrimmed)'")
+                    // Don't increment i - let the outer loop handle this line
+                }
             }
         }
         
