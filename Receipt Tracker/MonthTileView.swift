@@ -17,13 +17,13 @@ struct MonthTileView: View {
         VStack(alignment: .leading, spacing: 10) {
             // Month Name
             Text(month.uppercased())
-                .font(.system(.caption, design: .default, weight: .semibold))
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
             
             // Receipt Count
             Text("\(receiptCount) receipts")
-                .font(.system(.caption2, design: .default))
+                .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(.secondary)
             
             // Visual Bar Chart
@@ -52,7 +52,7 @@ struct MonthTileView: View {
                     .frame(width: 6, height: 6)
                 
                 Text(formatCurrency(leftOverBalance))
-                    .font(.system(.caption2, design: .default))
+                    .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -65,7 +65,7 @@ struct MonthTileView: View {
                     .frame(width: 6, height: 6)
                 
                 Text(formatCurrency(spent))
-                    .font(.system(.caption2, design: .default))
+                    .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
@@ -73,7 +73,7 @@ struct MonthTileView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(uiColor: .systemGray6))
+        .background(Color(uiColor: .secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
     
