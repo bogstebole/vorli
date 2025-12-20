@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import PhotosUI
 
 struct QRScannerView: View {
     @Environment(\.dismiss) private var dismiss
@@ -14,6 +15,9 @@ struct QRScannerView: View {
     
     @State private var isAuthorized = false
     @State private var showAuthAlert = false
+    @State private var selectedPhoto: PhotosPickerItem?
+    @State private var showError = false
+    @State private var errorMessage = ""
     
     var body: some View {
         NavigationStack {
@@ -62,10 +66,27 @@ struct QRScannerView: View {
                         dismiss()
                     }
                 }
+                
+                ToolbarItem(placement: .primaryAction) {
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                        Label("Upload", systemImage: "photo.on.rectangle")
+                            .font(.system(.body, design: .monospaced))
+                    }
+                }
+            }
+            .alert("QR Code Error", isPresented: $showError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
             }
         }
         .task {
             await checkCameraAuthorization()
+        }
+        .onChange(of: selectedPhoto) { _, newValue in
+            Task {
+                await loadAndDecodeQRCode(from: newValue)
+            }
         }
     }
     
@@ -79,6 +100,40 @@ struct QRScannerView: View {
             isAuthorized = await AVCaptureDevice.requestAccess(for: .video)
         default:
             isAuthorized = false
+        }
+    }
+    
+    private func loadAndDecodeQRCode(from photoItem: PhotosPickerItem?) async {
+        guard let photoItem = photoItem else { return }
+        
+        do {
+            guard let imageData = try await photoItem.loadTransferable(type: Data.self),
+                  let uiImage = UIImage(data: imageData),
+                  let ciImage = CIImage(image: uiImage) else {
+                errorMessage = "Failed to load image"
+                showError = true
+                return
+            }
+            
+            // Detect QR codes in the image
+            let context = CIContext()
+            let detector = CIDetector(ofType: CIDetectorTypeQRCode, context: context, options: [CIDetectorAccuracy: CIDetectorAccuracyHigh])
+            
+            guard let features = detector?.features(in: ciImage) as? [CIQRCodeFeature],
+                  let firstFeature = features.first,
+                  let qrCodeString = firstFeature.messageString else {
+                errorMessage = "No QR code found in the selected image"
+                showError = true
+                return
+            }
+            
+            // Successfully decoded QR code
+            onScan(qrCodeString)
+            dismiss()
+            
+        } catch {
+            errorMessage = "Failed to process image: \(error.localizedDescription)"
+            showError = true
         }
     }
 }
