@@ -13,6 +13,10 @@
 		E82F3CBC2EF0657700ABCF0D /* AddBalanceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */; };
 		E82F3CBE2EF0658C00ABCF0D /* DashboardSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */; };
 		E82F3CC02EF0662000ABCF0D /* UI_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = E82F3CBF2EF0662000ABCF0D /* UI_IMPLEMENTATION.md */; };
+		E82F3CCF2EF9C91A00ABCF0D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = E82F3CCE2EF9C91A00ABCF0D /* FirebaseAuth */; };
+		E82F3CD12EF9C91A00ABCF0D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = E82F3CD02EF9C91A00ABCF0D /* FirebaseFirestore */; };
+		E82F3CD32EF9CBC700ABCF0D /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E82F3CD22EF9CBC700ABCF0D /* GoogleService-Info.plist */; };
+		E82F3CD52EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md in Resources */ = {isa = PBXBuildFile; fileRef = E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +27,8 @@
 		E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBalanceSheet.swift; sourceTree = "<group>"; };
 		E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSheet.swift; sourceTree = "<group>"; };
 		E82F3CBF2EF0662000ABCF0D /* UI_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_IMPLEMENTATION.md; sourceTree = "<group>"; };
+		E82F3CD22EF9CBC700ABCF0D /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FIREBASE_AUTH_SETUP.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -38,6 +44,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E82F3CCF2EF9C91A00ABCF0D /* FirebaseAuth in Frameworks */,
+				E82F3CD12EF9C91A00ABCF0D /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -55,6 +63,8 @@
 				E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */,
 				E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */,
 				E82F3CBF2EF0662000ABCF0D /* UI_IMPLEMENTATION.md */,
+				E82F3CD22EF9CBC700ABCF0D /* GoogleService-Info.plist */,
+				E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -86,6 +96,8 @@
 			);
 			name = "Receipt Tracker";
 			packageProductDependencies = (
+				E82F3CCE2EF9C91A00ABCF0D /* FirebaseAuth */,
+				E82F3CD02EF9C91A00ABCF0D /* FirebaseFirestore */,
 			);
 			productName = "Receipt Tracker";
 			productReference = E82F3C8D2EF048AA00ABCF0D /* Receipt Tracker.app */;
@@ -115,6 +127,9 @@
 			);
 			mainGroup = E82F3C842EF048AA00ABCF0D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E82F3CCD2EF9C91A00ABCF0D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E82F3C8E2EF048AA00ABCF0D /* Products */;
 			projectDirPath = "";
@@ -130,7 +145,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E82F3CD32EF9CBC700ABCF0D /* GoogleService-Info.plist in Resources */,
 				E82F3CC02EF0662000ABCF0D /* UI_IMPLEMENTATION.md in Resources */,
+				E82F3CD52EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,12 +295,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Receipt Tracker/Receipt Tracker.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QLXB6T6X9W;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Receipt-Tracker-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan receipt QR codes";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -312,12 +331,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "Receipt Tracker/Receipt Tracker.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = QLXB6T6X9W;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Receipt-Tracker-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to scan receipt QR codes";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -363,6 +384,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E82F3CCD2EF9C91A00ABCF0D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.7.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E82F3CCE2EF9C91A00ABCF0D /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E82F3CCD2EF9C91A00ABCF0D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		E82F3CD02EF9C91A00ABCF0D /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E82F3CCD2EF9C91A00ABCF0D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E82F3C852EF048AA00ABCF0D /* Project object */;
 }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AuthenticationServices
 
 struct LoginView: View {
     @Environment(AuthenticationManager.self) private var authManager
@@ -98,6 +99,36 @@ struct LoginView: View {
                 .disabled(isLoading || email.isEmpty || password.isEmpty)
                 .opacity((isLoading || email.isEmpty || password.isEmpty) ? 0.6 : 1.0)
                 
+                // Divider
+                HStack {
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundStyle(.secondary.opacity(0.3))
+                    
+                    Text("OR")
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                    
+                    Rectangle()
+                        .frame(height: 1)
+                        .foregroundStyle(.secondary.opacity(0.3))
+                }
+                .padding(.vertical, 8)
+                
+                // Apple Sign In Button
+                SignInWithAppleButton(.signIn) { request in
+                    request.requestedScopes = [.email, .fullName]
+                    request.nonce = authManager.startSignInWithAppleFlow()
+                } onCompletion: { result in
+                    Task {
+                        await handleAppleSignIn(result)
+                    }
+                }
+                .signInWithAppleButtonStyle(.black)
+                .frame(height: 50)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                
                 Spacer()
                 
                 // Sign Up Link
@@ -139,6 +170,21 @@ struct LoginView: View {
         do {
             try await authManager.signIn(email: email, password: password)
         } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+    
+    private func handleAppleSignIn(_ result: Result<ASAuthorization, Error>) async {
+        switch result {
+        case .success(let authorization):
+            do {
+                try await authManager.signInWithApple(authorization: authorization)
+            } catch {
+                errorMessage = error.localizedDescription
+                showError = true
+            }
+        case .failure(let error):
             errorMessage = error.localizedDescription
             showError = true
         }

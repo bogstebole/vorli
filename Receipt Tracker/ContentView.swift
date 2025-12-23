@@ -10,6 +10,7 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AuthenticationManager.self) private var authManager
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
     @State private var budget: Budget?
     
@@ -19,13 +20,14 @@ struct ContentView: View {
     @State private var showScanner = false
     @State private var showAddBalance = false
     @State private var showDashboard = false
+    @State private var showSettings = false
     @State private var scannedReceipt: Receipt?
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Custom Header
-                CustomHeader()
+                CustomHeader(showSettings: $showSettings)
                 
                 // Main Content - Scrollable
                 ScrollView {
@@ -85,7 +87,7 @@ struct ContentView: View {
                         // TODO: Implement filter
                         print("Filter tapped")
                     } label: {
-                        Image(systemName: "line.3.horizontal.decrease.circle")
+                        Image(systemName: "line.3.horizontal.decrease")
                     }
                     
                     Button {
@@ -127,6 +129,10 @@ struct ContentView: View {
                 DashboardSheet(receipts: allReceipts) { month in
                     selectedMonth = month
                 }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsSheet()
+                    .environment(authManager)
             }
             .navigationDestination(item: $scannedReceipt) { receipt in
                 ReceiptDetailView(receipt: receipt)
@@ -196,6 +202,8 @@ struct ContentView: View {
 // MARK: - Custom Header
 
 struct CustomHeader: View {
+    @Binding var showSettings: Bool
+    
     var body: some View {
         HStack {
             // Title
@@ -207,8 +215,7 @@ struct CustomHeader: View {
             
             // Avatar Button
             Button {
-                // TODO: Navigate to settings
-                print("Settings tapped")
+                showSettings = true
             } label: {
                 Image("avatar") // Replace with your actual image asset name
                     .resizable()
