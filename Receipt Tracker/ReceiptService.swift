@@ -90,6 +90,27 @@ class ReceiptService {
         try modelContext.save()
     }
     
+    /// Adds balance and creates a budget entry for tracking
+    func addBalanceEntry(amount: Decimal) throws {
+        let budget = try getBudget()
+        budget.currentBalance += amount
+        budget.lastUpdated = Date()
+        
+        // Create a budget entry to track this addition
+        let entry = BudgetEntry(amount: amount, timestamp: Date())
+        modelContext.insert(entry)
+        
+        try modelContext.save()
+    }
+    
+    /// Fetches all budget entries sorted by date
+    func fetchBudgetEntries() throws -> [BudgetEntry] {
+        let descriptor = FetchDescriptor<BudgetEntry>(
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+    
     /// Deducts an amount from the budget
     private func deductFromBudget(amount: Decimal) async throws {
         let budget = try getBudget()

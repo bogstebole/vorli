@@ -95,3 +95,23 @@ final class Budget {
         self.lastUpdated = lastUpdated
     }
 }
+@Model
+final class BudgetEntry {
+    var id: UUID
+    var amount: Decimal
+    var timestamp: Date
+    var note: String
+    
+    init(
+        id: UUID = UUID(),
+        amount: Decimal,
+        timestamp: Date = Date(),
+        note: String = ""
+    ) {
+        self.id = id
+        self.amount = amount
+        self.timestamp = timestamp
+        self.note = note
+    }
+}
+

@@ -9,10 +9,12 @@ import SwiftUI
 
 struct DashboardSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     let receipts: [Receipt]
     let onMonthSelected: (Date) -> Void
     
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
+    @State private var budgetEntries: [BudgetEntry] = []
     
     var body: some View {
         NavigationStack {
@@ -99,6 +101,9 @@ struct DashboardSheet: View {
                         }
                     }
             )
+            .task {
+                loadBudgetEntries()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -154,6 +159,11 @@ struct DashboardSheet: View {
     
     // MARK: - Helper Methods
     
+    private func loadBudgetEntries() {
+        let service = ReceiptService(modelContext: modelContext)
+        budgetEntries = (try? service.fetchBudgetEntries()) ?? []
+    }
+    
     private func formatMonthName(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM"
@@ -162,9 +172,26 @@ struct DashboardSheet: View {
     }
     
     private func calculateLeftOverBalance(for date: Date, spent: Decimal) -> Decimal {
-        // Return 0 if there's no budget data
-        // In the future, you can integrate with actual budget tracking
-        return 0
+        let calendar = Calendar.current
+        
+        // Get the start and end of the month
+        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: date)),
+              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart) else {
+            return 0
+        }
+        
+        // Get all budget entries for this month
+        let monthBudgetEntries = budgetEntries.filter { entry in
+            calendar.isDate(entry.timestamp, equalTo: date, toGranularity: .month)
+        }
+        
+        // Sum all budget entries added in this month
+        let totalBudgetAdded = monthBudgetEntries.reduce(Decimal(0)) { $0 + $1.amount }
+        
+        // Leftover balance = budget added this month - spent this month
+        let leftOver = totalBudgetAdded - spent
+        
+        return max(leftOver, 0) // Don't show negative values in the chart
     }
 }
 

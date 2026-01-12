@@ -12,6 +12,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(AuthenticationManager.self) private var authManager
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
+    @Query(sort: \BudgetEntry.timestamp, order: .reverse) private var budgetEntries: [BudgetEntry]
     @State private var budget: Budget?
     
     @State private var selectedMonth: Date = Date()
@@ -36,7 +37,7 @@ struct ContentView: View {
                         if let budget = budget {
                             MonthBalanceCard(
                                 month: currentMonthName,
-                                currentBalance: budget.currentBalance,
+                                currentBalance: currentMonthLeftoverBalance,
                                 spent: currentMonthSpent
                             )
                         }
@@ -163,6 +164,23 @@ struct ContentView: View {
         filteredReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
     }
     
+    private var currentMonthLeftoverBalance: Decimal {
+        let calendar = Calendar.current
+        
+        // Get all budget entries for the selected month
+        let monthBudgetEntries = budgetEntries.filter { entry in
+            calendar.isDate(entry.timestamp, equalTo: selectedMonth, toGranularity: .month)
+        }
+        
+        // Sum all budget entries added in this month
+        let totalBudgetAdded = monthBudgetEntries.reduce(Decimal(0)) { $0 + $1.amount }
+        
+        // Leftover balance = budget added this month - spent this month
+        let leftOver = totalBudgetAdded - currentMonthSpent
+        
+        return leftOver
+    }
+    
     // MARK: - Methods
     
     private func loadBudget() {
@@ -192,10 +210,8 @@ struct ContentView: View {
     
     private func addBalance(_ amount: Decimal) {
         let service = ReceiptService(modelContext: modelContext)
-        if let currentBudget = budget {
-            try? service.updateBudget(newBalance: currentBudget.currentBalance + amount)
-            loadBudget()
-        }
+        try? service.addBalanceEntry(amount: amount)
+        loadBudget()
     }
 }
 
@@ -262,12 +278,12 @@ struct EmptyReceiptsView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: [Receipt.self, Budget.self], inMemory: true)
+        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self], inMemory: true)
 }
 
 
 
 #Preview {
     ContentView()
-        .modelContainer(for: [Receipt.self, Budget.self], inMemory: true)
+        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self], inMemory: true)
 }
