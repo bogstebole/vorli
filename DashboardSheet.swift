@@ -18,11 +18,22 @@ struct DashboardSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Year Header
+                    // Year Header with swipe indicators
                     VStack(spacing: 12) {
-                        Text("\(selectedYear)")
-                            .font(.system(.largeTitle, design: .default, weight: .bold))
-                            .foregroundStyle(.primary)
+                        HStack(spacing: 16) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(.title3, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            
+                            Text(String(format: "%d", selectedYear))
+                                .font(.system(.largeTitle, design: .default, weight: .bold))
+                                .foregroundStyle(.primary)
+                                .contentTransition(.numericText())
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(.title3, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
                         
                         // Legend
                         HStack(spacing: 20) {
@@ -74,6 +85,20 @@ struct DashboardSheet: View {
             }
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.inline)
+            .gesture(
+                DragGesture(minimumDistance: 50)
+                    .onEnded { value in
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            if value.translation.width > 0 {
+                                // Swipe right - go to previous year
+                                selectedYear -= 1
+                            } else {
+                                // Swipe left - go to next year
+                                selectedYear += 1
+                            }
+                        }
+                    }
+            )
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -137,11 +162,9 @@ struct DashboardSheet: View {
     }
     
     private func calculateLeftOverBalance(for date: Date, spent: Decimal) -> Decimal {
-        // This is a placeholder calculation
-        // You would need to track budget history to get accurate left over balance
-        // For now, we'll show a reasonable estimate based on an assumed monthly budget
-        let assumedMonthlyBudget: Decimal = 100000 // 100,000 RSD
-        return max(0, assumedMonthlyBudget - spent)
+        // Return 0 if there's no budget data
+        // In the future, you can integrate with actual budget tracking
+        return 0
     }
 }
 
