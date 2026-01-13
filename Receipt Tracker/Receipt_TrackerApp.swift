@@ -22,7 +22,8 @@ struct Receipt_TrackerApp: App {
     // Register app delegate for Firebase setup
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
-    @State private var authManager: AuthenticationManager?
+    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+    // @State private var authManager: AuthenticationManager?
     
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
@@ -46,26 +47,31 @@ struct Receipt_TrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if let authManager = authManager {
-                    if authManager.isAuthenticated {
-                        ContentView()
-                            .modelContainer(sharedModelContainer)
-                            .environment(authManager)
-                    } else {
-                        LoginView()
-                            .environment(authManager)
-                    }
-                } else {
-                    // Show loading while initializing
-                    ProgressView()
-                }
-            }
-            .onAppear {
-                if authManager == nil {
-                    authManager = AuthenticationManager()
-                }
-            }
+            // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+            // Group {
+            //     if let authManager = authManager {
+            //         if authManager.isAuthenticated {
+            //             ContentView()
+            //                 .modelContainer(sharedModelContainer)
+            //                 .environment(authManager)
+            //         } else {
+            //             LoginView()
+            //                 .environment(authManager)
+            //         }
+            //     } else {
+            //         // Show loading while initializing
+            //         ProgressView()
+            //     }
+            // }
+            // .onAppear {
+            //     if authManager == nil {
+            //         authManager = AuthenticationManager()
+            //     }
+            // }
+            
+            // FIRST RELEASE - Direct to ContentView without authentication
+            ContentView()
+                .modelContainer(sharedModelContainer)
         }
     }
 }

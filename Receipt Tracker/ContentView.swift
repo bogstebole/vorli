@@ -10,7 +10,8 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    @Environment(AuthenticationManager.self) private var authManager
+    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+    // @Environment(AuthenticationManager.self) private var authManager
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
     @Query(sort: \BudgetEntry.timestamp, order: .reverse) private var budgetEntries: [BudgetEntry]
     @State private var budget: Budget?
@@ -38,7 +39,8 @@ struct ContentView: View {
                             MonthBalanceCard(
                                 month: currentMonthName,
                                 currentBalance: currentMonthLeftoverBalance,
-                                spent: currentMonthSpent
+                                spent: currentMonthSpent,
+                                spentToday: spentToday
                             )
                         }
                         
@@ -133,7 +135,8 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsSheet()
-                    .environment(authManager)
+                    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+                    // .environment(authManager)
             }
             .navigationDestination(item: $scannedReceipt) { receipt in
                 ReceiptDetailView(receipt: receipt)
@@ -179,6 +182,15 @@ struct ContentView: View {
         let leftOver = totalBudgetAdded - currentMonthSpent
         
         return leftOver
+    }
+    
+    private var spentToday: Decimal {
+        let calendar = Calendar.current
+        let today = Date()
+        
+        return allReceipts.filter { receipt in
+            calendar.isDate(receipt.timestamp, inSameDayAs: today)
+        }.reduce(Decimal(0)) { $0 + $1.totalAmount }
     }
     
     // MARK: - Methods
@@ -229,6 +241,8 @@ struct CustomHeader: View {
             
             Spacer()
             
+            // COMMENTED OUT FOR FIRST RELEASE - NO SETTINGS/AUTHENTICATION
+            /*
             // Avatar Button
             Button {
                 showSettings = true
@@ -247,6 +261,7 @@ struct CustomHeader: View {
                     .shadow(color: .black.opacity(0), radius: 4.5, x: 2, y: 33)
                     .rotationEffect(Angle(degrees: -5))
             }
+            */
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)

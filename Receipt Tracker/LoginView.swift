@@ -5,6 +5,8 @@
 //  Created by Bogdan Stefanovic on 22. 12. 2025.
 //
 
+// COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+/*
 import SwiftUI
 import AuthenticationServices
 
@@ -195,3 +197,4 @@ struct LoginView: View {
     LoginView()
         .environment(AuthenticationManager())
 }
+*/

@@ -19,6 +19,7 @@
 		E82F3CD52EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md in Resources */ = {isa = PBXBuildFile; fileRef = E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */; };
 		E86DF8262F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md in Resources */ = {isa = PBXBuildFile; fileRef = E86DF8252F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md */; };
 		E86DF8282F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = E86DF8272F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md */; };
+		E86DF89D2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md in Resources */ = {isa = PBXBuildFile; fileRef = E86DF89C2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +34,7 @@
 		E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FIREBASE_AUTH_SETUP.md; sourceTree = "<group>"; };
 		E86DF8252F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MONTHLY_BALANCE_FIX.md; sourceTree = "<group>"; };
 		E86DF8272F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DASHBOARD_FIX_SUMMARY.md; sourceTree = "<group>"; };
+		E86DF89C2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AUTHENTICATION_DISABLED.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -71,6 +73,7 @@
 				E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */,
 				E86DF8252F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md */,
 				E86DF8272F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md */,
+				E86DF89C2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -153,6 +156,7 @@
 			files = (
 				E86DF8262F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md in Resources */,
 				E86DF8282F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md in Resources */,
+				E86DF89D2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md in Resources */,
 				E82F3CD32EF9CBC700ABCF0D /* GoogleService-Info.plist in Resources */,
 				E82F3CC02EF0662000ABCF0D /* UI_IMPLEMENTATION.md in Resources */,
 				E82F3CD52EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md in Resources */,

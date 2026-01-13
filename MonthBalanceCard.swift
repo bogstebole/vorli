@@ -11,6 +11,7 @@ struct MonthBalanceCard: View {
     let month: String
     let currentBalance: Decimal
     let spent: Decimal
+    let spentToday: Decimal
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -28,7 +29,7 @@ struct MonthBalanceCard: View {
             
             // Current Balance
             HStack(spacing: 4) {
-                Text("Current balance:")
+                Text("Balance:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                 
@@ -39,11 +40,21 @@ struct MonthBalanceCard: View {
             
             // Spent This Month
             HStack(spacing: 4) {
-                Text("Spent:")
+                Text("Month:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                 
                 Text(formatCurrency(spent))
+                    .font(.system(.body, design: .monospaced, weight: .regular))
+                    .foregroundStyle(.primary)
+            }
+            // Spent Today
+            HStack(spacing: 4) {
+                Text("Today:")
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            
+                Text(formatCurrency(spentToday))
                     .font(.system(.body, design: .monospaced, weight: .regular))
                     .foregroundStyle(.primary)
             }
@@ -85,7 +96,8 @@ struct MonthBalanceCard: View {
     MonthBalanceCard(
         month: "December 2025",
         currentBalance: 15420.00,
-        spent: 8650.00
+        spent: 8650.00,
+        spentToday: 150.00
     )
     .padding()
 }

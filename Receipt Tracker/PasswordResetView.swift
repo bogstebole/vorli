@@ -5,6 +5,8 @@
 //  Created by Bogdan Stefanovic on 22. 12. 2025.
 //
 
+// COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+/*
 import SwiftUI
 
 struct PasswordResetView: View {
@@ -117,3 +119,4 @@ struct PasswordResetView: View {
     PasswordResetView()
         .environment(AuthenticationManager())
 }
+*/

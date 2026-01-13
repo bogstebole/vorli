@@ -6,20 +6,25 @@
 //
 
 import SwiftUI
-import FirebaseAuth
+// COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+// import FirebaseAuth
 
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(AuthenticationManager.self) private var authManager
+    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+    // @Environment(AuthenticationManager.self) private var authManager
     
-    @State private var showSignOutConfirmation = false
-    @State private var showDeleteAccountConfirmation = false
-    @State private var errorMessage: String?
-    @State private var showError = false
+    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+    // @State private var showSignOutConfirmation = false
+    // @State private var showDeleteAccountConfirmation = false
+    // @State private var errorMessage: String?
+    // @State private var showError = false
     
     var body: some View {
         NavigationStack {
             List {
+                // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+                /*
                 // Account Section
                 Section {
                     if let user = authManager.user {
@@ -71,6 +76,14 @@ struct SettingsSheet: View {
                     Text("Actions")
                         .font(.system(.caption, design: .monospaced))
                 }
+                */
+                
+                // Placeholder for first release
+                Section {
+                    Text("Settings coming soon")
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -81,6 +94,8 @@ struct SettingsSheet: View {
                     }
                 }
             }
+            // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+            /*
             .confirmationDialog("Sign Out", isPresented: $showSignOutConfirmation) {
                 Button("Sign Out", role: .destructive) {
                     signOut()
@@ -106,11 +121,14 @@ struct SettingsSheet: View {
                     Text(errorMessage)
                 }
             }
+            */
         }
     }
     
     // MARK: - Methods
     
+    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+    /*
     private func signOut() {
         do {
             try authManager.signOut()
@@ -130,9 +148,13 @@ struct SettingsSheet: View {
             showError = true
         }
     }
+    */
 }
 
+// COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+/*
 #Preview {
     SettingsSheet()
         .environment(AuthenticationManager())
 }
+*/

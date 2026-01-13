@@ -5,6 +5,8 @@
 //  Created by Bogdan Stefanovic on 22. 12. 2025.
 //
 
+// COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+/*
 import Foundation
 import FirebaseAuth
 import AuthenticationServices
@@ -161,3 +163,4 @@ enum AuthError: LocalizedError {
         }
     }
 }
+*/

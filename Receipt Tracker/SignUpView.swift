@@ -5,6 +5,8 @@
 //  Created by Bogdan Stefanovic on 22. 12. 2025.
 //
 
+// COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
+/*
 import SwiftUI
 
 struct SignUpView: View {
@@ -149,3 +151,4 @@ struct SignUpView: View {
     SignUpView()
         .environment(AuthenticationManager())
 }
+*/
