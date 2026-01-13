@@ -71,12 +71,12 @@ struct ReceiptCardView: View {
     ReceiptCardView(receipt: Receipt(
         url: "https://example.com",
         merchantName: "FINEST FOOD",
-        merchantAddress: "ЗАПЛАЊСКА 43",
-        merchantCity: "Београд-Вождовац",
+        merchantAddress: "ZAPLANJSKA 43",
+        merchantCity: "Beograd-Vozdovac",
         timestamp: Date(),
         totalAmount: 2880.00,
         totalTax: 480.00,
-        paymentMethod: "Безготовинско плаћање",
+        paymentMethod: "Bezgotovinsko placanje",
         receiptNumber: "S8SMA9VT-C38FDVO0-36894",
         cashRegisterNumber: "1099/1.0.0"
     ))

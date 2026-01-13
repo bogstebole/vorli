@@ -47,6 +47,6 @@ struct EqualsPattern: View {
 }
 
 #Preview {
-    SectionDivider(title: "Receipts")
+    SectionDivider(title: "Računi")
         .padding()
 }

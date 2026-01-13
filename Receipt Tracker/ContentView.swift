@@ -28,24 +28,21 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Custom Header
-                CustomHeader(showSettings: $showSettings)
-                
                 // Main Content - Scrollable
                 ScrollView {
                     VStack(spacing: 12) {
                         // Month/Balance Card
-                        if let budget = budget {
+                        if budget != nil {
                             MonthBalanceCard(
                                 month: currentMonthName,
                                 currentBalance: currentMonthLeftoverBalance,
                                 spent: currentMonthSpent,
-                                spentToday: spentToday
+                                spentToday: currentDaySpent
                             )
                         }
                         
                         // Section Divider
-                        SectionDivider(title: "Receipts")
+                        SectionDivider(title: "Računi")
                             .padding(.horizontal)
                         
                         // Receipt Cards
@@ -65,7 +62,7 @@ struct ContentView: View {
                                         Button(role: .destructive) {
                                             deleteReceipt(receipt)
                                         } label: {
-                                            Label("Delete", systemImage: "trash")
+                                            Label("Obriši", systemImage: "trash")
                                         }
                                     }
                                 }
@@ -109,7 +106,7 @@ struct ContentView: View {
                     }
                 }
             }
-            .alert("Error", isPresented: $showError) {
+            .alert("Greška", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
             } message: {
                 if let errorMessage = errorMessage {
@@ -152,7 +149,7 @@ struct ContentView: View {
     private var currentMonthName: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
-        formatter.locale = Locale(identifier: "en_US") // Using English locale for Latin script
+        formatter.locale = Locale(identifier: "sr_Latn_RS") // Serbian Latin locale
         return formatter.string(from: selectedMonth)
     }
     
@@ -165,6 +162,14 @@ struct ContentView: View {
     
     private var currentMonthSpent: Decimal {
         filteredReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
+    }
+    
+    private var currentDaySpent: Decimal {
+        let calendar = Calendar.current
+        let today = Date()
+        return filteredReceipts.filter { receipt in
+            calendar.isDate(receipt.timestamp, inSameDayAs: today)
+        }.reduce(Decimal(0)) { $0 + $1.totalAmount }
     }
     
     private var currentMonthLeftoverBalance: Decimal {
@@ -182,15 +187,6 @@ struct ContentView: View {
         let leftOver = totalBudgetAdded - currentMonthSpent
         
         return leftOver
-    }
-    
-    private var spentToday: Decimal {
-        let calendar = Calendar.current
-        let today = Date()
-        
-        return allReceipts.filter { receipt in
-            calendar.isDate(receipt.timestamp, inSameDayAs: today)
-        }.reduce(Decimal(0)) { $0 + $1.totalAmount }
     }
     
     // MARK: - Methods
@@ -235,7 +231,7 @@ struct CustomHeader: View {
     var body: some View {
         HStack {
             // Title
-            Text("Receipts")
+            Text("Računi")
                 .font(.system(.title3, design: .monospaced, weight: .regular))
                 .foregroundStyle(.primary)
             
@@ -277,11 +273,11 @@ struct EmptyReceiptsView: View {
                 .font(.system(size: 60))
                 .foregroundStyle(.tertiary)
             
-            Text("No receipts this month")
+            Text("Nema računa ovog meseca")
                 .font(.system(.headline, design: .monospaced))
                 .foregroundStyle(.secondary)
             
-            Text("Scan a QR code to add your first receipt")
+            Text("Skenirajte QR kod da dodate prvi račun")
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)

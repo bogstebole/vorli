@@ -80,16 +80,16 @@ struct SettingsSheet: View {
                 
                 // Placeholder for first release
                 Section {
-                    Text("Settings coming soon")
+                    Text("Podešavanja uskoro")
                         .font(.system(.body, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle("Podešavanja")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") {
+                    Button("Gotovo") {
                         dismiss()
                     }
                 }

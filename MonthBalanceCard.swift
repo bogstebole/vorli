@@ -29,7 +29,7 @@ struct MonthBalanceCard: View {
             
             // Current Balance
             HStack(spacing: 4) {
-                Text("Balance:")
+                Text("Stanje:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                 
@@ -40,7 +40,7 @@ struct MonthBalanceCard: View {
             
             // Spent This Month
             HStack(spacing: 4) {
-                Text("Month:")
+                Text("Mesec:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                 
@@ -50,7 +50,7 @@ struct MonthBalanceCard: View {
             }
             // Spent Today
             HStack(spacing: 4) {
-                Text("Today:")
+                Text("Danas:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
             
@@ -71,7 +71,8 @@ struct MonthBalanceCard: View {
     private var monthName: String {
         // Extract month name from the month string (e.g., "December" from "December 2025")
         let components = month.components(separatedBy: " ")
-        return components.first ?? month
+        let name = components.first ?? month
+        return name.prefix(1).uppercased() + name.dropFirst()
     }
     
     private var yearString: String {
@@ -94,7 +95,7 @@ struct MonthBalanceCard: View {
 
 #Preview {
     MonthBalanceCard(
-        month: "December 2025",
+        month: "decembar 2025",
         currentBalance: 15420.00,
         spent: 8650.00,
         spentToday: 150.00

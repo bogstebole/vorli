@@ -33,10 +33,10 @@ struct QRScannerView: View {
                             .font(.system(size: 60))
                             .foregroundStyle(.gray)
                         
-                        Text("Camera Access Required")
+                        Text("Potreban pristup kameri")
                             .font(.system(.title2, design: .monospaced, weight: .bold))
                         
-                        Text("To scan QR codes, please grant camera access in Settings")
+                        Text("Da biste skenirali QR kodove, omogućite pristup kameri u podešavanjima")
                             .font(.system(.body, design: .monospaced))
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -47,7 +47,7 @@ struct QRScannerView: View {
                                 UIApplication.shared.open(settingsURL)
                             }
                         } label: {
-                            Text("Open Settings")
+                            Text("Otvori podešavanja")
                                 .font(.system(.body, design: .monospaced))
                                 .padding()
                                 .background(Color.blue.gradient)
@@ -58,23 +58,23 @@ struct QRScannerView: View {
                     .padding()
                 }
             }
-            .navigationTitle("Scan QR Code")
+            .navigationTitle("Skeniraj QR kod")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("Otkaži") {
                         dismiss()
                     }
                 }
                 
                 ToolbarItem(placement: .primaryAction) {
                     PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                        Label("Upload", systemImage: "photo.on.rectangle")
+                        Label("Učitaj", systemImage: "photo.on.rectangle")
                             .font(.system(.body, design: .monospaced))
                     }
                 }
             }
-            .alert("QR Code Error", isPresented: $showError) {
+            .alert("Greška QR koda", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(errorMessage)
@@ -110,7 +110,7 @@ struct QRScannerView: View {
             guard let imageData = try await photoItem.loadTransferable(type: Data.self),
                   let uiImage = UIImage(data: imageData),
                   let ciImage = CIImage(image: uiImage) else {
-                errorMessage = "Failed to load image"
+                errorMessage = "Neuspešno učitavanje slike"
                 showError = true
                 return
             }
@@ -122,7 +122,7 @@ struct QRScannerView: View {
             guard let features = detector?.features(in: ciImage) as? [CIQRCodeFeature],
                   let firstFeature = features.first,
                   let qrCodeString = firstFeature.messageString else {
-                errorMessage = "No QR code found in the selected image"
+                errorMessage = "Nije pronađen QR kod na odabranoj slici"
                 showError = true
                 return
             }
@@ -132,7 +132,7 @@ struct QRScannerView: View {
             dismiss()
             
         } catch {
-            errorMessage = "Failed to process image: \(error.localizedDescription)"
+            errorMessage = "Neuspešna obrada slike: \(error.localizedDescription)"
             showError = true
         }
     }
@@ -283,7 +283,7 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
         
         // Add instruction label
         let instructionLabel = UILabel()
-        instructionLabel.text = "Align QR code within frame"
+        instructionLabel.text = "Poravnajte QR kod unutar okvira"
         instructionLabel.font = UIFont.monospacedSystemFont(ofSize: 14, weight: .medium)
         instructionLabel.textColor = .white
         instructionLabel.textAlignment = .center
@@ -303,7 +303,7 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
     }
     
     private func failed() {
-        let ac = UIAlertController(title: "Scanning not supported", message: "Your device does not support scanning QR codes.", preferredStyle: .alert)
+        let ac = UIAlertController(title: "Skeniranje nije podržano", message: "Vaš uređaj ne podržava skeniranje QR kodova.", preferredStyle: .alert)
         ac.addAction(UIAlertAction(title: "OK", style: .default))
         present(ac, animated: true)
     }

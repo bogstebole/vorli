@@ -44,7 +44,7 @@ struct DashboardSheet: View {
                                     .fill(Color.cyan)
                                     .frame(width: 8, height: 8)
                                 
-                                Text("Left over balance")
+                                Text("Preostalo stanje")
                                     .font(.system(.caption, design: .default))
                                     .foregroundStyle(.secondary)
                             }
@@ -54,7 +54,7 @@ struct DashboardSheet: View {
                                     .fill(Color.purple)
                                     .frame(width: 8, height: 8)
                                 
-                                Text("Spent")
+                                Text("Potrošeno")
                                     .font(.system(.caption, design: .default))
                                     .foregroundStyle(.secondary)
                             }
@@ -85,7 +85,7 @@ struct DashboardSheet: View {
                 }
                 .padding(.bottom, 20)
             }
-            .navigationTitle("Dashboard")
+            .navigationTitle("Kontrolna tabla")
             .navigationBarTitleDisplayMode(.inline)
             .gesture(
                 DragGesture(minimumDistance: 50)
@@ -167,7 +167,7 @@ struct DashboardSheet: View {
     private func formatMonthName(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM"
-        formatter.locale = Locale(identifier: "en_US")
+        formatter.locale = Locale(identifier: "sr_Latn_RS")
         return formatter.string(from: date)
     }
     
