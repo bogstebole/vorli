@@ -65,17 +65,14 @@ struct MonthBalanceCard: View {
                         }
                     }
                 } label: {
-                    Label {
-                        Text("")
-                    } icon: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 18, weight: .medium))
-                    }
-                    .labelStyle(.iconOnly)
-                    .foregroundStyle(.primary)
-                    .frame(width: 36, height: 36)
-                    .glassEffect(.regular.interactive(), in: .circle)
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .tint (.primary)
+                        .frame(width: 36, height: 36)
+                        .glassEffect(.regular.interactive(), in: .circle)
                 }
+                .tint(.primary)
                 .accessibilityLabel("Opcije meseca")
             }
             .padding(.bottom, 6)
