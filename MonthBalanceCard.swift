@@ -31,7 +31,7 @@ struct MonthBalanceCard: View {
                 
                 Spacer()
                 
-                // Menu button
+                // Menu button with Liquid Glass effect
                 Menu {
                     // View Options
                     Section("Opcije") {
@@ -65,11 +65,16 @@ struct MonthBalanceCard: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 36, height: 36)
-                        .contentShape(Rectangle())
+                    Label {
+                        Text("")
+                    } icon: {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.system(size: 18, weight: .medium))
+                    }
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(.primary)
+                    .frame(width: 36, height: 36)
+                    .glassEffect(.regular.interactive(), in: .circle)
                 }
                 .accessibilityLabel("Opcije meseca")
             }
