@@ -13,6 +13,10 @@ struct MonthBalanceCard: View {
     let spent: Decimal
     let spentToday: Decimal
     
+    // Menu-related state
+    @State private var showingExportOptions = false
+    @State private var showingFilters = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Month Title with different colors for month and year
@@ -24,6 +28,50 @@ struct MonthBalanceCard: View {
                 Text(yearString)
                     .font(.system(.title, design: .monospaced, weight: .regular))
                     .foregroundStyle(.secondary)
+                
+                Spacer()
+                
+                // Menu button
+                Menu {
+                    // View Options
+                    Section("Opcije") {
+                        Button {
+                            showingFilters = true
+                        } label: {
+                            Label("Filtriraj račune", systemImage: "line.3.horizontal.decrease.circle")
+                        }
+                        
+                        Button {
+                            showingExportOptions = true
+                        } label: {
+                            Label("Izvezi podatke", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                    
+                    Divider()
+                    
+                    // Statistics
+                    Section("Statistika") {
+                        Button {
+                            // Action for showing detailed statistics
+                        } label: {
+                            Label("Detaljne statistike", systemImage: "chart.bar")
+                        }
+                        
+                        Button {
+                            // Action for showing spending breakdown
+                        } label: {
+                            Label("Raspored troškova", systemImage: "chart.pie")
+                        }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Opcije meseca")
             }
             .padding(.bottom, 6)
             
