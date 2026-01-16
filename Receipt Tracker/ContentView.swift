@@ -118,6 +118,10 @@ struct ContentView: View {
                     Task {
                         await processReceipt(from: url)
                     }
+                } onReceiptScan: { image in
+                    Task {
+                        await processReceiptImage(image)
+                    }
                 }
             }
             .sheet(isPresented: $showAddBalance) {
@@ -205,6 +209,22 @@ struct ContentView: View {
             loadBudget()
             scannedReceipt = receipt
         } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+    
+    private func processReceiptImage(_ image: UIImage) async {
+        print("📸 ContentView.processReceiptImage called with image: \(image.size)")
+        do {
+            let service = ReceiptService(modelContext: modelContext)
+            print("🔧 Calling service.processReceiptImage")
+            let receipt = try await service.processReceiptImage(image)
+            print("✅ Receipt processed successfully: \(receipt.merchantName)")
+            loadBudget()
+            scannedReceipt = receipt
+        } catch {
+            print("❌ Error in processReceiptImage: \(error)")
             errorMessage = error.localizedDescription
             showError = true
         }

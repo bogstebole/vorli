@@ -79,7 +79,7 @@ struct MonthBalanceCard: View {
             
             // Current Balance
             HStack(spacing: 4) {
-                Text("Stanje:")
+                Text("Stanje na računu:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                 
@@ -90,7 +90,7 @@ struct MonthBalanceCard: View {
             
             // Spent This Month
             HStack(spacing: 4) {
-                Text("Mesec:")
+                Text("Mesečni trošak:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                 
@@ -100,7 +100,7 @@ struct MonthBalanceCard: View {
             }
             // Spent Today
             HStack(spacing: 4) {
-                Text("Danas:")
+                Text("Dnevni trošak:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
             

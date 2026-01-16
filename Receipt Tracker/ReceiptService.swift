@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import UIKit
 
 /// Service for managing receipts and budget
 @MainActor
@@ -29,6 +30,63 @@ class ReceiptService {
         
         if (try? modelContext.fetch(descriptor).first) != nil {
             throw ReceiptError.duplicateReceipt
+        }
+        
+        // Create receipt items
+        let items = parsed.items.map { parsedItem in
+            ReceiptItem(
+                name: parsedItem.name,
+                quantity: parsedItem.quantity,
+                unitPrice: parsedItem.unitPrice,
+                lineTotal: parsedItem.lineTotal
+            )
+        }
+        
+        // Create receipt
+        let receipt = Receipt(
+            url: parsed.url,
+            merchantName: parsed.merchantName,
+            merchantAddress: parsed.merchantAddress,
+            merchantCity: parsed.merchantCity,
+            timestamp: parsed.timestamp,
+            totalAmount: parsed.totalAmount,
+            totalTax: parsed.totalTax,
+            paymentMethod: parsed.paymentMethod,
+            receiptNumber: parsed.receiptNumber,
+            cashRegisterNumber: parsed.cashRegisterNumber,
+            items: items
+        )
+        
+        // Update budget
+        try await deductFromBudget(amount: parsed.totalAmount)
+        
+        // Save to SwiftData
+        modelContext.insert(receipt)
+        try modelContext.save()
+        
+        return receipt
+    }
+    
+    /// Scans and saves a receipt from an image using OCR
+    func processReceiptImage(_ image: UIImage) async throws -> Receipt {
+        print("🚀 ReceiptService.processReceiptImage called")
+        print("📐 Image size: \(image.size)")
+        
+        // Parse the receipt using OCR
+        print("🔄 About to call ReceiptOCRParser.parseReceipt")
+        let parsed = try await ReceiptOCRParser.parseReceipt(from: image)
+        print("✅ ReceiptOCRParser returned successfully")
+        
+        // Check if receipt already exists (by receipt number if available)
+        if !parsed.receiptNumber.isEmpty {
+            let receiptNumber = parsed.receiptNumber
+            let descriptor = FetchDescriptor<Receipt>(
+                predicate: #Predicate { $0.receiptNumber == receiptNumber }
+            )
+            
+            if (try? modelContext.fetch(descriptor).first) != nil {
+                throw ReceiptError.duplicateReceipt
+            }
         }
         
         // Create receipt items

@@ -17,6 +17,12 @@
 		E82F3CD12EF9C91A00ABCF0D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = E82F3CD02EF9C91A00ABCF0D /* FirebaseFirestore */; };
 		E82F3CD32EF9CBC700ABCF0D /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E82F3CD22EF9CBC700ABCF0D /* GoogleService-Info.plist */; };
 		E82F3CD52EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md in Resources */ = {isa = PBXBuildFile; fileRef = E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */; };
+		E83903A52F1AC7A00065378F /* ReceiptOCRParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E83903A42F1AC7A00065378F /* ReceiptOCRParser.swift */; };
+		E83903A72F1AC8040065378F /* RECEIPT_SCANNING_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = E83903A62F1AC8040065378F /* RECEIPT_SCANNING_IMPLEMENTATION.md */; };
+		E83903A92F1AC81C0065378F /* RECEIPT_SCANNING_USER_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = E83903A82F1AC81C0065378F /* RECEIPT_SCANNING_USER_GUIDE.md */; };
+		E83903AB2F1AC84F0065378F /* IMPLEMENTATION_NOTES.md in Resources */ = {isa = PBXBuildFile; fileRef = E83903AA2F1AC84F0065378F /* IMPLEMENTATION_NOTES.md */; };
+		E83903D82F1ACE7B0065378F /* OCRTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E83903D72F1ACE7B0065378F /* OCRTestView.swift */; };
+		E83904052F1ADA820065378F /* OCR_IMPROVEMENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = E83904042F1ADA820065378F /* OCR_IMPROVEMENTS.md */; };
 		E86DF8262F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md in Resources */ = {isa = PBXBuildFile; fileRef = E86DF8252F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md */; };
 		E86DF8282F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = E86DF8272F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md */; };
 		E86DF89D2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md in Resources */ = {isa = PBXBuildFile; fileRef = E86DF89C2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md */; };
@@ -32,6 +38,12 @@
 		E82F3CBF2EF0662000ABCF0D /* UI_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_IMPLEMENTATION.md; sourceTree = "<group>"; };
 		E82F3CD22EF9CBC700ABCF0D /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FIREBASE_AUTH_SETUP.md; sourceTree = "<group>"; };
+		E83903A42F1AC7A00065378F /* ReceiptOCRParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptOCRParser.swift; sourceTree = "<group>"; };
+		E83903A62F1AC8040065378F /* RECEIPT_SCANNING_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = RECEIPT_SCANNING_IMPLEMENTATION.md; sourceTree = "<group>"; };
+		E83903A82F1AC81C0065378F /* RECEIPT_SCANNING_USER_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = RECEIPT_SCANNING_USER_GUIDE.md; sourceTree = "<group>"; };
+		E83903AA2F1AC84F0065378F /* IMPLEMENTATION_NOTES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = IMPLEMENTATION_NOTES.md; sourceTree = "<group>"; };
+		E83903D72F1ACE7B0065378F /* OCRTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTestView.swift; sourceTree = "<group>"; };
+		E83904042F1ADA820065378F /* OCR_IMPROVEMENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = OCR_IMPROVEMENTS.md; sourceTree = "<group>"; };
 		E86DF8252F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = MONTHLY_BALANCE_FIX.md; sourceTree = "<group>"; };
 		E86DF8272F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DASHBOARD_FIX_SUMMARY.md; sourceTree = "<group>"; };
 		E86DF89C2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AUTHENTICATION_DISABLED.md; sourceTree = "<group>"; };
@@ -74,6 +86,12 @@
 				E86DF8252F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md */,
 				E86DF8272F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md */,
 				E86DF89C2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md */,
+				E83903A42F1AC7A00065378F /* ReceiptOCRParser.swift */,
+				E83903A62F1AC8040065378F /* RECEIPT_SCANNING_IMPLEMENTATION.md */,
+				E83903A82F1AC81C0065378F /* RECEIPT_SCANNING_USER_GUIDE.md */,
+				E83903AA2F1AC84F0065378F /* IMPLEMENTATION_NOTES.md */,
+				E83903D72F1ACE7B0065378F /* OCRTestView.swift */,
+				E83904042F1ADA820065378F /* OCR_IMPROVEMENTS.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -155,6 +173,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				E86DF8262F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md in Resources */,
+				E83903AB2F1AC84F0065378F /* IMPLEMENTATION_NOTES.md in Resources */,
+				E83903A72F1AC8040065378F /* RECEIPT_SCANNING_IMPLEMENTATION.md in Resources */,
+				E83903A92F1AC81C0065378F /* RECEIPT_SCANNING_USER_GUIDE.md in Resources */,
+				E83904052F1ADA820065378F /* OCR_IMPROVEMENTS.md in Resources */,
 				E86DF8282F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md in Resources */,
 				E86DF89D2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md in Resources */,
 				E82F3CD32EF9CBC700ABCF0D /* GoogleService-Info.plist in Resources */,
@@ -173,7 +195,9 @@
 				E82F3CBE2EF0658C00ABCF0D /* DashboardSheet.swift in Sources */,
 				E82F3CB62EF0655500ABCF0D /* ReceiptCardView.swift in Sources */,
 				E82F3CBA2EF0656800ABCF0D /* SectionDivider.swift in Sources */,
+				E83903D82F1ACE7B0065378F /* OCRTestView.swift in Sources */,
 				E82F3CBC2EF0657700ABCF0D /* AddBalanceSheet.swift in Sources */,
+				E83903A52F1AC7A00065378F /* ReceiptOCRParser.swift in Sources */,
 				E82F3CB82EF0656000ABCF0D /* MonthBalanceCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

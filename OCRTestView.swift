@@ -15,6 +15,8 @@ struct OCRTestView: View {
     @State private var parsedReceipt: ParsedReceipt?
     @State private var errorMessage: String?
     @State private var showingImagePicker = false
+    @State private var showingCamera = false
+    @State private var sourceType: UIImagePickerController.SourceType = .photoLibrary
     
     var body: some View {
         NavigationStack {
