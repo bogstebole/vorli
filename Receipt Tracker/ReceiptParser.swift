@@ -106,44 +106,109 @@ struct ReceiptParser {
     
     /// Parses merchant information
     private static func parseMerchantInfo(from lines: [String]) throws -> (name: String, address: String, city: String) {
-        // Merchant info is typically near the top after the header
-        // Format:
-        // ============ ФИСКАЛНИ РАЧУН ============
-        // [ID number]
-        // [Merchant Name]
-        // [Store ID]
-        // [Address]
-        // [City]
+        // Merchant info structure (after header):
+        // Line 1: ID number (all digits/dashes)
+        // Line 2: Merchant Name (text, can be short like "ENMON" or long)
+        // Line 3: Store ID (contains digits and dashes)
+        // Line 4: Address
+        // Line 5: City (often contains "Београд" or other city names)
         
         var name = ""
         var address = ""
         var city = ""
+        var headerPassed = false
+        var idNumberPassed = false
         
         for line in lines {
-            // Skip header lines
-            if line.contains("ФИСКАЛНИ РАЧУН") || line.contains("===") || line.contains("---") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            
+            // Skip empty lines
+            if trimmed.isEmpty {
                 continue
             }
             
-            // Look for typical patterns
-            if line.count >= 8 && !line.contains(":") && !line.contains("Касир") && !name.isEmpty == false {
-                // First substantial line after header is usually merchant name
-                if name.isEmpty && !line.allSatisfy({ $0.isNumber || $0 == "-" }) {
-                    name = line
-                } else if address.isEmpty && !line.contains("Београд") && !line.contains("Нови Сад") {
-                    address = line
-                } else if city.isEmpty && (line.contains("Београд") || line.contains("Нови Сад") || line.contains("-")) {
-                    city = line
-                    break
+            // Skip header lines
+            if trimmed.contains("ФИСКАЛНИ РАЧУН") || trimmed.contains("===") || trimmed.contains("---") {
+                headerPassed = true
+                continue
+            }
+            
+            // Skip if header hasn't been passed yet
+            if !headerPassed {
+                continue
+            }
+            
+            // Stop when we hit operational lines (Касир, ЕСИР, etc.)
+            if trimmed.contains("Касир:") || trimmed.contains("ЕСИР") || trimmed.contains("ПРОМЕТ") {
+                break
+            }
+            
+            // First line after header: ID number (mostly digits and dashes, length varies)
+            if !idNumberPassed {
+                // ID is typically all numeric with optional dashes
+                let isNumericId = trimmed.range(of: "^[0-9-]+$", options: .regularExpression) != nil
+                if isNumericId {
+                    idNumberPassed = true
+                    continue
                 }
             }
-        }
-        
-        // Fallback: look for specific patterns
-        if name.isEmpty {
-            for line in lines {
-                if line.uppercased() == line && line.count > 5 && !line.contains("РАЧУН") && !line.allSatisfy({ !$0.isLetter }) {
-                    name = line
+            
+            // After ID number, parse in order: Name → Store ID → Address → City
+            if name.isEmpty {
+                // Merchant name: Any text line (can be short!)
+                // Skip lines that are clearly store IDs (contain pattern like "1234567-Store Name")
+                let looksLikeStoreId = trimmed.range(of: "^[0-9]{7}-", options: .regularExpression) != nil
+                
+                if !looksLikeStoreId && trimmed.count >= 3 {
+                    // This is the merchant name
+                    name = trimmed
+                    continue
+                }
+            }
+            
+            // Store ID line (typically starts with 7-digit number followed by dash)
+            // Example: "1157800-ПЈ БАТАЈНИЧКИ ДРУМ"
+            // We'll include this in address parsing or skip it
+            if address.isEmpty {
+                // Check if this is a store ID line (7 digits + dash + description)
+                let isStoreIdLine = trimmed.range(of: "^[0-9]{7}-", options: .regularExpression) != nil
+                
+                if isStoreIdLine {
+                    // This is a store ID, skip it (or could extract location from it)
+                    continue
+                }
+                
+                // This should be the address line
+                // Address doesn't contain city names at the start
+                let startsWithCity = trimmed.hasPrefix("Београд") || 
+                                     trimmed.hasPrefix("Нови Сад") || 
+                                     trimmed.hasPrefix("Ниш") ||
+                                     trimmed.contains("Београд-") ||
+                                     trimmed.contains("Нови Сад-")
+                
+                if !startsWithCity {
+                    address = trimmed
+                    continue
+                }
+            }
+            
+            // City line (contains city name or is the last line before "Касир")
+            if city.isEmpty {
+                // City typically contains city names
+                let containsCity = trimmed.contains("Београд") || 
+                                   trimmed.contains("Нови Сад") || 
+                                   trimmed.contains("Ниш") ||
+                                   trimmed.contains("Земун") ||
+                                   trimmed.contains("Суботица")
+                
+                if containsCity {
+                    city = trimmed
+                    break
+                }
+                
+                // If we already have name and address, this line is likely the city
+                if !name.isEmpty && !address.isEmpty {
+                    city = trimmed
                     break
                 }
             }
