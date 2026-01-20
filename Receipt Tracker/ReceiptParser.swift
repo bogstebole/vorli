@@ -152,6 +152,44 @@ struct ReceiptParser {
         return (name: name, address: address, city: city)
     }
     
+    /// Determines the indentation threshold by analyzing the items section
+    /// Returns the minimum indentation level that indicates a "price line"
+    private static func determineIndentationThreshold(lines: [String], start: Int, end: Int) -> Int {
+        var indentLevels: [Int] = []
+        
+        // Collect indentation levels for lines with price patterns
+        for i in start..<end {
+            let line = lines[i]
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            
+            // Skip empty lines and separators
+            if trimmed.isEmpty || trimmed.contains("---") || trimmed.contains("===") {
+                continue
+            }
+            
+            // Check if this line has a price pattern (Serbian decimal format)
+            let hasPricePattern = trimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
+            
+            if hasPricePattern {
+                let leadingSpaces = line.prefix(while: { $0 == " " }).count
+                
+                // Only count lines with meaningful indentation (price lines tend to be indented)
+                if leadingSpaces > 0 {
+                    indentLevels.append(leadingSpaces)
+                }
+            }
+        }
+        
+        // If we found indented price lines, use the minimum as threshold
+        // This assumes price lines are consistently indented more than name lines
+        if let minIndent = indentLevels.min(), minIndent > 0 {
+            return minIndent
+        }
+        
+        // Fallback: Use a reasonable default
+        return 3
+    }
+    
     /// Parses line items from the receipt
     private static func parseLineItems(from lines: [String]) throws -> [ParsedReceiptItem] {
         var items: [ParsedReceiptItem] = []
@@ -187,9 +225,14 @@ struct ReceiptParser {
             }
         }
         
-        // Parse items: Each item consists of 2 lines:
-        // Line 1: Item name (lightly indented with 1-2 spaces, mostly text)
-        // Line 2: Price line (heavily indented with 5+ spaces, contains 3 numbers)
+        // ADAPTIVE: Analyze indentation patterns in the items section
+        // to determine what constitutes a "price line" vs "name line"
+        let indentationThreshold = determineIndentationThreshold(lines: lines, start: i, end: itemsEndIndex)
+        print("Debug: Adaptive indentation threshold: \(indentationThreshold) spaces")
+        
+        // Parse items: Each item consists of 2+ lines:
+        // Line 1+: Item name (minimal/no indentation, mostly text)
+        // Last line: Price line (more indented, contains 3 numbers)
         while i < itemsEndIndex {
             let line = lines[i]
             let lineTrimmed = line.trimmingCharacters(in: .whitespaces)
@@ -209,9 +252,9 @@ struct ReceiptParser {
             // Count leading spaces
             let leadingSpaces = line.prefix(while: { $0 == " " }).count
             
-            // Detect if this is a price line (heavily indented + contains multiple numbers)
+            // Detect if this is a price line (MORE indented than threshold + contains price pattern)
             let hasPricePattern = lineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
-            let isPriceLine = leadingSpaces >= 5 && hasPricePattern
+            let isPriceLine = leadingSpaces >= indentationThreshold && hasPricePattern
             
             print("Debug: Line \(i) has \(leadingSpaces) spaces, isPriceLine=\(isPriceLine): '\(lineTrimmed)'")
             
@@ -226,8 +269,10 @@ struct ReceiptParser {
             // Collect the full item name (may span multiple lines)
             var nameParts: [String] = []
             
-            // Check if this line is ONLY a SKU (7 digits only)
-            let isOnlySKU = lineTrimmed.range(of: "^[0-9]{7}$", options: .regularExpression) != nil
+            // Check if this line is ONLY a SKU (numeric SKU or bracketed alphanumeric SKU)
+            let isOnlyNumericSKU = lineTrimmed.range(of: "^[0-9]{7}$", options: .regularExpression) != nil
+            let isOnlyBracketedSKU = lineTrimmed.range(of: "^\\[[A-Za-z0-9-]+\\]$", options: .regularExpression) != nil
+            let isOnlySKU = isOnlyNumericSKU || isOnlyBracketedSKU
             
             if isOnlySKU {
                 // SKU is on its own line - the actual name is on the NEXT line
@@ -247,7 +292,7 @@ struct ReceiptParser {
                     
                     let nextLeadingSpaces = nextLine.prefix(while: { $0 == " " }).count
                     let nextHasPricePattern = nextLineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
-                    let nextIsPriceLine = nextLeadingSpaces >= 5 && nextHasPricePattern
+                    let nextIsPriceLine = nextLeadingSpaces >= indentationThreshold && nextHasPricePattern
                     
                     if nextIsPriceLine {
                         // This is the price line - we're done collecting name
@@ -255,10 +300,12 @@ struct ReceiptParser {
                         break
                     }
                     
-                    // Check if this looks like a new item (starts with 7-digit SKU or is another SKU-only line)
-                    let startsWithSKU = nextLineTrimmed.range(of: "^[0-9]{7}", options: .regularExpression) != nil
+                    // Check if this looks like a new item (starts with SKU pattern)
+                    let startsWithNumericSKU = nextLineTrimmed.range(of: "^[0-9]{7}", options: .regularExpression) != nil
+                    let startsWithBracketedSKU = nextLineTrimmed.range(of: "^\\[", options: .regularExpression) != nil
+                    let startsWithSKU = startsWithNumericSKU || startsWithBracketedSKU
                     
-                    if startsWithSKU && nextLeadingSpaces < 5 {
+                    if startsWithSKU && nextLeadingSpaces < indentationThreshold {
                         // This is a new item - stop collecting name parts
                         print("Debug: Found new item with SKU at \(i)")
                         break
@@ -273,16 +320,29 @@ struct ReceiptParser {
                 // Item name (possibly with SKU on same line)
                 var itemName = lineTrimmed
                 
-                // Try to extract SKU if present (7-digit number at start)
-                let skuPattern = "^([0-9]{7})\\s+"
-                if let skuRegex = try? NSRegularExpression(pattern: skuPattern),
+                // Try to extract SKU if present (bracketed alphanumeric like [MS1209N] or numeric like 1234567)
+                // First try bracketed SKU pattern
+                let bracketedSkuPattern = "^\\[([A-Za-z0-9-]+)\\]\\s+"
+                if let skuRegex = try? NSRegularExpression(pattern: bracketedSkuPattern),
                    let match = skuRegex.firstMatch(in: lineTrimmed, range: NSRange(lineTrimmed.startIndex..., in: lineTrimmed)),
                    let range = Range(match.range(at: 1), in: lineTrimmed),
                    let fullMatchRange = Range(match.range(at: 0), in: lineTrimmed) {
                     // Remove SKU from name (but keep the rest)
                     let sku = String(lineTrimmed[range])
                     itemName = String(lineTrimmed[fullMatchRange.upperBound...]).trimmingCharacters(in: .whitespaces)
-                    print("Debug: Found SKU: \(sku), Name after SKU: '\(itemName)'")
+                    print("Debug: Found bracketed SKU: \(sku), Name after SKU: '\(itemName)'")
+                } else {
+                    // Try numeric SKU pattern (7-digit number at start)
+                    let numericSkuPattern = "^([0-9]{7})\\s+"
+                    if let skuRegex = try? NSRegularExpression(pattern: numericSkuPattern),
+                       let match = skuRegex.firstMatch(in: lineTrimmed, range: NSRange(lineTrimmed.startIndex..., in: lineTrimmed)),
+                       let range = Range(match.range(at: 1), in: lineTrimmed),
+                       let fullMatchRange = Range(match.range(at: 0), in: lineTrimmed) {
+                        // Remove SKU from name (but keep the rest)
+                        let sku = String(lineTrimmed[range])
+                        itemName = String(lineTrimmed[fullMatchRange.upperBound...]).trimmingCharacters(in: .whitespaces)
+                        print("Debug: Found numeric SKU: \(sku), Name after SKU: '\(itemName)'")
+                    }
                 }
                 
                 // Add first line of name
@@ -306,7 +366,7 @@ struct ReceiptParser {
                     
                     let nextLeadingSpaces = nextLine.prefix(while: { $0 == " " }).count
                     let nextHasPricePattern = nextLineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
-                    let nextIsPriceLine = nextLeadingSpaces >= 5 && nextHasPricePattern
+                    let nextIsPriceLine = nextLeadingSpaces >= indentationThreshold && nextHasPricePattern
                     
                     if nextIsPriceLine {
                         // This is the price line - stop collecting name parts
@@ -314,20 +374,22 @@ struct ReceiptParser {
                         break
                     }
                     
-                    // Check if this looks like a new item (starts with 7-digit SKU)
-                    let startsWithSKU = nextLineTrimmed.range(of: "^[0-9]{7}", options: .regularExpression) != nil
+                    // Check if this looks like a new item (starts with SKU pattern)
+                    let startsWithNumericSKU = nextLineTrimmed.range(of: "^[0-9]{7}", options: .regularExpression) != nil
+                    let startsWithBracketedSKU = nextLineTrimmed.range(of: "^\\[", options: .regularExpression) != nil
+                    let startsWithSKU = startsWithNumericSKU || startsWithBracketedSKU
                     
-                    if startsWithSKU && nextLeadingSpaces < 5 {
+                    if startsWithSKU && nextLeadingSpaces < indentationThreshold {
                         // This is a new item - stop collecting name parts
                         print("Debug: Found new item with SKU at \(i)")
                         break
                     }
                     
                     // This is a name continuation line if:
-                    // 1. Lightly indented (< 5 spaces)
+                    // 1. Less indented than price lines
                     // 2. Doesn't look like a standalone price line
                     // 3. Contains some text content (letters, parentheses, slashes, etc.)
-                    let looksLikeNamePart = nextLeadingSpaces < 5 && 
+                    let looksLikeNamePart = nextLeadingSpaces < indentationThreshold && 
                                             nextLineTrimmed.count <= 50 && 
                                             !nextLineTrimmed.allSatisfy({ $0.isNumber || $0 == "," || $0 == "." || $0.isWhitespace })
                     
@@ -352,10 +414,10 @@ struct ReceiptParser {
                 let priceLineTrimmed = priceLine.trimmingCharacters(in: .whitespaces)
                 let priceLeadingSpaces = priceLine.prefix(while: { $0 == " " }).count
                 
-                // Check if this is a heavily indented price line
+                // Check if this is an indented price line
                 let hasPricePattern = priceLineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
                 
-                if priceLeadingSpaces >= 5 && hasPricePattern && !priceLineTrimmed.isEmpty {
+                if priceLeadingSpaces >= indentationThreshold && hasPricePattern && !priceLineTrimmed.isEmpty {
                     print("Debug: Processing price line: '\(priceLineTrimmed)'")
                     
                     // Extract prices and quantity using regex
