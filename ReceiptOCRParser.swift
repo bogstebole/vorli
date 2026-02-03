@@ -80,8 +80,11 @@ struct ReceiptOCRParser {
                         return nil
                     }
                     
-                    print("📝 OCR Line (confidence: \(String(format: "%.2f", topCandidate.confidence))): \(topCandidate.string)")
-                    return topCandidate.string
+                    // Decode HTML entities from OCR text
+                    let decodedString = topCandidate.string.decodingHTMLEntities()
+                    
+                    print("📝 OCR Line (confidence: \(String(format: "%.2f", topCandidate.confidence))): \(decodedString)")
+                    return decodedString
                 }
                 
                 if recognizedStrings.isEmpty {

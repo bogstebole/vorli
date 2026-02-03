@@ -101,7 +101,10 @@ struct ReceiptParser {
         // Remove style attributes and tags
         let withoutTags = preContent.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
         
-        return String(withoutTags)
+        // Decode HTML entities (e.g., &#39; -> ', &quot; -> ")
+        let decodedContent = withoutTags.decodingHTMLEntities()
+        
+        return decodedContent
     }
     
     /// Parses merchant information
