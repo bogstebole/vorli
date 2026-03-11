@@ -13,16 +13,50 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
     // @Environment(AuthenticationManager.self) private var authManager
-    
-    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-    // @State private var showSignOutConfirmation = false
-    // @State private var showDeleteAccountConfirmation = false
-    // @State private var errorMessage: String?
-    // @State private var showError = false
-    
+
+    @State private var apiKey: String = UserDefaults.standard.string(forKey: VorliService.apiKeyDefaultsKey) ?? ""
+    @State private var apiKeyVisible = false
+
     var body: some View {
         NavigationStack {
             List {
+                // Vorli AI Section
+                Section {
+                    HStack {
+                        if apiKeyVisible {
+                            TextField("sk-ant-...", text: $apiKey)
+                                .font(.system(.body, design: .monospaced))
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .onChange(of: apiKey) { _, newValue in
+                                    UserDefaults.standard.set(newValue, forKey: VorliService.apiKeyDefaultsKey)
+                                }
+                        } else {
+                            SecureField("sk-ant-...", text: $apiKey)
+                                .font(.system(.body, design: .monospaced))
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .onChange(of: apiKey) { _, newValue in
+                                    UserDefaults.standard.set(newValue, forKey: VorliService.apiKeyDefaultsKey)
+                                }
+                        }
+
+                        Button {
+                            apiKeyVisible.toggle()
+                        } label: {
+                            Image(systemName: apiKeyVisible ? "eye.slash" : "eye")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("Vorli AI — API ključ")
+                        .font(.system(.caption, design: .monospaced))
+                } footer: {
+                    Text("Anthropic API ključ se čuva lokalno na uređaju. Nikad se ne šalje nigde osim direktno na api.anthropic.com.")
+                        .font(.system(.caption2, design: .monospaced))
+                }
+
                 // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
                 /*
                 // Account Section
@@ -36,7 +70,7 @@ struct SettingsSheet: View {
                                 .font(.system(.body, design: .monospaced))
                                 .foregroundStyle(.secondary)
                         }
-                        
+
                         HStack {
                             Text("User ID")
                                 .font(.system(.body, design: .monospaced))
@@ -50,7 +84,7 @@ struct SettingsSheet: View {
                     Text("Account")
                         .font(.system(.caption, design: .monospaced))
                 }
-                
+
                 // Actions Section
                 Section {
                     Button {
@@ -62,7 +96,7 @@ struct SettingsSheet: View {
                                 .font(.system(.body, design: .monospaced))
                         }
                     }
-                    
+
                     Button(role: .destructive) {
                         showDeleteAccountConfirmation = true
                     } label: {
@@ -77,13 +111,6 @@ struct SettingsSheet: View {
                         .font(.system(.caption, design: .monospaced))
                 }
                 */
-                
-                // Placeholder for first release
-                Section {
-                    Text("Podešavanja uskoro")
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
             }
             .navigationTitle("Podešavanja")
             .navigationBarTitleDisplayMode(.inline)
@@ -94,39 +121,11 @@ struct SettingsSheet: View {
                     }
                 }
             }
-            // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-            /*
-            .confirmationDialog("Sign Out", isPresented: $showSignOutConfirmation) {
-                Button("Sign Out", role: .destructive) {
-                    signOut()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Are you sure you want to sign out?")
-            }
-            .confirmationDialog("Delete Account", isPresented: $showDeleteAccountConfirmation) {
-                Button("Delete Account", role: .destructive) {
-                    Task {
-                        await deleteAccount()
-                    }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This action cannot be undone. All your data will be permanently deleted.")
-            }
-            .alert("Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                if let errorMessage = errorMessage {
-                    Text(errorMessage)
-                }
-            }
-            */
         }
     }
-    
+
     // MARK: - Methods
-    
+
     // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
     /*
     private func signOut() {
@@ -138,7 +137,7 @@ struct SettingsSheet: View {
             showError = true
         }
     }
-    
+
     private func deleteAccount() async {
         do {
             try await authManager.deleteAccount()
