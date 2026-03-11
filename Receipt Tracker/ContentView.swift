@@ -21,8 +21,10 @@ struct ContentView: View {
     @State private var showError = false
     @State private var showScanner = false
     @State private var showAddBalance = false
+    @State private var showAddNew = false
     @State private var showDashboard = false
     @State private var showSettings = false
+    @State private var showVorli = false
     @State private var scannedReceipt: Receipt?
     
     var body: some View {
@@ -37,7 +39,10 @@ struct ContentView: View {
                                 month: currentMonthName,
                                 currentBalance: currentMonthLeftoverBalance,
                                 spent: currentMonthSpent,
-                                spentToday: currentDaySpent
+                                spentToday: currentDaySpent,
+                                onAddNew: { showAddNew = true },
+                                onDashboard: { showDashboard = true },
+                                onSettings: { showSettings = true }
                             )
                         }
                         
@@ -76,29 +81,16 @@ struct ContentView: View {
             .navigationBarHidden(true)
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
-                    // Leading group of actions
+                    // Leading - Vorli AI assistant
                     Button {
-                        showAddBalance = true
+                        showVorli = true
                     } label: {
-                        Image(systemName: "plus")
-                    }
-                    
-                    Button {
-                        // TODO: Implement filter
-                        print("Filter tapped")
-                    } label: {
-                        Image(systemName: "line.3.horizontal.decrease")
-                    }
-                    
-                    Button {
-                        showDashboard = true
-                    } label: {
-                        Image(systemName: "square.grid.2x2")
+                        Image(systemName: "sparkles")
                     }
                     
                     Spacer()
                     
-                    // Trailing scan action
+                    // Trailing - Scan action
                     Button {
                         showScanner = true
                     } label: {
@@ -124,6 +116,11 @@ struct ContentView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showAddNew) {
+                AddNewSheet(
+                    onAddBalance: { showAddBalance = true }
+                )
+            }
             .sheet(isPresented: $showAddBalance) {
                 AddBalanceSheet { amount in
                     addBalance(amount)
@@ -138,6 +135,9 @@ struct ContentView: View {
                 SettingsSheet()
                     // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
                     // .environment(authManager)
+            }
+            .fullScreenCover(isPresented: $showVorli) {
+                VorliChatView()
             }
             .navigationDestination(item: $scannedReceipt) { receipt in
                 ReceiptDetailView(receipt: receipt)

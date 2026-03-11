@@ -13,9 +13,10 @@ struct MonthBalanceCard: View {
     let spent: Decimal
     let spentToday: Decimal
     
-    // Menu-related state
-    @State private var showingExportOptions = false
-    @State private var showingFilters = false
+    // Action closures
+    var onAddNew: () -> Void = {}
+    var onDashboard: () -> Void = {}
+    var onSettings: () -> Void = {}
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -33,36 +34,22 @@ struct MonthBalanceCard: View {
                 
                 // Menu button with Liquid Glass effect
                 Menu {
-                    // View Options
-                    Section("Opcije") {
-                        Button {
-                            showingFilters = true
-                        } label: {
-                            Label("Filtriraj račune", systemImage: "line.3.horizontal.decrease.circle")
-                        }
-                        
-                        Button {
-                            showingExportOptions = true
-                        } label: {
-                            Label("Izvezi podatke", systemImage: "square.and.arrow.up")
-                        }
+                    Button {
+                        onAddNew()
+                    } label: {
+                        Label("Dodaj novo", systemImage: "plus.app.fill")
                     }
                     
-                    Divider()
+                    Button {
+                        onDashboard()
+                    } label: {
+                        Label("Kontrolna tabla", systemImage: "square.grid.2x2.fill")
+                    }
                     
-                    // Statistics
-                    Section("Statistika") {
-                        Button {
-                            // Action for showing detailed statistics
-                        } label: {
-                            Label("Detaljne statistike", systemImage: "chart.bar")
-                        }
-                        
-                        Button {
-                            // Action for showing spending breakdown
-                        } label: {
-                            Label("Raspored troškova", systemImage: "chart.pie")
-                        }
+                    Button {
+                        onSettings()
+                    } label: {
+                        Label("Podešavanja", systemImage: "gearshape.fill")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")

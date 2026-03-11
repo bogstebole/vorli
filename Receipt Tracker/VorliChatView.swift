@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 // MARK: - Main Chat View
 
@@ -17,10 +18,14 @@ struct VorliChatView: View {
     @State private var viewModel: VorliChatViewModel?
     @State private var inputText = ""
     @FocusState private var inputFocused: Bool
+    @State private var showAddMenu = false
+    @State private var showPhotoPicker = false
+    @State private var showCamera = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            Group {
                 // Chat messages area
                 if let vm = viewModel {
                     ChatMessagesView(
@@ -29,23 +34,6 @@ struct VorliChatView: View {
                     )
                 } else {
                     Spacer()
-                }
-
-                // Quick prompts — shown when no messages yet
-                if viewModel?.messages.isEmpty == true {
-                    QuickPromptsRow { prompt in
-                        viewModel?.sendQuickPrompt(prompt)
-                    }
-                    .padding(.bottom, 8)
-                }
-
-                // Input bar
-                ChatInputBar(
-                    text: $inputText,
-                    isFocused: $inputFocused,
-                    isStreaming: viewModel?.isStreaming ?? false
-                ) {
-                    submitInput()
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -62,6 +50,35 @@ struct VorliChatView: View {
                     }
                 }
             }
+            // safeAreaInset je jedini ispravni iOS pattern za chat input bar sa TextField-om.
+            // ToolbarItemGroup(.bottomBar) ne podržava full-width TextField — duplicira sadržaj.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                VStack(spacing: 0) {
+                    if viewModel?.messages.isEmpty == true {
+                        QuickPromptsRow { prompt in
+                            viewModel?.sendQuickPrompt(prompt)
+                        }
+                        .padding(.bottom, 4)
+                    }
+                    ChatInputBar(
+                        inputText: $inputText,
+                        inputFocused: $inputFocused,
+                        showAddMenu: $showAddMenu,
+                        hasContent: hasContent,
+                        isStreaming: viewModel?.isStreaming == true,
+                        onSubmit: submitInput,
+                        onCamera: { showCamera = true },
+                        onPhotos: { showPhotoPicker = true }
+                    )
+                }
+            }
+            .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
+            .fullScreenCover(isPresented: $showCamera) {
+                CameraPickerView { image in
+                    // Future: send image to Vorli for OCR analysis
+                    showCamera = false
+                }
+            }
             .alert("Greška", isPresented: Binding(
                 get: { viewModel?.showError ?? false },
                 set: { viewModel?.showError = $0 }
@@ -76,12 +93,74 @@ struct VorliChatView: View {
         }
     }
 
+    private var hasContent: Bool {
+        !inputText.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
     private func submitInput() {
         let text = inputText.trimmingCharacters(in: .whitespaces)
         guard !text.isEmpty else { return }
         inputText = ""
         inputFocused = false
         viewModel?.send(text)
+    }
+}
+
+// MARK: - Chat Input Bar
+
+private struct ChatInputBar: View {
+    @Binding var inputText: String
+    var inputFocused: FocusState<Bool>.Binding
+    @Binding var showAddMenu: Bool
+    let hasContent: Bool
+    let isStreaming: Bool
+    let onSubmit: () -> Void
+    let onCamera: () -> Void
+    let onPhotos: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            // Add button — Liquid Glass, no explicit size so system matches toolbar button sizing
+            Button {
+                showAddMenu = true
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(size: 17))
+                    .frame(width: 44, height: 44)
+                    .glassEffect(in: .circle)
+            }
+            .buttonStyle(.plain)
+            .confirmationDialog("Dodaj sliku", isPresented: $showAddMenu) {
+                Button("Fotografiši") { onCamera() }
+                Button("Odaberi iz galerije") { onPhotos() }
+                Button("Otkaži", role: .cancel) {}
+            }
+
+            // Text field — Liquid Glass capsule, minHeight matches .glass button height (44pt)
+            TextField("Pitaj Vorlija...", text: $inputText, axis: .vertical)
+                .font(.system(.footnote, design: .monospaced))
+                .lineLimit(1...4)
+                .focused(inputFocused)
+                .onSubmit { onSubmit() }
+                .padding(.horizontal, 14)
+                .padding(.trailing, hasContent ? 28 : 14)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .glassEffect(in: .capsule)
+                .overlay(alignment: .trailing) {
+                    if hasContent {
+                        Button(action: onSubmit) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 22))
+                        }
+                        .padding(.trailing, 6)
+                        .transition(.scale.combined(with: .opacity))
+                        .disabled(isStreaming)
+                    }
+                }
+                .animation(.easeInOut(duration: 0.15), value: hasContent)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
 }
 
@@ -238,69 +317,55 @@ struct QuickPromptCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 6) {
-                Image(systemName: prompt.icon)
-                    .font(.system(size: 16, weight: .medium))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(prompt.title)
+                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+
+                Text(prompt.subtitle)
+                    .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(.secondary)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(prompt.title)
-                        .font(.system(.subheadline, design: .monospaced, weight: .medium))
-                        .foregroundStyle(.primary)
-                        .lineLimit(2)
-
-                    Text(prompt.subtitle)
-                        .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 12)
             .frame(width: 140, alignment: .leading)
-            .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .glassEffect(in: .rect(cornerRadius: 14))
         }
         .buttonStyle(.plain)
     }
 }
 
-// MARK: - Chat Input Bar
+// MARK: - Camera Picker (UIImagePickerController wrapper)
 
-struct ChatInputBar: View {
-    @Binding var text: String
-    var isFocused: FocusState<Bool>.Binding
-    let isStreaming: Bool
-    let onSend: () -> Void
+struct CameraPickerView: UIViewControllerRepresentable {
+    let onImage: (UIImage) -> Void
 
-    var body: some View {
-        HStack(spacing: 10) {
-            TextField("Pitaj Vorlija...", text: $text, axis: .vertical)
-                .font(.system(.body, design: .monospaced))
-                .lineLimit(1...5)
-                .focused(isFocused)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(Color(.secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .onSubmit {
-                    onSend()
-                }
-
-            Button(action: onSend) {
-                Image(systemName: isStreaming ? "stop.circle.fill" : "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(canSend ? .primary : .tertiary)
-            }
-            .disabled(!canSend)
-            .animation(.easeInOut(duration: 0.15), value: canSend)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(.bar)
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
     }
 
-    private var canSend: Bool {
-        !text.trimmingCharacters(in: .whitespaces).isEmpty && !isStreaming
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(onImage: onImage) }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onImage: (UIImage) -> Void
+        init(onImage: @escaping (UIImage) -> Void) { self.onImage = onImage }
+
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                onImage(image)
+            }
+            picker.dismiss(animated: true)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            picker.dismiss(animated: true)
+        }
     }
 }
 
