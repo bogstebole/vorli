@@ -26,13 +26,6 @@ struct VorliContextBuilder {
         let kolicina: Double
     }
 
-    private struct FinansijeJSON: Encodable {
-        let stanje: Double
-        let poslednji_unos: String
-        let mesecni_prihod: Int
-        let budzet_model: BudzetModelJSON
-    }
-
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
