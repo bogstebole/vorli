@@ -169,11 +169,8 @@ private struct ChatInputBar: View {
 private struct VorliHeaderTitle: View {
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
             Text("Vorli")
-                .font(.system(.headline, design: .monospaced, weight: .medium))
+                .font(.system(.body, design: .monospaced, weight: .medium))
         }
     }
 }
@@ -254,9 +251,7 @@ struct AIResponseView: View {
                 if text.isEmpty && isStreaming {
                     TypingIndicator()
                 } else {
-                    Text(text)
-                        .font(.system(.body, design: .monospaced))
-                        .foregroundStyle(.primary)
+                    MarkdownTextView(text: text)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .textSelection(.enabled)
                 }
@@ -264,6 +259,171 @@ struct AIResponseView: View {
             Spacer(minLength: 40)
         }
     }
+}
+
+// MARK: - Markdown Text View
+//
+// Renders AI response text with proper Markdown formatting.
+// Uses a custom block parser because SwiftUI Text only supports inline Markdown —
+// block-level elements (headings, lists, code blocks) require manual parsing.
+
+private struct MarkdownTextView: View {
+    let text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ForEach(Array(parseBlocks(text).enumerated()), id: \.offset) { _, block in
+                blockView(for: block)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func blockView(for block: MarkdownBlock) -> some View {
+        switch block {
+        case .heading(let level, let content):
+            Text(inlineAttributed(content))
+                .font(headingFont(level))
+                .foregroundStyle(.primary)
+                .padding(.top, level == 1 ? 4 : 2)
+
+        case .bulletItem(let content):
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("•")
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Text(inlineAttributed(content))
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(.primary)
+            }
+
+        case .numberedItem(let number, let content):
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("\(number).")
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 20, alignment: .trailing)
+                Text(inlineAttributed(content))
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(.primary)
+            }
+
+        case .codeBlock(let code):
+            Text(code)
+                .font(.system(.footnote, design: .monospaced))
+                .foregroundStyle(.primary)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 8))
+
+        case .paragraph(let content):
+            Text(inlineAttributed(content))
+                .font(.system(.body, design: .monospaced))
+                .foregroundStyle(.primary)
+        }
+    }
+
+    private func headingFont(_ level: Int) -> Font {
+        switch level {
+        case 1: return .system(.title2, design: .monospaced, weight: .bold)
+        case 2: return .system(.title3, design: .monospaced, weight: .semibold)
+        default: return .system(.headline, design: .monospaced, weight: .semibold)
+        }
+    }
+
+    // Parses inline Markdown (**bold**, *italic*, `code`) into AttributedString
+    private func inlineAttributed(_ text: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(text)
+    }
+}
+
+// MARK: - Markdown Block Types
+
+private enum MarkdownBlock {
+    case heading(level: Int, content: String)
+    case bulletItem(content: String)
+    case numberedItem(number: Int, content: String)
+    case codeBlock(code: String)
+    case paragraph(content: String)
+}
+
+private func parseBlocks(_ text: String) -> [MarkdownBlock] {
+    var blocks: [MarkdownBlock] = []
+    let lines = text.components(separatedBy: "\n")
+    var i = 0
+
+    while i < lines.count {
+        let line = lines[i]
+
+        // Code block fence
+        if line.hasPrefix("```") {
+            var codeLines: [String] = []
+            i += 1
+            while i < lines.count && !lines[i].hasPrefix("```") {
+                codeLines.append(lines[i])
+                i += 1
+            }
+            blocks.append(.codeBlock(code: codeLines.joined(separator: "\n")))
+            i += 1
+            continue
+        }
+
+        // Heading
+        if line.hasPrefix("#") {
+            let level = line.prefix(while: { $0 == "#" }).count
+            let content = line.dropFirst(level).trimmingCharacters(in: .whitespaces)
+            blocks.append(.heading(level: min(level, 3), content: content))
+            i += 1
+            continue
+        }
+
+        // Bullet list item
+        if line.hasPrefix("- ") || line.hasPrefix("* ") {
+            let content = String(line.dropFirst(2))
+            blocks.append(.bulletItem(content: content))
+            i += 1
+            continue
+        }
+
+        // Numbered list item
+        let numberedPattern = /^(\d+)\.\s(.+)/
+        if let match = line.firstMatch(of: numberedPattern) {
+            let number = Int(match.1) ?? 1
+            let content = String(match.2)
+            blocks.append(.numberedItem(number: number, content: content))
+            i += 1
+            continue
+        }
+
+        // Empty line — skip
+        if line.trimmingCharacters(in: .whitespaces).isEmpty {
+            i += 1
+            continue
+        }
+
+        // Paragraph — merge consecutive non-special lines
+        var paragraphLines: [String] = [line]
+        i += 1
+        while i < lines.count {
+            let next = lines[i]
+            if next.trimmingCharacters(in: .whitespaces).isEmpty
+                || next.hasPrefix("#")
+                || next.hasPrefix("- ")
+                || next.hasPrefix("* ")
+                || next.hasPrefix("```")
+                || next.firstMatch(of: /^\d+\.\s/) != nil {
+                break
+            }
+            paragraphLines.append(next)
+            i += 1
+        }
+        blocks.append(.paragraph(content: paragraphLines.joined(separator: " ")))
+    }
+
+    return blocks
 }
 
 // MARK: - Typing Indicator

@@ -53,8 +53,20 @@ struct VorliContextBuilder {
         let currentJSON = currentReceipts.map { encode($0) }
         let previousJSON = previousReceipts.map { encode($0) }
 
+        // Build metadata so Claude always knows the exact scope of data it's working with
+        let allReceipts = currentReceipts + previousReceipts
+        let sortedDates = allReceipts.map(\.timestamp).sorted()
+        let meta: [String: Any] = [
+            "danasnji_datum": dateFormatter.string(from: Date()),
+            "ukupno_racuna_period": currentReceipts.count,
+            "ukupno_racuna_prethodni": previousReceipts.count,
+            "datum_najstarijeg": sortedDates.first.map { dateFormatter.string(from: $0) } ?? "N/A",
+            "datum_najnovijeg": sortedDates.last.map { dateFormatter.string(from: $0) } ?? "N/A"
+        ]
+
         var dict: [String: Any] = [
             "tip_zahteva": requestType,
+            "meta": meta,
             "racuni_period": toJSONArray(currentJSON)
         ]
 

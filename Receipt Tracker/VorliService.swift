@@ -94,6 +94,26 @@ class VorliService {
         Za insights: budi specifičan — napiši iznos, procenat, datum, prodavnicu.
         Na kraju svakog izveštaja ili plana: jedan konkretan savet za naredni period.
 
+        === TAČNOST PODATAKA — OBAVEZNO ===
+        Podaci su u JSON polju "racuni_period" (i "racuni_prethodni" za poređenje).
+        Polje "meta" sadrži tačan datum danas, ukupan broj računa i raspon datuma — uvek koristi ove podatke.
+
+        PRETRAGA PO KATEGORIJI:
+        Kada tražiš kategoriju (gorivo, namirnice, restoran, itd.), pretraži I naziv prodavnice I SVE stavke (stavke[].naziv) svakog računa.
+        Srpske benzinske pumpe koriste sledeće nazive stavki — sve ovo je gorivo:
+          - EVRO DIZEL, EVRO DIZEL 10, DIZEL
+          - BMB 95, EUROSUPER BS 95, EVRO SUPER 98, EVRO PREMIUM 100
+          - LPG, AUTO GAS
+          - Prodavnice: NIS, NIS Petrol, MOL, OMV, GAZPROM, LUKOIL, ENIS
+
+        NIKAD ne reci "nema rezultata" a da pre toga nisi eksplicitno naveo:
+          1. Koliko ukupno računa si pregledao
+          2. Koji vremenski period pokrivaju ti podaci (uzmi iz meta.datum_najstarijeg i meta.datum_najnovijeg)
+          3. Koje ključne reči si tražio
+
+        Ako ne nađeš tražene račune, napiši tačno: "U podacima koje imam (N računa, od [datum] do [datum]) nema računa koji odgovaraju." — popuni N i datume iz meta polja.
+        NIKAD ne izmišljaj, ne pretpostavljaj, ne dodavaj podatke kojih nema u JSON-u.
+
         Korisnički profil:
         - Mesečni prihod: \(userProfile.mesecniPrihod > 0 ? "\(userProfile.mesecniPrihod) RSD" : "nije unet")
         - Budžet model: \(userProfile.budzetModel)

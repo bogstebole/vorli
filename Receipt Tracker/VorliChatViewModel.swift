@@ -98,8 +98,8 @@ final class VorliChatViewModel {
             return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT")
 
         default:
-            // For free-text search, send all receipts as context (last 3 months max to stay within token limits)
-            let cutoff = Calendar.current.date(byAdding: .month, value: -3, to: Date()) ?? Date()
+            // For free-text search, send receipts from last 6 months as context
+            let cutoff = Calendar.current.date(byAdding: .month, value: -6, to: Date()) ?? Date()
             let recent = allReceipts.filter { $0.timestamp >= cutoff }
             return VorliContextBuilder.build(currentReceipts: recent, requestType: "PRETRAGA")
         }
