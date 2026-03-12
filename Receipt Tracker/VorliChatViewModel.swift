@@ -25,9 +25,11 @@ final class VorliChatViewModel {
 
     private let service = VorliService()
     private let allReceipts: [Receipt]
+    private let budget: Budget?
 
-    init(allReceipts: [Receipt]) {
+    init(allReceipts: [Receipt], budget: Budget? = nil) {
         self.allReceipts = allReceipts
+        self.budget = budget
     }
 
     // MARK: - Send
@@ -86,22 +88,23 @@ final class VorliChatViewModel {
     // MARK: - Context Builder
 
     private func buildContext(for requestType: String) -> String {
+        let profile = VorliUserProfile.load()
         switch requestType {
         case "REPORT_MONTH":
             let current = VorliContextBuilder.receiptsForCurrentMonth(from: allReceipts)
             let previous = VorliContextBuilder.receiptsForPreviousMonth(from: allReceipts)
-            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT")
+            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", budget: budget, userProfile: profile)
 
         case "REPORT_WEEK":
             let current = VorliContextBuilder.receiptsForCurrentWeek(from: allReceipts)
             let previous = VorliContextBuilder.receiptsForPreviousWeek(from: allReceipts)
-            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT")
+            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", budget: budget, userProfile: profile)
 
         default:
             // For free-text search, send receipts from last 6 months as context
             let cutoff = Calendar.current.date(byAdding: .month, value: -6, to: Date()) ?? Date()
             let recent = allReceipts.filter { $0.timestamp >= cutoff }
-            return VorliContextBuilder.build(currentReceipts: recent, requestType: "PRETRAGA")
+            return VorliContextBuilder.build(currentReceipts: recent, requestType: "PRETRAGA", budget: budget, userProfile: profile)
         }
     }
 }
