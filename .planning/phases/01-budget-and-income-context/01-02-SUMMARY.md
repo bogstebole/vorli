@@ -68,7 +68,7 @@ Each task was committed atomically:
 1. **Task 1: Extend VorliChatViewModel init to accept optional Budget** - `72088f6` (feat)
 2. **Task 2: Add @Query budgets to VorliChatView and pass to ViewModel init** - `cde442c` (feat)
 
-**Plan metadata:** _(docs commit follows)_
+**Plan metadata:** `40cd867` (docs: complete plan)
 
 ## Files Created/Modified
 
@@ -98,6 +98,15 @@ None - no external service configuration required.
 - When no Budget record exists in SwiftData, `budgets.first` is nil, `finansije` key is absent from context JSON, no crash
 - With a Budget record, `finansije.stanje` and `finansije.mesecni_prihod` flow into every message context
 - Ready for Phase 2 planning
+
+## Self-Check: PASSED
+
+- VorliChatViewModel.swift: FOUND
+- VorliChatView.swift: FOUND
+- 01-02-SUMMARY.md: FOUND
+- Commit 72088f6 (Task 1): FOUND
+- Commit cde442c (Task 2): FOUND
+- Commit 40cd867 (plan metadata): FOUND
 
 ---
 *Phase: 01-budget-and-income-context*

@@ -230,7 +230,7 @@ struct UserMessageBubble: View {
         HStack {
             Spacer(minLength: 60)
             Text(text)
-                .font(.system(.body, design: .monospaced))
+                .font(.system(.subheadline, design: .monospaced))
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
@@ -291,21 +291,21 @@ private struct MarkdownTextView: View {
         case .bulletItem(let content):
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("•")
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(.subheadline, design: .monospaced))
                     .foregroundStyle(.secondary)
                 Text(inlineAttributed(content))
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(.subheadline, design: .monospaced))
                     .foregroundStyle(.primary)
             }
 
         case .numberedItem(let number, let content):
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("\(number).")
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(.subheadline, design: .monospaced))
                     .foregroundStyle(.secondary)
                     .frame(minWidth: 20, alignment: .trailing)
                 Text(inlineAttributed(content))
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(.subheadline, design: .monospaced))
                     .foregroundStyle(.primary)
             }
 
@@ -319,16 +319,16 @@ private struct MarkdownTextView: View {
 
         case .paragraph(let content):
             Text(inlineAttributed(content))
-                .font(.system(.body, design: .monospaced))
+                .font(.system(.subheadline, design: .monospaced))
                 .foregroundStyle(.primary)
         }
     }
 
     private func headingFont(_ level: Int) -> Font {
         switch level {
-        case 1: return .system(.title2, design: .monospaced, weight: .bold)
-        case 2: return .system(.title3, design: .monospaced, weight: .semibold)
-        default: return .system(.headline, design: .monospaced, weight: .semibold)
+        case 1: return .system(.headline, design: .monospaced, weight: .bold)
+        case 2: return .system(.subheadline, design: .monospaced, weight: .semibold)
+        default: return .system(.footnote, design: .monospaced, weight: .semibold)
         }
     }
 
