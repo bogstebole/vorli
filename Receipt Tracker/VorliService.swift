@@ -219,6 +219,12 @@ class VorliService {
 
 // MARK: - User Profile
 
+struct BudzetModelJSON: Encodable {
+    let potrebe: Int    // "needs" percentage (first component)
+    let zabava: Int     // "entertainment" percentage (second component)
+    let stednja: Int    // "savings" percentage (third component)
+}
+
 struct VorliUserProfile {
     var mesecniPrihod: Int
     var budzetModel: String
@@ -244,5 +250,13 @@ struct VorliUserProfile {
         defaults.set(mesecniPrihod, forKey: Self.defaultsKeyPrefix + "prihod")
         defaults.set(budzetModel, forKey: Self.defaultsKeyPrefix + "budzet")
         defaults.set(aktivniCilj, forKey: Self.defaultsKeyPrefix + "cilj")
+    }
+
+    var parsedBudzetModel: BudzetModelJSON {
+        let components = budzetModel.split(separator: "/").compactMap { Int($0) }
+        guard components.count >= 3 else {
+            return BudzetModelJSON(potrebe: 50, zabava: 30, stednja: 20)
+        }
+        return BudzetModelJSON(potrebe: components[0], zabava: components[1], stednja: components[2])
     }
 }
