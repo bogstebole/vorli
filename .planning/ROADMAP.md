@@ -45,7 +45,13 @@ Plans:
   2. Asking "koliko sam potrosio na hranu?" returns a correct sum even though receipts use raw merchant/item names (no category tags in the database)
   3. When the user has a savings goal set, Vorli mentions progress toward it when relevant to the question asked
   4. Vorli does not require the user to say "this month" or "last month" — it infers the intent from natural language
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Add XCTest bundle target (human action) and write RED test stubs for CTX-03, CTX-04, CTX-05
+- [ ] 02-02-PLAN.md — SavingsGoal SwiftData model, ciljevi JSON context block, Settings UI, ViewModel/View wiring (CTX-03)
+- [ ] 02-03-PLAN.md — KATEGORIZACIJA section in buildSystemPrompt() covering Serbian merchant chains (CTX-05)
+- [ ] 02-04-PLAN.md — TimeWindow enum, classifyIntent() Haiku call, async send() refactor (CTX-04)
 
 ### Phase 3: Action Item Card Infrastructure
 **Goal**: The chat UI can render structured action item cards inline alongside text messages — cards have a distinct visual treatment and expose a primary action (download, share, or view).
@@ -100,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Budget and Income Context | 2/2 | Complete   | 2026-03-12 |
-| 2. Intelligent Context | 0/TBD | Not started | - |
+| 2. Intelligent Context | 0/4 | Not started | - |
 | 3. Action Item Card Infrastructure | 0/TBD | Not started | - |
 | 4. PDF Report Card | 0/TBD | Not started | - |
 | 5. Shopping List Card | 0/TBD | Not started | - |
