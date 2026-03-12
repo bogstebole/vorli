@@ -26,6 +26,13 @@ struct VorliContextBuilder {
         let kolicina: Double
     }
 
+    private struct FinansijeJSON: Encodable {
+        let stanje: Double
+        let poslednji_unos: String
+        let mesecni_prihod: Int
+        let budzet_model: BudzetModelJSON
+    }
+
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "yyyy-MM-dd"
@@ -45,10 +52,14 @@ struct VorliContextBuilder {
     ///   - currentReceipts: Receipts for the primary period (e.g. current month/week).
     ///   - previousReceipts: Receipts for comparison period (previous month/week). Pass empty for search.
     ///   - requestType: One of REPORT | PLAN | PRETRAGA
+    ///   - budget: Optional budget model; when provided, adds balance and last-updated to "finansije" block.
+    ///   - userProfile: Optional user profile; when provided, adds income and budget split to "finansije" block.
     static func build(
         currentReceipts: [Receipt],
         previousReceipts: [Receipt] = [],
-        requestType: String = "REPORT"
+        requestType: String = "REPORT",
+        budget: Budget? = nil,
+        userProfile: VorliUserProfile? = nil
     ) -> String {
         let currentJSON = currentReceipts.map { encode($0) }
         let previousJSON = previousReceipts.map { encode($0) }
@@ -72,6 +83,30 @@ struct VorliContextBuilder {
 
         if !previousJSON.isEmpty {
             dict["racuni_prethodni"] = toJSONArray(previousJSON)
+        }
+
+        // Add finansije block if budget or income data is available
+        if budget != nil || (userProfile?.mesecniPrihod ?? 0) > 0 {
+            var finansijeDict: [String: Any] = [:]
+
+            if let budget {
+                finansijeDict["stanje"] = Double(truncating: budget.currentBalance as NSDecimalNumber)
+                finansijeDict["poslednji_unos"] = dateFormatter.string(from: budget.lastUpdated)
+            }
+
+            if let profile = userProfile {
+                finansijeDict["mesecni_prihod"] = profile.mesecniPrihod
+                let parsed = profile.parsedBudzetModel
+                finansijeDict["budzet_model"] = [
+                    "potrebe": parsed.potrebe,
+                    "zabava": parsed.zabava,
+                    "stednja": parsed.stednja
+                ]
+            }
+
+            if !finansijeDict.isEmpty {
+                dict["finansije"] = finansijeDict
+            }
         }
 
         guard let data = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]),
