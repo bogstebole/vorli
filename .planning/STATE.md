@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-budget-and-income-context-01-01-PLAN.md
-last_updated: "2026-03-12T13:01:32.086Z"
+stopped_at: Completed 01-budget-and-income-context-01-02-PLAN.md
+last_updated: "2026-03-12T13:11:19.433Z"
 last_activity: 2026-03-12 — Roadmap created, phases derived from requirements
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01-budget-and-income-context P01 | 15 | 2 tasks | 2 files |
+| Phase 01-budget-and-income-context P02 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - Roadmap: PDF generation on-device (no external API for PDF itself); web search used only for price comparison in Phase 6
 - [Phase 01-budget-and-income-context]: Used [String: Any] dict for finansije block serialization (not JSONEncoder) to match existing meta pattern and avoid double round-trip
 - [Phase 01-budget-and-income-context]: parsedBudzetModel fallback uses 50/30/20 (Serbian standard) on malformed budzetModel string
+- [Phase 01-budget-and-income-context]: VorliUserProfile.load() called inside buildContext(for:) for context assembly; service.sendMessage() retains own call — two UserDefaults reads per message, negligible overhead
+- [Phase 01-budget-and-income-context]: No sort descriptor on Budget @Query — single Budget record per app; budgets.first safely handles empty and populated states
 
 ### Pending Todos
 
@@ -75,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T13:01:32.084Z
-Stopped at: Completed 01-budget-and-income-context-01-01-PLAN.md
+Last session: 2026-03-12T13:11:19.427Z
+Stopped at: Completed 01-budget-and-income-context-01-02-PLAN.md
 Resume file: None
