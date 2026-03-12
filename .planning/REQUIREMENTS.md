@@ -59,23 +59,23 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CTX-01 | TBD | Pending |
-| CTX-02 | TBD | Pending |
-| CTX-03 | TBD | Pending |
-| CTX-04 | TBD | Pending |
-| CTX-05 | TBD | Pending |
-| ACT-01 | TBD | Pending |
-| ACT-02 | TBD | Pending |
-| ACT-03 | TBD | Pending |
-| ACT-04 | TBD | Pending |
-| UX-01 | TBD | Pending |
-| UX-02 | TBD | Pending |
+| CTX-01 | Phase 1 | Pending |
+| CTX-02 | Phase 1 | Pending |
+| CTX-03 | Phase 2 | Pending |
+| CTX-04 | Phase 2 | Pending |
+| CTX-05 | Phase 2 | Pending |
+| ACT-01 | Phase 4 | Pending |
+| ACT-02 | Phase 5 | Pending |
+| ACT-03 | Phase 6 | Pending |
+| ACT-04 | Phase 5 | Pending |
+| UX-01 | Phase 3 | Pending |
+| UX-02 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 11 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 11 ⚠️
+- Mapped to phases: 11
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-12*
-*Last updated: 2026-03-12 after initial definition*
+*Last updated: 2026-03-12 — traceability filled after roadmap creation*
