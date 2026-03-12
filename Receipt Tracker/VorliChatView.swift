@@ -127,7 +127,7 @@ private struct ChatInputBar: View {
                 Image(systemName: "plus")
                     .font(.system(size: 17))
                     .frame(width: 44, height: 44)
-                    .glassEffect(in: .circle)
+                    .glassEffect(.regular.interactive(), in: .circle)
             }
             .buttonStyle(.plain)
             .confirmationDialog("Dodaj sliku", isPresented: $showAddMenu) {
@@ -145,7 +145,7 @@ private struct ChatInputBar: View {
                 .padding(.horizontal, 14)
                 .padding(.trailing, hasContent ? 28 : 14)
                 .frame(maxWidth: .infinity, minHeight: 44)
-                .glassEffect(in: .capsule)
+                .glassEffect(.regular.interactive(), in: .capsule)
                 .overlay(alignment: .trailing) {
                     if hasContent {
                         Button(action: onSubmit) {
