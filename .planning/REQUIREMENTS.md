@@ -7,8 +7,8 @@
 
 ### Context Engine
 
-- [ ] **CTX-01**: Vorli receives budget entries and remaining budget in context
-- [ ] **CTX-02**: Vorli receives monthly income and savings split (e.g. 50/30/20) in context
+- [x] **CTX-01**: Vorli receives budget entries and remaining budget in context
+- [x] **CTX-02**: Vorli receives monthly income and savings split (e.g. 50/30/20) in context
 - [ ] **CTX-03**: Vorli receives savings goals in context
 - [ ] **CTX-04**: Vorli automatically selects the correct time window based on question intent (this month, last month, custom range)
 - [ ] **CTX-05**: Vorli infers expense categories from raw merchant and item names without pre-labeling
@@ -59,8 +59,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CTX-01 | Phase 1 | Pending |
-| CTX-02 | Phase 1 | Pending |
+| CTX-01 | Phase 1 | Complete |
+| CTX-02 | Phase 1 | Complete |
 | CTX-03 | Phase 2 | Pending |
 | CTX-04 | Phase 2 | Pending |
 | CTX-05 | Phase 2 | Pending |
