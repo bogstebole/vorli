@@ -30,7 +30,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. When the user asks about affordability, Vorli references their monthly income and savings split (e.g. 50/30/20) in the response
   3. Budget data and income data appear in the system prompt context block sent to the Anthropic API
   4. VorliContextBuilder serializes Budget + BudgetEntry records alongside receipts without breaking existing receipt context
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Parse budzetModel string into BudzetModelJSON struct; extend VorliContextBuilder.build() with finansije JSON section
+- [ ] 01-02-PLAN.md — Extend VorliChatViewModel init to accept Budget; wire @Query budgets through VorliChatView
 
 ### Phase 2: Intelligent Context
 **Goal**: Vorli understands when "this month" vs "last month" vs a custom range is intended, correctly groups spending into categories without any manual labeling, and references the user's savings goals when relevant.
@@ -95,7 +99,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Budget and Income Context | 0/TBD | Not started | - |
+| 1. Budget and Income Context | 0/2 | Not started | - |
 | 2. Intelligent Context | 0/TBD | Not started | - |
 | 3. Action Item Card Infrastructure | 0/TBD | Not started | - |
 | 4. PDF Report Card | 0/TBD | Not started | - |
