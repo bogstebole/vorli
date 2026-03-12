@@ -14,6 +14,7 @@ import PhotosUI
 struct VorliChatView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
+    @Query private var budgets: [Budget]
 
     @State private var viewModel: VorliChatViewModel?
     @State private var inputText = ""
@@ -89,7 +90,7 @@ struct VorliChatView: View {
             }
         }
         .task {
-            viewModel = VorliChatViewModel(allReceipts: allReceipts)
+            viewModel = VorliChatViewModel(allReceipts: allReceipts, budget: budgets.first)
         }
     }
 
