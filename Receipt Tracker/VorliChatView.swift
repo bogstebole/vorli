@@ -215,16 +215,16 @@ private struct ChatMessagesView: View {
                 LazyVStack(spacing: 20) {
                     ForEach(messages) { message in
                         if message.role == .user {
-                            UserMessageBubble(text: message.content)
+                            UserMessageBubble(text: message.textContent)
                                 .id(message.id)
                         } else {
-                            AIResponseView(text: message.content, isStreaming: isStreaming && message == messages.last)
+                            AIResponseView(text: message.textContent, isStreaming: isStreaming && message == messages.last)
                                 .id(message.id)
                         }
                     }
 
                     // Streaming indicator — when last message is empty and streaming
-                    if isStreaming, let last = messages.last, last.role == .assistant, last.content.isEmpty {
+                    if isStreaming, let last = messages.last, last.role == .assistant, last.textContent.isEmpty {
                         TypingIndicator()
                             .id("typing")
                     }
@@ -239,7 +239,7 @@ private struct ChatMessagesView: View {
                     }
                 }
             }
-            .onChange(of: messages.last?.content) { _, _ in
+            .onChange(of: messages.last?.textContent) { _, _ in
                 if let lastId = messages.last?.id {
                     proxy.scrollTo(lastId, anchor: .bottom)
                 }

@@ -28,7 +28,7 @@ struct VorliChatSession: Identifiable, Codable {
     /// First user message clipped at the first sentence boundary (., ?, !).
     /// Falls back to the raw text if no punctuation is found — lineLimit(1) handles visual truncation.
     var subtitle: String {
-        guard let first = messages.first(where: { $0.role == .user })?.content else { return "" }
+        guard let first = messages.first(where: { $0.role == .user })?.textContent else { return "" }
         let trimmed = first.trimmingCharacters(in: .whitespacesAndNewlines)
         // Find the first sentence-ending punctuation
         if let range = trimmed.rangeOfCharacter(from: CharacterSet(charactersIn: ".?!")) {
@@ -137,7 +137,7 @@ final class VorliChatViewModel {
         guard !isStreaming else { return }
 
         // Append user message
-        let userMsg = VorliMessage(role: .user, content: text)
+        let userMsg = VorliMessage(role: .user, content: .text(text))
         messages.append(userMsg)
 
         // Set title from first user message (truncated to 40 chars)
@@ -164,7 +164,7 @@ final class VorliChatViewModel {
             let context = buildContext(for: window, savingsGoals: savingsGoals)
 
             // Append empty assistant message to stream into
-            let assistantMsg = VorliMessage(role: .assistant, content: "")
+            let assistantMsg = VorliMessage(role: .assistant, content: .text(""))
             messages.append(assistantMsg)
             let assistantIndex = messages.count - 1
 
@@ -175,7 +175,7 @@ final class VorliChatViewModel {
                 userProfile: VorliUserProfile.load(),
                 onToken: { [weak self] token in
                     guard let self else { return }
-                    self.messages[assistantIndex].content += token
+                    self.messages[assistantIndex].content = .text(self.messages[assistantIndex].textContent + token)
                 },
                 onComplete: { [weak self] in
                     self?.isStreaming = false
@@ -183,7 +183,7 @@ final class VorliChatViewModel {
                 onError: { [weak self] error in
                     guard let self else { return }
                     self.isStreaming = false
-                    if self.messages.last?.content.isEmpty == true {
+                    if self.messages.last?.textContent.isEmpty == true {
                         self.messages.removeLast()
                     }
                     self.errorMessage = error.localizedDescription

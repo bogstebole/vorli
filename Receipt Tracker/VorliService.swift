@@ -7,22 +7,93 @@
 
 import Foundation
 
+// MARK: - Card Payload Model
+
+struct VorliCardPayload: Equatable, Codable {
+    enum CardType: String, Codable { case pdf, shoppingList }
+    enum ActionState: String, Codable { case loading, ready, disabled }
+
+    let cardType: CardType
+    var title: String       // Row 1 label, e.g. "PDF izveštaj" (11pt monospaced)
+    var mainText: String    // Row 2 prominent text, e.g. "Mart 2026" (14pt monospaced)
+    var metaLine: String    // Row 3 meta, e.g. "12 računa · 45.320 RSD" (11pt monospaced, #8A8A82)
+    var actionState: ActionState
+}
+
+// MARK: - Message Content Type
+
+enum VorliMessageContent: Equatable {
+    case text(String)
+    case card(VorliCardPayload)
+}
+
+extension VorliMessageContent: Codable {
+    private enum CodingKeys: String, CodingKey { case type, text, card }
+    private enum ContentType: String, Codable { case text, card }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .text(let s):
+            try container.encode(ContentType.text, forKey: .type)
+            try container.encode(s, forKey: .text)
+        case .card(let c):
+            try container.encode(ContentType.card, forKey: .type)
+            try container.encode(c, forKey: .card)
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type_ = try? container.decode(ContentType.self, forKey: .type)
+        switch type_ {
+        case .text, .none:
+            // .none handles old sessions where `type` key didn't exist
+            // Old sessions encoded content as a bare string under the key "text" OR "content"
+            // Try "text" first (new format), then fall back to legacy "content" key
+            if let s = try? container.decode(String.self, forKey: .text) {
+                self = .text(s)
+            } else {
+                // Legacy: old VorliMessage had `content: String` encoded under the "content" CodingKey
+                // We cannot use CodingKeys here, so use a fresh container
+                struct LegacyKeys: CodingKey {
+                    var stringValue: String
+                    init?(stringValue: String) { self.stringValue = stringValue }
+                    var intValue: Int? { nil }
+                    init?(intValue: Int) { nil }
+                }
+                let raw = try decoder.container(keyedBy: LegacyKeys.self)
+                let s = (try? raw.decode(String.self, forKey: LegacyKeys(stringValue: "content")!)) ?? ""
+                self = .text(s)
+            }
+        case .card:
+            self = .card(try container.decode(VorliCardPayload.self, forKey: .card))
+        }
+    }
+}
+
 // MARK: - Chat Message Model
 
 struct VorliMessage: Identifiable, Equatable, Codable {
     let id: UUID
     let role: Role
-    var content: String
+    var content: VorliMessageContent
 
     enum Role: String, Codable {
         case user
         case assistant
     }
 
-    init(id: UUID = UUID(), role: Role, content: String) {
+    init(id: UUID = UUID(), role: Role, content: VorliMessageContent) {
         self.id = id
         self.role = role
         self.content = content
+    }
+
+    /// Returns the text string for .text case; empty string for .card case.
+    var textContent: String {
+        if case .text(let s) = content { return s }
+        return ""
     }
 }
 
@@ -170,7 +241,7 @@ class VorliService {
 
         // Build messages array from history + new user message with context
         var messages: [AnthropicMessage] = history.map {
-            AnthropicMessage(role: $0.role == .user ? "user" : "assistant", content: $0.content)
+            AnthropicMessage(role: $0.role == .user ? "user" : "assistant", content: $0.textContent)
         }
 
         // Inject receipt context into the user message
