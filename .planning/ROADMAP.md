@@ -63,7 +63,11 @@ Plans:
   3. Tapping the primary action button on a card triggers its action (download, share sheet, or preview) without crashing
   4. VorliChatViewModel can emit a message containing a card payload (not just a text string) and the View renders it correctly
   5. Cards with no action available (e.g. while generating) show a loading/disabled state
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — VorliMessage type extension (VorliCardPayload + VorliMessageContent enum) + Codable migration + ViewModel helpers, TDD green
+- [ ] 03-02-PLAN.md — ActionItemCardView component (Figma-spec) + ChatMessagesView wiring + visual checkpoint
 
 ### Phase 4: PDF Report Card
 **Goal**: When the user asks Vorli to generate a weekly or monthly report, a PDF report card appears inline in the chat — the user can preview the report and download or share it.
