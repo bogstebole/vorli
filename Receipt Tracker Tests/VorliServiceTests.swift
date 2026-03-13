@@ -1,11 +1,34 @@
 import XCTest
 @testable import Receipt_Tracker
 
+@MainActor
 final class VorliServiceTests: XCTestCase {
+
     func testSystemPromptContainsKategorizacija() {
-        XCTFail("CTX-05: KATEGORIZACIJA section not yet added to buildSystemPrompt() — implement in Plan 03")
+        let service = VorliService()
+        let profile = VorliUserProfile(
+            mesecniPrihod: 0,
+            budzetModel: "50/20/30",
+            aktivniCilj: "",
+            valuta: "RSD",
+            lokacija: "Srbija"
+        )
+        let prompt = service.testableSystemPrompt(userProfile: profile)
+        XCTAssertTrue(prompt.contains("KATEGORIZACIJA"),
+            "System prompt must contain KATEGORIZACIJA section")
     }
+
     func testSystemPromptMerchantNames() {
-        XCTFail("CTX-05: KATEGORIZACIJA section not yet added to buildSystemPrompt() — implement in Plan 03")
+        let service = VorliService()
+        let profile = VorliUserProfile(
+            mesecniPrihod: 0,
+            budzetModel: "50/20/30",
+            aktivniCilj: "",
+            valuta: "RSD",
+            lokacija: "Srbija"
+        )
+        let prompt = service.testableSystemPrompt(userProfile: profile)
+        XCTAssertTrue(prompt.contains("Maxi"), "System prompt must mention Maxi")
+        XCTAssertTrue(prompt.contains("Lidl"), "System prompt must mention Lidl")
     }
 }

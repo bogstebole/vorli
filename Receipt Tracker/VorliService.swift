@@ -9,12 +9,12 @@ import Foundation
 
 // MARK: - Chat Message Model
 
-struct VorliMessage: Identifiable, Equatable {
+struct VorliMessage: Identifiable, Equatable, Codable {
     let id: UUID
     let role: Role
     var content: String
 
-    enum Role {
+    enum Role: String, Codable {
         case user
         case assistant
     }
@@ -114,10 +114,21 @@ class VorliService {
         Ako ne nađeš tražene račune, napiši tačno: "U podacima koje imam (N računa, od [datum] do [datum]) nema računa koji odgovaraju." — popuni N i datume iz meta polja.
         NIKAD ne izmišljaj, ne pretpostavljaj, ne dodavaj podatke kojih nema u JSON-u.
 
+        === KATEGORIZACIJA ===
+        Kada korisnik pita za kategoriju troška, zaključi kategoriju na osnovu NAZIVA PRODAVNICE i NAZIVA STAVKI.
+        NIKAD ne vrati "N/A" za kategoriju — uvek zaključi na osnovu dostupnih podataka.
+
+        Poznate prodavnice po kategorijama:
+        - Namirnice: Maxi, Lidl, Roda, Idea, DP, Univerexport, Mercator, Tempo
+        - Apoteke / kozmetika: DM, Lilly, Biljka
+        - Gorivo: NIS, NIS Petrol, OMV, MOL, Lukoil, Gazprom, Enis
+        - Brza hrana: McDonald's, KFC, Burger King, Pizza Hut
+
+        Za ostale prodavnice, zaključi kategoriju iz naziva stavki (npr. "HLEB", "MLEKO" → namirnice).
+
         Korisnički profil:
         - Mesečni prihod: \(userProfile.mesecniPrihod > 0 ? "\(userProfile.mesecniPrihod) RSD" : "nije unet")
         - Budžet model: \(userProfile.budzetModel)
-        - Aktivni cilj: \(userProfile.aktivniCilj.isEmpty ? "nije postavljen" : userProfile.aktivniCilj)
         - Valuta: \(userProfile.valuta)
         - Lokacija: \(userProfile.lokacija)
         """
@@ -215,6 +226,14 @@ class VorliService {
             }
         }
     }
+
+    // MARK: - Testing Support
+
+    #if DEBUG
+    func testableSystemPrompt(userProfile: VorliUserProfile) -> String {
+        buildSystemPrompt(userProfile: userProfile)
+    }
+    #endif
 }
 
 // MARK: - User Profile
