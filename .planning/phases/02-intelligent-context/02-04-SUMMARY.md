@@ -79,7 +79,7 @@ Each task was committed atomically:
 1. **Task 1 (TDD): TimeWindow enum and classifyIntent()** - `b74d9da` (feat)
 2. **Task 2: Refactor send() with TimeWindow classification** - `6bffc1f` (feat)
 
-**Plan metadata:** (to follow)
+**Plan metadata:** `fd35496` (docs: complete plan)
 
 _Note: Task 1 used TDD cycle — tests written as failing RED before implementation, then GREEN after enum and method added._
 
