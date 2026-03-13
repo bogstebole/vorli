@@ -26,6 +26,16 @@ struct VorliMessage: Identifiable, Equatable, Codable {
     }
 }
 
+// MARK: - Time Window Classification
+
+enum TimeWindow: String, CaseIterable {
+    case thisMonth  = "this_month"
+    case lastMonth  = "last_month"
+    case thisWeek   = "this_week"
+    case lastWeek   = "last_week"
+    case recent     = "recent"
+}
+
 // MARK: - API Request/Response Models
 
 private struct AnthropicRequest: Encodable {
@@ -49,6 +59,14 @@ private struct StreamDelta: Decodable {
 private struct StreamEvent: Decodable {
     let type: String
     let delta: StreamDelta?
+}
+
+private struct AnthropicSyncResponse: Decodable {
+    let content: [SyncContentBlock]
+    struct SyncContentBlock: Decodable {
+        let type: String
+        let text: String?
+    }
 }
 
 // MARK: - Vorli Service
@@ -76,6 +94,7 @@ class VorliService {
     static let apiKeyDefaultsKey = "vorli_anthropic_api_key"
 
     private let model = "claude-sonnet-4-20250514"
+    private let classificationModel = "claude-haiku-4-20250514"
     private let maxTokens = 2048
 
     // MARK: - System Prompt
@@ -224,6 +243,49 @@ class VorliService {
             } catch {
                 await MainActor.run { onError(error) }
             }
+        }
+    }
+
+    // MARK: - Intent Classification
+
+    /// Classifies the time window for a free-text question using a non-streaming Haiku call.
+    /// Falls back to `.recent` silently on any error or missing API key.
+    func classifyIntent(question: String) async -> TimeWindow {
+        let apiKey = UserDefaults.standard.string(forKey: Self.apiKeyDefaultsKey) ?? ""
+        guard !apiKey.isEmpty else { return .recent }
+
+        let systemPrompt = """
+        Klasifikuj vremenski period koji korisnik traži u JEDNOJ od sledećih vrednosti:
+        this_month | last_month | this_week | last_week | recent
+        Odgovori SAMO jednom od tih vrednosti — bez objašnjenja.
+        """
+
+        let request = AnthropicRequest(
+            model: classificationModel,
+            max_tokens: 10,
+            system: systemPrompt,
+            messages: [AnthropicMessage(role: "user", content: question)],
+            stream: false
+        )
+
+        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else { return .recent }
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        do {
+            urlRequest.httpBody = try JSONEncoder().encode(request)
+            let (data, _) = try await URLSession.shared.data(for: urlRequest)
+            let parsed = try JSONDecoder().decode(AnthropicSyncResponse.self, from: data)
+            let raw = parsed.content
+                .first(where: { $0.type == "text" })?
+                .text?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? "recent"
+            return TimeWindow(rawValue: raw) ?? .recent
+        } catch {
+            return .recent  // silent fallback on any error
         }
     }
 

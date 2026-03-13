@@ -3,9 +3,16 @@ import XCTest
 
 final class TimeWindowTests: XCTestCase {
     func testAllCasesRoundTrip() {
-        XCTFail("CTX-04: TimeWindow enum not yet implemented — implement in Plan 04")
+        let rawValues = ["this_month", "last_month", "this_week", "last_week", "recent"]
+        for raw in rawValues {
+            XCTAssertNotNil(TimeWindow(rawValue: raw), "Expected TimeWindow for rawValue '\(raw)'")
+        }
+        XCTAssertEqual(TimeWindow.allCases.count, 5)
     }
+
     func testFallbackOnUnknownRawValue() {
-        XCTFail("CTX-04: TimeWindow enum not yet implemented — implement in Plan 04")
+        XCTAssertNil(TimeWindow(rawValue: "garbage"))
+        XCTAssertNil(TimeWindow(rawValue: ""))
+        XCTAssertNil(TimeWindow(rawValue: "RECENT"))  // case-sensitive
     }
 }
