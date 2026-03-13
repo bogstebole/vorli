@@ -146,41 +146,51 @@ final class VorliChatViewModel {
             conversationTitle = trimmed.count > 40 ? String(trimmed.prefix(40)) + "…" : trimmed
         }
 
-        // Build receipt context based on request type
-        let context = buildContext(for: requestType, savingsGoals: savingsGoals)
-
-        // Append empty assistant message to stream into
-        let assistantMsg = VorliMessage(role: .assistant, content: "")
-        messages.append(assistantMsg)
-        let assistantIndex = messages.count - 1
-
+        // Set BEFORE entering async Task to prevent double-send
         isStreaming = true
 
-        let history = Array(messages.dropLast(2)) // exclude the pair we just added
+        let history = Array(messages.dropLast()) // exclude the user message we just added
 
-        service.sendMessage(
-            userMessage: text,
-            context: context,
-            history: history,
-            userProfile: VorliUserProfile.load(),
-            onToken: { [weak self] token in
-                guard let self else { return }
-                self.messages[assistantIndex].content += token
-            },
-            onComplete: { [weak self] in
-                self?.isStreaming = false
-            },
-            onError: { [weak self] error in
-                guard let self else { return }
-                self.isStreaming = false
-                // Remove the empty assistant placeholder
-                if self.messages.last?.content.isEmpty == true {
-                    self.messages.removeLast()
-                }
-                self.errorMessage = error.localizedDescription
-                self.showError = true
+        Task { @MainActor in
+            // Classify intent for free-text queries; quick prompts bypass classification
+            let window: TimeWindow
+            switch requestType {
+            case "REPORT_MONTH": window = .thisMonth
+            case "REPORT_WEEK":  window = .thisWeek
+            case "PRETRAGA":     window = await service.classifyIntent(question: text)
+            default:             window = TimeWindow(rawValue: requestType) ?? .recent
             }
-        )
+
+            let context = buildContext(for: window, savingsGoals: savingsGoals)
+
+            // Append empty assistant message to stream into
+            let assistantMsg = VorliMessage(role: .assistant, content: "")
+            messages.append(assistantMsg)
+            let assistantIndex = messages.count - 1
+
+            service.sendMessage(
+                userMessage: text,
+                context: context,
+                history: history,
+                userProfile: VorliUserProfile.load(),
+                onToken: { [weak self] token in
+                    guard let self else { return }
+                    self.messages[assistantIndex].content += token
+                },
+                onComplete: { [weak self] in
+                    self?.isStreaming = false
+                },
+                onError: { [weak self] error in
+                    guard let self else { return }
+                    self.isStreaming = false
+                    if self.messages.last?.content.isEmpty == true {
+                        self.messages.removeLast()
+                    }
+                    self.errorMessage = error.localizedDescription
+                    self.showError = true
+                }
+            )
+        }
     }
 
     // MARK: - Quick Prompts
@@ -191,21 +201,28 @@ final class VorliChatViewModel {
 
     // MARK: - Context Builder
 
-    private func buildContext(for requestType: String, savingsGoals: [SavingsGoal]) -> String {
+    private func buildContext(for window: TimeWindow, savingsGoals: [SavingsGoal] = []) -> String {
         let profile = VorliUserProfile.load()
-        switch requestType {
-        case "REPORT_MONTH":
+        switch window {
+        case .thisMonth:
             let current = VorliContextBuilder.receiptsForCurrentMonth(from: allReceipts)
             let previous = VorliContextBuilder.receiptsForPreviousMonth(from: allReceipts)
             return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", budget: budget, userProfile: profile, savingsGoals: savingsGoals)
 
-        case "REPORT_WEEK":
+        case .lastMonth:
+            let lastMonth = VorliContextBuilder.receiptsForPreviousMonth(from: allReceipts)
+            return VorliContextBuilder.build(currentReceipts: lastMonth, requestType: "PRETRAGA", budget: budget, userProfile: profile, savingsGoals: savingsGoals)
+
+        case .thisWeek:
             let current = VorliContextBuilder.receiptsForCurrentWeek(from: allReceipts)
             let previous = VorliContextBuilder.receiptsForPreviousWeek(from: allReceipts)
             return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", budget: budget, userProfile: profile, savingsGoals: savingsGoals)
 
-        default:
-            // For free-text search, send receipts from last 6 months as context
+        case .lastWeek:
+            let lastWeek = VorliContextBuilder.receiptsForPreviousWeek(from: allReceipts)
+            return VorliContextBuilder.build(currentReceipts: lastWeek, requestType: "PRETRAGA", budget: budget, userProfile: profile, savingsGoals: savingsGoals)
+
+        case .recent:
             let cutoff = Calendar.current.date(byAdding: .month, value: -6, to: Date()) ?? Date()
             let recent = allReceipts.filter { $0.timestamp >= cutoff }
             return VorliContextBuilder.build(currentReceipts: recent, requestType: "PRETRAGA", budget: budget, userProfile: profile, savingsGoals: savingsGoals)
