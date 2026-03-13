@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-13T06:36:11.959Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-03-13T08:36:52.974Z"
 last_activity: 2026-03-12 — Roadmap created, phases derived from requirements
 progress:
   total_phases: 6
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 6
-  completed_plans: 3
+  completed_plans: 6
   percent: 0
 ---
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-budget-and-income-context P01 | 15 | 2 tasks | 2 files |
 | Phase 01-budget-and-income-context P02 | 2 | 2 tasks | 2 files |
 | Phase 02-intelligent-context P01 | 10 | 2 tasks | 3 files |
+| Phase 02-intelligent-context P04 | 95 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,9 @@ Recent decisions affecting current work:
 - [Phase 01-budget-and-income-context]: No sort descriptor on Budget @Query — single Budget record per app; budgets.first safely handles empty and populated states
 - [Phase 02-intelligent-context]: Used XCTFail stubs (not forward type references) to keep test files compile-clean while marking RED state
 - [Phase 02-intelligent-context]: Ran tests on iPhone 17 simulator (iOS 26.2) — iPhone 16 not available in this Xcode installation
+- [Phase 02-intelligent-context]: TimeWindow placed at file scope (not nested) so @testable import exposes it to unit tests without public access modifier
+- [Phase 02-intelligent-context]: isStreaming = true set before Task { @MainActor in } block — prevents double-send during Haiku classification latency
+- [Phase 02-intelligent-context]: Quick prompts (REPORT_MONTH/REPORT_WEEK) bypass Haiku classification — map directly to .thisMonth/.thisWeek
 
 ### Pending Todos
 
@@ -81,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T06:36:11.957Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-13T08:36:52.972Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
