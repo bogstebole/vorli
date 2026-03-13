@@ -15,6 +15,7 @@ struct VorliChatView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
     @Query private var budgets: [Budget]
+    @Query private var savingsGoals: [SavingsGoal]
 
     @State private var viewModel: VorliChatViewModel?
     @State private var inputText = ""
@@ -23,6 +24,7 @@ struct VorliChatView: View {
     @State private var showPhotoPicker = false
     @State private var showCamera = false
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var navigateToHistory = false
 
     var body: some View {
         NavigationStack {
@@ -40,15 +42,38 @@ struct VorliChatView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    VorliHeaderTitle()
+                    VorliHeaderTitle(title: viewModel?.conversationTitle ?? "Vorli")
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
+                        viewModel?.saveCurrentSessionIfNeeded()
                         dismiss()
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .medium))
                     }
+                }
+                ToolbarItemGroup(placement: .primaryAction) {
+                    // Chat History
+                    Button {
+                        navigateToHistory = true
+                    } label: {
+                        Image(systemName: "clock.arrow.circlepath")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                    // New Chat
+                    Button {
+                        viewModel?.startNewChat()
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                }
+            }
+            .navigationDestination(isPresented: $navigateToHistory) {
+                ChatHistoryView { session in
+                    viewModel?.load(session: session)
+                    navigateToHistory = false
                 }
             }
             // safeAreaInset je jedini ispravni iOS pattern za chat input bar sa TextField-om.
@@ -57,7 +82,7 @@ struct VorliChatView: View {
                 VStack(spacing: 0) {
                     if viewModel?.messages.isEmpty == true {
                         QuickPromptsRow { prompt in
-                            viewModel?.sendQuickPrompt(prompt)
+                            viewModel?.sendQuickPrompt(prompt, savingsGoals: savingsGoals)
                         }
                         .padding(.bottom, 4)
                     }
@@ -103,7 +128,7 @@ struct VorliChatView: View {
         guard !text.isEmpty else { return }
         inputText = ""
         inputFocused = false
-        viewModel?.send(text)
+        viewModel?.send(text, savingsGoals: savingsGoals)
     }
 }
 
@@ -168,11 +193,13 @@ private struct ChatInputBar: View {
 // MARK: - Header Title
 
 private struct VorliHeaderTitle: View {
+    let title: String
+
     var body: some View {
-        HStack(spacing: 6) {
-            Text("Vorli")
-                .font(.system(.body, design: .monospaced, weight: .medium))
-        }
+        Text(title)
+            .font(.system(.footnote, design: .monospaced, weight: .regular))
+            .lineLimit(1)
+            .truncationMode(.tail)
     }
 }
 
@@ -530,9 +557,113 @@ struct CameraPickerView: UIViewControllerRepresentable {
     }
 }
 
+// MARK: - Chat History Sheet
+
+// MARK: - Chat History Card
+
+struct ChatHistoryCardView: View {
+    let session: VorliChatSession
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 16) {
+                Text(session.title)
+                    .font(.system(.subheadline, design: .monospaced, weight: .regular))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+
+            Text(session.date, style: .date)
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.04), radius: 1.5, x: 0, y: 1)
+        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.03), radius: 3, x: 0, y: 6)
+        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.02), radius: 4, x: 0, y: 13)
+        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.01), radius: 4.5, x: 0, y: 24)
+        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0), radius: 5, x: 0, y: 37)
+    }
+}
+
+// MARK: - Chat History View
+
+struct ChatHistoryView: View {
+    let onSelect: (VorliChatSession) -> Void
+
+    @State private var sessions: [VorliChatSession] = []
+
+    var body: some View {
+        Group {
+            if sessions.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 40, weight: .light))
+                        .foregroundStyle(.secondary)
+                    Text("Nema istorije")
+                        .font(.system(.headline, design: .monospaced, weight: .medium))
+                        .foregroundStyle(.primary)
+                    Text("Prethodni razgovori će se ovde pojaviti.")
+                        .font(.system(.subheadline, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 40)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(sessions) { session in
+                            Button {
+                                onSelect(session)
+                            } label: {
+                                ChatHistoryCardView(session: session)
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button("Obriši", role: .destructive) {
+                                    sessions.removeAll { $0.id == session.id }
+                                    VorliSessionStore.shared.save(sessions)
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+            }
+        }
+        .navigationTitle("Istorija")
+        .navigationBarTitleDisplayMode(.inline)
+        .fontDesign(.monospaced)
+        .toolbar {
+            if !sessions.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(role: .destructive) {
+                        sessions = []
+                        VorliSessionStore.shared.save([])
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16, weight: .medium))
+                    }
+                }
+            }
+        }
+        .onAppear {
+            sessions = VorliSessionStore.shared.load()
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
     VorliChatView()
-        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self], inMemory: true)
+        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self, SavingsGoal.self], inMemory: true)
 }
