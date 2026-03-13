@@ -31,6 +31,16 @@
 		E8ECE1822F6218B8002B990C /* AddNewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8ECE1812F6218B8002B990C /* AddNewSheet.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		E8ECE1A02F63E291002B990C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E82F3C852EF048AA00ABCF0D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E82F3C8C2EF048AA00ABCF0D;
+			remoteInfo = "Receipt Tracker";
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		E82F3C8D2EF048AA00ABCF0D /* Receipt Tracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Receipt Tracker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E82F3CB52EF0655500ABCF0D /* ReceiptCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptCardView.swift; sourceTree = "<group>"; };
@@ -53,12 +63,23 @@
 		E89FC8922F323E62005CF898 /* HTML_ENTITY_DECODING_FIX.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = HTML_ENTITY_DECODING_FIX.md; sourceTree = "<group>"; };
 		E8ECE17F2F620EB3002B990C /* guidelines.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = guidelines.md; sourceTree = "<group>"; };
 		E8ECE1812F6218B8002B990C /* AddNewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNewSheet.swift; sourceTree = "<group>"; };
+		E8ECE19C2F63E291002B990C /* Receipt Tracker Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Receipt Tracker Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E82F3C8F2EF048AA00ABCF0D /* Receipt Tracker */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Receipt Tracker";
+			sourceTree = "<group>";
+		};
+		E8ECE1902F63E16D002B990C /* Receipt Tracker Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Receipt Tracker Tests";
+			sourceTree = "<group>";
+		};
+		E8ECE19D2F63E291002B990C /* Receipt Tracker Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Receipt Tracker Tests";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -73,6 +94,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E8ECE1992F63E291002B990C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -80,6 +108,8 @@
 			isa = PBXGroup;
 			children = (
 				E82F3C8F2EF048AA00ABCF0D /* Receipt Tracker */,
+				E8ECE1902F63E16D002B990C /* Receipt Tracker Tests */,
+				E8ECE19D2F63E291002B990C /* Receipt Tracker Tests */,
 				E82F3C8E2EF048AA00ABCF0D /* Products */,
 				E82F3CB52EF0655500ABCF0D /* ReceiptCardView.swift */,
 				E82F3CB72EF0656000ABCF0D /* MonthBalanceCard.swift */,
@@ -108,6 +138,7 @@
 			isa = PBXGroup;
 			children = (
 				E82F3C8D2EF048AA00ABCF0D /* Receipt Tracker.app */,
+				E8ECE19C2F63E291002B990C /* Receipt Tracker Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -139,6 +170,29 @@
 			productReference = E82F3C8D2EF048AA00ABCF0D /* Receipt Tracker.app */;
 			productType = "com.apple.product-type.application";
 		};
+		E8ECE19B2F63E291002B990C /* Receipt Tracker Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E8ECE1A22F63E291002B990C /* Build configuration list for PBXNativeTarget "Receipt Tracker Tests" */;
+			buildPhases = (
+				E8ECE1982F63E291002B990C /* Sources */,
+				E8ECE1992F63E291002B990C /* Frameworks */,
+				E8ECE19A2F63E291002B990C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E8ECE1A12F63E291002B990C /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E8ECE19D2F63E291002B990C /* Receipt Tracker Tests */,
+			);
+			name = "Receipt Tracker Tests";
+			packageProductDependencies = (
+			);
+			productName = "Receipt Tracker Tests";
+			productReference = E8ECE19C2F63E291002B990C /* Receipt Tracker Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -146,11 +200,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2630;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					E82F3C8C2EF048AA00ABCF0D = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					E8ECE19B2F63E291002B990C = {
+						CreatedOnToolsVersion = 26.3;
+						TestTargetID = E82F3C8C2EF048AA00ABCF0D;
 					};
 				};
 			};
@@ -172,6 +230,7 @@
 			projectRoot = "";
 			targets = (
 				E82F3C8C2EF048AA00ABCF0D /* Receipt Tracker */,
+				E8ECE19B2F63E291002B990C /* Receipt Tracker Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -196,6 +255,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E8ECE19A2F63E291002B990C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -214,7 +280,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E8ECE1982F63E291002B990C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E8ECE1A12F63E291002B990C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E82F3C8C2EF048AA00ABCF0D /* Receipt Tracker */;
+			targetProxy = E8ECE1A02F63E291002B990C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		E82F3C962EF048AB00ABCF0D /* Debug */ = {
@@ -410,6 +491,48 @@
 			};
 			name = Release;
 		};
+		E8ECE1A32F63E291002B990C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QLXB6T6X9W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "test.Receipt-Tracker-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Receipt Tracker.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Receipt Tracker";
+			};
+			name = Debug;
+		};
+		E8ECE1A42F63E291002B990C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = QLXB6T6X9W;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "test.Receipt-Tracker-Tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Receipt Tracker.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Receipt Tracker";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -427,6 +550,15 @@
 			buildConfigurations = (
 				E82F3C992EF048AB00ABCF0D /* Debug */,
 				E82F3C9A2EF048AB00ABCF0D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E8ECE1A22F63E291002B990C /* Build configuration list for PBXNativeTarget "Receipt Tracker Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E8ECE1A32F63E291002B990C /* Debug */,
+				E8ECE1A42F63E291002B990C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

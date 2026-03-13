@@ -140,3 +140,14 @@ None - no external service configuration required.
 ---
 *Phase: 03-action-item-card-infrastructure*
 *Completed: 2026-03-13*
+
+## Self-Check: PASSED
+
+- FOUND: Receipt Tracker/VorliService.swift (VorliCardPayload, VorliMessageContent, textContent)
+- FOUND: Receipt Tracker/VorliChatViewModel.swift (emitCard, updateCardState)
+- FOUND: Receipt Tracker Tests/VorliMessageTests.swift (4 green tests)
+- FOUND: .planning/phases/03-action-item-card-infrastructure/03-01-SUMMARY.md
+- FOUND: a0e6936 (test: RED stubs)
+- FOUND: b98a869 (feat: type definitions + Codable migration)
+- FOUND: 628bb7b (feat: emitCard + updateCardState + GREEN tests)
+- FOUND: 9698e27 (docs: metadata commit)
