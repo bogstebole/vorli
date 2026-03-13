@@ -9,9 +9,9 @@
 
 - [x] **CTX-01**: Vorli receives budget entries and remaining budget in context
 - [x] **CTX-02**: Vorli receives monthly income and savings split (e.g. 50/30/20) in context
-- [ ] **CTX-03**: Vorli receives savings goals in context
-- [ ] **CTX-04**: Vorli automatically selects the correct time window based on question intent (this month, last month, custom range)
-- [ ] **CTX-05**: Vorli infers expense categories from raw merchant and item names without pre-labeling
+- [x] **CTX-03**: Vorli receives savings goals in context
+- [x] **CTX-04**: Vorli automatically selects the correct time window based on question intent (this month, last month, custom range)
+- [x] **CTX-05**: Vorli infers expense categories from raw merchant and item names without pre-labeling
 
 ### Action Items in Chat
 
@@ -61,9 +61,9 @@
 |-------------|-------|--------|
 | CTX-01 | Phase 1 | Complete |
 | CTX-02 | Phase 1 | Complete |
-| CTX-03 | Phase 2 | Pending |
-| CTX-04 | Phase 2 | Pending |
-| CTX-05 | Phase 2 | Pending |
+| CTX-03 | Phase 2 | Complete |
+| CTX-04 | Phase 2 | Complete |
+| CTX-05 | Phase 2 | Complete |
 | ACT-01 | Phase 4 | Pending |
 | ACT-02 | Phase 5 | Pending |
 | ACT-03 | Phase 6 | Pending |
