@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-03-13T09:03:08.446Z"
-last_activity: 2026-03-12 — Roadmap created, phases derived from requirements
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-03-13T12:59:04Z"
+last_activity: 2026-03-13 — Phase 3 Plan 01 executed: VorliMessage typed content model with VorliCardPayload, backward-compat Codable, emitCard/updateCardState
 progress:
   total_phases: 6
   completed_phases: 2
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** Item-level receipt detail + AI insights + budget planning: know exactly what you spent, what it means, and what to do about it.
-**Current focus:** Phase 1 — Budget and Income Context
+**Current focus:** Phase 3 — Action Item Card Infrastructure
 
 ## Current Position
 
-Phase: 1 of 6 (Budget and Income Context)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-12 — Roadmap created, phases derived from requirements
+Phase: 3 of 6 (Action Item Card Infrastructure)
+Plan: 1 of TBD in current phase
+Status: In progress
+Last activity: 2026-03-13 — Phase 3 Plan 01 executed: VorliMessage typed content model
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] ~20%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-budget-and-income-context P02 | 2 | 2 tasks | 2 files |
 | Phase 02-intelligent-context P01 | 10 | 2 tasks | 3 files |
 | Phase 02-intelligent-context P04 | 95 | 2 tasks | 3 files |
+| Phase 03-action-item-card-infrastructure P01 | 22 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Recent decisions affecting current work:
 - [Phase 02-intelligent-context]: TimeWindow placed at file scope (not nested) so @testable import exposes it to unit tests without public access modifier
 - [Phase 02-intelligent-context]: isStreaming = true set before Task { @MainActor in } block — prevents double-send during Haiku classification latency
 - [Phase 02-intelligent-context]: Quick prompts (REPORT_MONTH/REPORT_WEEK) bypass Haiku classification — map directly to .thisMonth/.thisWeek
+- [Phase 03-action-item-card-infrastructure P01]: Backward-compat decode placed in VorliMessage.init(from:) — old sessions had 'content: String' as a scalar VorliMessage field, which VorliMessageContent's keyed-container decoder cannot handle
+- [Phase 03-action-item-card-infrastructure P01]: ViewModel XCTests use async methods to avoid @MainActor isolation crash on simulator clones (non-async @MainActor test methods trigger app launch denial)
 
 ### Pending Todos
 
@@ -85,6 +88,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T08:36:52.972Z
-Stopped at: Completed 02-04-PLAN.md
+Last session: 2026-03-13T12:59:04Z
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None

@@ -22,8 +22,8 @@
 
 ### Chat UX
 
-- [ ] **UX-01**: Chat displays action item cards inline (PDF report card, shopping list card) — not just text
-- [ ] **UX-02**: Action item cards have a download/share action (PDF export, list export)
+- [x] **UX-01**: Chat displays action item cards inline (PDF report card, shopping list card) — not just text
+- [x] **UX-02**: Action item cards have a download/share action (PDF export, list export)
 
 ## v2 Requirements
 
@@ -68,8 +68,8 @@
 | ACT-02 | Phase 5 | Pending |
 | ACT-03 | Phase 6 | Pending |
 | ACT-04 | Phase 5 | Pending |
-| UX-01 | Phase 3 | Pending |
-| UX-02 | Phase 3 | Pending |
+| UX-01 | Phase 3 | Complete |
+| UX-02 | Phase 3 | Complete |
 
 **Coverage:**
 - v1 requirements: 11 total
