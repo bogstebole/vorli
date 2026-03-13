@@ -218,8 +218,17 @@ private struct ChatMessagesView: View {
                             UserMessageBubble(text: message.textContent)
                                 .id(message.id)
                         } else {
-                            AIResponseView(text: message.textContent, isStreaming: isStreaming && message == messages.last)
+                            switch message.content {
+                            case .text(let t):
+                                AIResponseView(text: t, isStreaming: isStreaming && message == messages.last)
+                                    .id(message.id)
+                            case .card(let payload):
+                                HStack(alignment: .top) {
+                                    ActionItemCardView(payload: payload)
+                                    Spacer(minLength: 40)
+                                }
                                 .id(message.id)
+                            }
                         }
                     }
 
