@@ -193,6 +193,22 @@ final class VorliChatViewModel {
         }
     }
 
+    // MARK: - Card Emission
+
+    /// Called when Vorli decides to emit a card instead of a text response.
+    func emitCard(_ payload: VorliCardPayload) {
+        let cardMsg = VorliMessage(role: .assistant, content: .card(payload))
+        messages.append(cardMsg)
+    }
+
+    /// Updates actionState on an existing card message (e.g. loading → ready after PDF generation).
+    func updateCardState(messageID: UUID, newState: VorliCardPayload.ActionState) {
+        guard let idx = messages.firstIndex(where: { $0.id == messageID }),
+              case .card(var payload) = messages[idx].content else { return }
+        payload.actionState = newState
+        messages[idx].content = .card(payload)
+    }
+
     // MARK: - Quick Prompts
 
     func sendQuickPrompt(_ prompt: QuickPrompt, savingsGoals: [SavingsGoal] = []) {

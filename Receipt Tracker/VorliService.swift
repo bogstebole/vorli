@@ -45,27 +45,10 @@ extension VorliMessageContent: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type_ = try? container.decode(ContentType.self, forKey: .type)
+        let type_ = try container.decode(ContentType.self, forKey: .type)
         switch type_ {
-        case .text, .none:
-            // .none handles old sessions where `type` key didn't exist
-            // Old sessions encoded content as a bare string under the key "text" OR "content"
-            // Try "text" first (new format), then fall back to legacy "content" key
-            if let s = try? container.decode(String.self, forKey: .text) {
-                self = .text(s)
-            } else {
-                // Legacy: old VorliMessage had `content: String` encoded under the "content" CodingKey
-                // We cannot use CodingKeys here, so use a fresh container
-                struct LegacyKeys: CodingKey {
-                    var stringValue: String
-                    init?(stringValue: String) { self.stringValue = stringValue }
-                    var intValue: Int? { nil }
-                    init?(intValue: Int) { nil }
-                }
-                let raw = try decoder.container(keyedBy: LegacyKeys.self)
-                let s = (try? raw.decode(String.self, forKey: LegacyKeys(stringValue: "content")!)) ?? ""
-                self = .text(s)
-            }
+        case .text:
+            self = .text(try container.decode(String.self, forKey: .text))
         case .card:
             self = .card(try container.decode(VorliCardPayload.self, forKey: .card))
         }
@@ -74,7 +57,7 @@ extension VorliMessageContent: Codable {
 
 // MARK: - Chat Message Model
 
-struct VorliMessage: Identifiable, Equatable, Codable {
+struct VorliMessage: Identifiable, Equatable {
     let id: UUID
     let role: Role
     var content: VorliMessageContent
@@ -94,6 +77,32 @@ struct VorliMessage: Identifiable, Equatable, Codable {
     var textContent: String {
         if case .text(let s) = content { return s }
         return ""
+    }
+}
+
+extension VorliMessage: Codable {
+    private enum CodingKeys: String, CodingKey { case id, role, content }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(role, forKey: .role)
+        try container.encode(content, forKey: .content)
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        role = try container.decode(Role.self, forKey: .role)
+
+        // Try new discriminated format first; fall back to legacy bare string
+        if let c = try? container.decode(VorliMessageContent.self, forKey: .content) {
+            content = c
+        } else if let legacy = try? container.decode(String.self, forKey: .content) {
+            content = .text(legacy)
+        } else {
+            content = .text("")
+        }
     }
 }
 
