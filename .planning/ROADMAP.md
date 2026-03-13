@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Budget and Income Context** - Inject live budget and income data into every Vorli prompt (completed 2026-03-12)
 - [x] **Phase 2: Intelligent Context** - Add savings goals, smart time windows, and category inference (completed 2026-03-13)
-- [ ] **Phase 3: Action Item Card Infrastructure** - Build the card rendering system for inline chat actions
+- [x] **Phase 3: Action Item Card Infrastructure** - Build the card rendering system for inline chat actions (completed 2026-03-13)
 - [ ] **Phase 4: PDF Report Card** - Vorli generates a downloadable PDF report as an inline chat card
 - [ ] **Phase 5: Shopping List Card** - Vorli creates a shopping list from spending patterns as an inline chat card
 - [ ] **Phase 6: Price Comparison** - Shopping list includes price comparison across Serbian merchants via web search
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Budget and Income Context | 2/2 | Complete   | 2026-03-12 |
 | 2. Intelligent Context | 4/4 | Complete   | 2026-03-13 |
-| 3. Action Item Card Infrastructure | 1/2 | In Progress|  |
+| 3. Action Item Card Infrastructure | 2/2 | Complete   | 2026-03-13 |
 | 4. PDF Report Card | 0/TBD | Not started | - |
 | 5. Shopping List Card | 0/TBD | Not started | - |
 | 6. Price Comparison | 0/TBD | Not started | - |
