@@ -47,12 +47,14 @@ struct VorliContextBuilder {
     ///   - requestType: One of REPORT | PLAN | PRETRAGA
     ///   - budget: Optional budget model; when provided, adds balance and last-updated to "finansije" block.
     ///   - userProfile: Optional user profile; when provided, adds income and budget split to "finansije" block.
+    ///   - savingsGoals: Savings goals; when non-empty, adds "ciljevi" array to "finansije" block.
     static func build(
         currentReceipts: [Receipt],
         previousReceipts: [Receipt] = [],
         requestType: String = "REPORT",
         budget: Budget? = nil,
-        userProfile: VorliUserProfile? = nil
+        userProfile: VorliUserProfile? = nil,
+        savingsGoals: [SavingsGoal] = []
     ) -> String {
         let currentJSON = currentReceipts.map { encode($0) }
         let previousJSON = previousReceipts.map { encode($0) }
@@ -78,8 +80,8 @@ struct VorliContextBuilder {
             dict["racuni_prethodni"] = toJSONArray(previousJSON)
         }
 
-        // Add finansije block if budget or income data is available
-        if budget != nil || (userProfile?.mesecniPrihod ?? 0) > 0 {
+        // Add finansije block if budget, income, or goals data is available
+        if budget != nil || (userProfile?.mesecniPrihod ?? 0) > 0 || !savingsGoals.isEmpty {
             var finansijeDict: [String: Any] = [:]
 
             if let budget {
@@ -95,6 +97,21 @@ struct VorliContextBuilder {
                     "zabava": parsed.zabava,
                     "stednja": parsed.stednja
                 ]
+            }
+
+            if !savingsGoals.isEmpty {
+                let today = Date()
+                let calendar = Calendar.current
+                let goalMaps: [[String: Any]] = savingsGoals.map { goal in
+                    let months = calendar.dateComponents([.month], from: today, to: goal.rok).month ?? 0
+                    return [
+                        "naziv": goal.naziv,
+                        "cilj_rsd": Double(truncating: goal.ciljniIznos as NSDecimalNumber),
+                        "rok": dateFormatter.string(from: goal.rok),
+                        "preostalo_meseci": max(0, months)
+                    ]
+                }
+                finansijeDict["ciljevi"] = goalMaps
             }
 
             if !finansijeDict.isEmpty {
