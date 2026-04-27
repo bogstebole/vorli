@@ -178,7 +178,22 @@ final class VorliChatViewModel {
                     self.messages[assistantIndex].content = .text(self.messages[assistantIndex].textContent + token)
                 },
                 onComplete: { [weak self] in
-                    self?.isStreaming = false
+                    guard let self else { return }
+                    self.isStreaming = false
+                    let finalText = self.messages[assistantIndex].textContent
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        print("[VorliCard] checking card intent, response length: \(finalText.count)")
+                        if let card = await self.service.classifyCardIntent(
+                            userMessage: text,
+                            assistantResponse: finalText
+                        ) {
+                            print("[VorliCard] emitting card: \(card)")
+                            self.emitCard(card)
+                        } else {
+                            print("[VorliCard] no card warranted")
+                        }
+                    }
                 },
                 onError: { [weak self] error in
                     guard let self else { return }

@@ -6,6 +6,9 @@
 //
 
 import Foundation
+import SwiftUI
+import UIKit
+import UniformTypeIdentifiers
 
 // MARK: - Card Payload Model
 
@@ -149,6 +152,14 @@ private struct AnthropicSyncResponse: Decodable {
     }
 }
 
+private struct CardClassificationResponse: Decodable {
+    let card: Bool
+    let cardType: String?
+    let title: String?
+    let mainText: String?
+    let metaLine: String?
+}
+
 // MARK: - Vorli Service
 
 enum VorliError: LocalizedError {
@@ -174,7 +185,7 @@ class VorliService {
     static let apiKeyDefaultsKey = "vorli_anthropic_api_key"
 
     private let model = "claude-sonnet-4-20250514"
-    private let classificationModel = "claude-haiku-4-20250514"
+    private let classificationModel = "claude-haiku-4-5-20251001"
     private let maxTokens = 2048
 
     // MARK: - System Prompt
@@ -366,6 +377,87 @@ class VorliService {
         }
     }
 
+    // MARK: - Card Intent Classification
+
+    /// Returns a VorliCardPayload if the conversation warrants an action card, nil otherwise.
+    /// Uses Haiku for a fast, cheap classification after the main response completes.
+    func classifyCardIntent(userMessage: String, assistantResponse: String) async -> VorliCardPayload? {
+        let apiKey = UserDefaults.standard.string(forKey: Self.apiKeyDefaultsKey) ?? ""
+        guard !apiKey.isEmpty else { return nil }
+
+        let systemPrompt = """
+        Analiziraj poruku korisnika i odgovor asistenta.
+        Odluči da li odgovor zahteva akcijsku karticu (dugme za akciju).
+
+        Kartica se kreira SAMO kada odgovor:
+        - Sadrži mesečni ili nedeljni izveštaj potrošnje → cardType: "pdf"
+        - Sadrži listu za kupovinu ili preporuku šta kupiti → cardType: "shoppingList"
+
+        Ako kartica treba, vrati JSON:
+        {"card":true,"cardType":"pdf","title":"PDF izveštaj","mainText":"Mart 2026","metaLine":"12 računa · 45.320 RSD"}
+
+        mainText: period izveštaja (npr. "Mart 2026") ili naziv liste
+        metaLine: broj računa i ukupan iznos ako je dostupan, inače kratak opis
+
+        Ako kartica NIJE potrebna, vrati tačno: {"card":false}
+        Odgovori SAMO validnim JSON-om — bez objašnjenja.
+        """
+
+        let combined = "Korisnik: \(userMessage)\n\nAsistent: \(assistantResponse)"
+        let request = AnthropicRequest(
+            model: classificationModel,
+            max_tokens: 120,
+            system: systemPrompt,
+            messages: [AnthropicMessage(role: "user", content: combined)],
+            stream: false
+        )
+
+        guard let url = URL(string: "https://api.anthropic.com/v1/messages") else { return nil }
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+
+        do {
+            urlRequest.httpBody = try JSONEncoder().encode(request)
+            let (data, response) = try await URLSession.shared.data(for: urlRequest)
+            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                print("[VorliCard] API error \(http.statusCode): \(String(data: data, encoding: .utf8) ?? "")")
+                return nil
+            }
+            let parsed = try JSONDecoder().decode(AnthropicSyncResponse.self, from: data)
+            guard let raw = parsed.content.first(where: { $0.type == "text" })?.text else {
+                print("[VorliCard] no text block in response")
+                return nil
+            }
+            var trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Strip markdown code fences Haiku sometimes adds (```json ... ```)
+            if trimmed.hasPrefix("```") {
+                trimmed = trimmed
+                    .components(separatedBy: "\n")
+                    .dropFirst()
+                    .joined(separator: "\n")
+                    .replacingOccurrences(of: "```", with: "")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            print("[VorliCard] classification response: \(trimmed)")
+            guard let jsonData = trimmed.data(using: .utf8),
+                  let obj = try? JSONDecoder().decode(CardClassificationResponse.self, from: jsonData),
+                  obj.card else { return nil }
+            return VorliCardPayload(
+                cardType: VorliCardPayload.CardType(rawValue: obj.cardType ?? "pdf") ?? .pdf,
+                title: obj.title ?? "Izveštaj",
+                mainText: obj.mainText ?? "",
+                metaLine: obj.metaLine ?? "",
+                actionState: .ready
+            )
+        } catch {
+            print("[VorliCard] error: \(error)")
+            return nil
+        }
+    }
+
     // MARK: - Testing Support
 
     #if DEBUG
@@ -416,5 +508,213 @@ struct VorliUserProfile {
             return BudzetModelJSON(potrebe: 50, zabava: 30, stednja: 20)
         }
         return BudzetModelJSON(potrebe: components[0], zabava: components[1], stednja: components[2])
+    }
+}
+
+// MARK: - Transferable Report
+
+struct VorliReport: Transferable {
+    let period: String
+    let metaLine: String
+    let text: String
+
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .pdf) { report in
+            await MainActor.run {
+                VorliPDFGenerator.generate(
+                    period: report.period,
+                    metaLine: report.metaLine,
+                    reportText: report.text
+                )
+            }
+        }
+    }
+}
+
+// MARK: - PDF Generator
+
+@MainActor
+enum VorliPDFGenerator {
+
+    static func generate(period: String, metaLine: String, reportText: String) -> Data {
+        let pageW: CGFloat = 595.2
+        let pageH: CGFloat = 841.8
+        let margin: CGFloat = 56
+        let contentW = pageW - 2 * margin
+
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: pageW, height: pageH))
+
+        return renderer.pdfData { ctx in
+            var y: CGFloat = margin
+            ctx.beginPage()
+
+            func blockHeight(_ str: NSAttributedString) -> CGFloat {
+                ceil(str.boundingRect(
+                    with: CGSize(width: contentW, height: .greatestFiniteMagnitude),
+                    options: [.usesLineFragmentOrigin, .usesFontLeading],
+                    context: nil
+                ).height)
+            }
+
+            func drawBlock(_ str: NSAttributedString) {
+                let h = blockHeight(str)
+                if y + h > pageH - margin { ctx.beginPage(); y = margin }
+                str.draw(in: CGRect(x: margin, y: y, width: contentW, height: h))
+                y += h
+            }
+
+            func drawRule() {
+                let path = UIBezierPath()
+                path.move(to: CGPoint(x: margin, y: y))
+                path.addLine(to: CGPoint(x: pageW - margin, y: y))
+                UIColor.separator.setStroke()
+                path.lineWidth = 0.5
+                path.stroke()
+            }
+
+            // ── Header ───────────────────────────────────────────────────
+            drawBlock(NSAttributedString(string: "VORLI · FINANSIJSKI IZVEŠTAJ", attributes: [
+                .font: UIFont.systemFont(ofSize: 10, weight: .medium),
+                .foregroundColor: UIColor.secondaryLabel,
+                .kern: 0.8
+            ]))
+            y += 8
+            drawBlock(NSAttributedString(string: period, attributes: [
+                .font: UIFont.systemFont(ofSize: 24, weight: .bold),
+                .foregroundColor: UIColor.label
+            ]))
+            y += 4
+            drawBlock(NSAttributedString(string: metaLine, attributes: [
+                .font: UIFont.systemFont(ofSize: 12),
+                .foregroundColor: UIColor.secondaryLabel
+            ]))
+            y += 16
+            drawRule()
+            y += 20
+
+            // ── Content ──────────────────────────────────────────────────
+            for block in parseBlocks(reportText) {
+                switch block {
+                case .heading(let lvl, let text):
+                    y += lvl <= 2 ? 16 : 10
+                    let fontSize: CGFloat = lvl == 1 ? 16 : (lvl == 2 ? 14 : 12)
+                    let weight: UIFont.Weight = lvl <= 2 ? .semibold : .medium
+                    drawBlock(NSAttributedString(string: text, attributes: [
+                        .font: UIFont.systemFont(ofSize: fontSize, weight: weight),
+                        .foregroundColor: UIColor.label
+                    ]))
+                    y += 4
+
+                case .bulletItem(let text):
+                    y += 2
+                    let str = NSMutableAttributedString(string: "•  ", attributes: [
+                        .font: UIFont.systemFont(ofSize: 12),
+                        .foregroundColor: UIColor.secondaryLabel
+                    ])
+                    str.append(NSAttributedString(string: text, attributes: [
+                        .font: UIFont.systemFont(ofSize: 12),
+                        .foregroundColor: UIColor.label
+                    ]))
+                    let para = NSMutableParagraphStyle()
+                    para.headIndent = 14
+                    str.addAttribute(.paragraphStyle, value: para, range: NSRange(location: 0, length: str.length))
+                    drawBlock(str)
+
+                case .numberedItem(let n, let text):
+                    y += 2
+                    let str = NSMutableAttributedString(string: "\(n).  ", attributes: [
+                        .font: UIFont.systemFont(ofSize: 12),
+                        .foregroundColor: UIColor.secondaryLabel
+                    ])
+                    str.append(NSAttributedString(string: text, attributes: [
+                        .font: UIFont.systemFont(ofSize: 12),
+                        .foregroundColor: UIColor.label
+                    ]))
+                    drawBlock(str)
+
+                case .paragraph(let text):
+                    y += 6
+                    drawBlock(NSAttributedString(string: text, attributes: [
+                        .font: UIFont.systemFont(ofSize: 12),
+                        .foregroundColor: UIColor.label
+                    ]))
+
+                case .codeBlock(let code):
+                    y += 8
+                    drawBlock(NSAttributedString(string: code, attributes: [
+                        .font: UIFont.monospacedSystemFont(ofSize: 11, weight: .regular),
+                        .foregroundColor: UIColor.label
+                    ]))
+                    y += 8
+                }
+            }
+
+            // ── Footer ───────────────────────────────────────────────────
+            y += 32
+            if y > pageH - margin - 24 { ctx.beginPage(); y = margin }
+            drawRule()
+            y += 10
+            let df = DateFormatter()
+            df.locale = Locale(identifier: "sr_Latn_RS")
+            df.dateStyle = .long
+            drawBlock(NSAttributedString(string: "Generisao Vorli · \(df.string(from: Date()))", attributes: [
+                .font: UIFont.systemFont(ofSize: 10),
+                .foregroundColor: UIColor.tertiaryLabel
+            ]))
+        }
+    }
+
+    // MARK: - Markdown block parser
+
+    private enum PDFBlock {
+        case heading(level: Int, content: String)
+        case bulletItem(content: String)
+        case numberedItem(number: Int, content: String)
+        case codeBlock(code: String)
+        case paragraph(content: String)
+    }
+
+    private static func parseBlocks(_ text: String) -> [PDFBlock] {
+        var blocks: [PDFBlock] = []
+        let lines = text.components(separatedBy: "\n")
+        var i = 0
+        let numberedPattern = /^(\d+)\.\s(.+)/
+
+        while i < lines.count {
+            let line = lines[i]
+
+            if line.hasPrefix("```") {
+                var code: [String] = []
+                i += 1
+                while i < lines.count && !lines[i].hasPrefix("```") { code.append(lines[i]); i += 1 }
+                blocks.append(.codeBlock(code: code.joined(separator: "\n")))
+                i += 1; continue
+            }
+            if line.hasPrefix("#") {
+                let lvl = line.prefix(while: { $0 == "#" }).count
+                blocks.append(.heading(level: min(lvl, 3), content: String(line.dropFirst(lvl)).trimmingCharacters(in: .whitespaces)))
+                i += 1; continue
+            }
+            if line.hasPrefix("- ") || line.hasPrefix("* ") {
+                blocks.append(.bulletItem(content: String(line.dropFirst(2))))
+                i += 1; continue
+            }
+            if let m = line.firstMatch(of: numberedPattern) {
+                blocks.append(.numberedItem(number: Int(m.1) ?? 1, content: String(m.2)))
+                i += 1; continue
+            }
+            if line.trimmingCharacters(in: .whitespaces).isEmpty { i += 1; continue }
+
+            var para = [line]; i += 1
+            while i < lines.count {
+                let next = lines[i]
+                if next.trimmingCharacters(in: .whitespaces).isEmpty || next.hasPrefix("#")
+                    || next.hasPrefix("- ") || next.hasPrefix("* ") || next.hasPrefix("```")
+                    || next.firstMatch(of: numberedPattern) != nil { break }
+                para.append(next); i += 1
+            }
+            blocks.append(.paragraph(content: para.joined(separator: " ")))
+        }
+        return blocks
     }
 }

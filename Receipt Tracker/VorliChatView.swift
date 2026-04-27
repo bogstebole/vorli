@@ -213,7 +213,7 @@ private struct ChatMessagesView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 20) {
-                    ForEach(messages) { message in
+                    ForEach(Array(messages.enumerated()), id: \.element.id) { index, message in
                         if message.role == .user {
                             UserMessageBubble(text: message.textContent)
                                 .id(message.id)
@@ -223,8 +223,9 @@ private struct ChatMessagesView: View {
                                 AIResponseView(text: t, isStreaming: isStreaming && message == messages.last)
                                     .id(message.id)
                             case .card(let payload):
+                                let reportText = index > 0 ? messages[index - 1].textContent : ""
                                 HStack(alignment: .top) {
-                                    ActionItemCardView(payload: payload)
+                                    ActionItemCardView(payload: payload, reportText: reportText)
                                     Spacer(minLength: 40)
                                 }
                                 .id(message.id)

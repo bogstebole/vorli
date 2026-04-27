@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 // MARK: - Color(hex:) initializer
 
@@ -83,22 +84,22 @@ struct CardThumbnailView: View {
 
     var body: some View {
         ZStack {
-            // 148:15219 — back-most, -20.8°, 70% opacity, white
-            backCard(.white, rotation: -20.8, dx: -11, dy: -7)
+            // 148:15219 — back-most, -20.8°, 70% opacity
+            backCard(Color(.systemBackground), rotation: -20.8, dx: -11, dy: -7)
                 .opacity(0.7)
 
-            // 148:15223 — +7.72°, #fdfdfd
-            backCard(Color(hex: "#FDFDFD"), rotation: 7.72, dx: 6, dy: -1)
+            // 148:15223 — +7.72°
+            backCard(Color(.systemBackground), rotation: 7.72, dx: 6, dy: -1)
 
-            // 148:15227 — -15°, #fdfdfd
-            backCard(Color(hex: "#FDFDFD"), rotation: -15, dx: 2, dy: 9)
+            // 148:15227 — -15°
+            backCard(Color(.systemBackground), rotation: -15, dx: 2, dy: 9)
 
-            // 148:15231 — +15°, #fbfbfb
-            backCard(Color(hex: "#FBFBFB"), rotation: 15, dx: -14, dy: 18)
+            // 148:15231 — +15°
+            backCard(Color(.secondarySystemBackground), rotation: 15, dx: -14, dy: 18)
 
-            // 148:15235 — front card, +0.61°, white, unique inward shadow
+            // 148:15235 — front card, +0.61°, unique inward shadow
             RoundedRectangle(cornerRadius: cr)
-                .fill(.white)
+                .fill(Color(.systemBackground))
                 .frame(width: sz, height: sz)
                 .overlay(frontLabel)
                 .shadow(color: Color(red: 0.56, green: 0.56, blue: 0.56).opacity(0.01), radius: 2.21, x: -4.41, y: -3.86)
@@ -110,7 +111,7 @@ struct CardThumbnailView: View {
 
             // 148:15237 — scroll indicator: gradient fade at bottom center
             LinearGradient(
-                colors: [Color(hex: "#F2F2F7"), .clear],
+                colors: [Color(.secondarySystemBackground), .clear],
                 startPoint: .bottom,
                 endPoint: .top
             )
@@ -161,6 +162,16 @@ struct CardThumbnailView: View {
 
 struct ActionItemCardView: View {
     let payload: VorliCardPayload
+    /// The Vorli response text used to generate the PDF when the action button is tapped.
+    var reportText: String = ""
+
+    // Adaptive card background — distinct from app background in both light and dark mode.
+    private static let gradientStart = Color(UIColor { t in
+        t.userInterfaceStyle == .dark ? UIColor(white: 0.14, alpha: 1) : UIColor(white: 0.91, alpha: 1)
+    })
+    private static let gradientEnd = Color(UIColor { t in
+        t.userInterfaceStyle == .dark ? UIColor(white: 0.20, alpha: 1) : UIColor(white: 0.97, alpha: 1)
+    })
 
     private var actionSymbol: String {
         switch payload.cardType {
@@ -177,11 +188,19 @@ struct ActionItemCardView: View {
                 HStack(spacing: 8) {
                     Text(payload.title)
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
-                        .foregroundStyle(Color(hex: "#111110"))
+                        .foregroundStyle(.primary)
                     Spacer()
-                    Button {
-                        // Phase 4/5: trigger export / share sheet
-                    } label: {
+                    ShareLink(
+                        item: VorliReport(
+                            period: payload.mainText,
+                            metaLine: payload.metaLine,
+                            text: reportText
+                        ),
+                        preview: SharePreview(
+                            payload.mainText,
+                            image: Image(systemName: "doc.richtext")
+                        )
+                    ) {
                         Image(systemName: actionSymbol)
                             .font(.system(size: 13))
                     }
@@ -189,16 +208,16 @@ struct ActionItemCardView: View {
                     .buttonBorderShape(.circle)
                     .tint(.secondary)
                     .controlSize(.small)
-                    .disabled(payload.actionState != .ready)
+                    .disabled(payload.actionState != .ready || reportText.isEmpty)
                 }
 
                 Text(payload.mainText)
                     .font(.system(size: 14, weight: .medium, design: .monospaced))
-                    .foregroundStyle(Color(hex: "#111110"))
+                    .foregroundStyle(.primary)
 
                 Text(payload.metaLine)
                     .font(.system(size: 11, weight: .regular, design: .monospaced))
-                    .foregroundStyle(Color(hex: "#8A8A82"))
+                    .foregroundStyle(.secondary)
             }
             .padding(.vertical, 8)
             .padding(.trailing, 8)
@@ -206,7 +225,7 @@ struct ActionItemCardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
-                colors: [Color(hex: "#F2F1F1"), .white],
+                colors: [Self.gradientStart, Self.gradientEnd],
                 startPoint: UnitPoint(x: 0, y: 0.5),
                 endPoint: UnitPoint(x: 1, y: 0.7)
             )
