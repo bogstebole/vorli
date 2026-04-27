@@ -91,8 +91,9 @@ struct SearchView: View {
                         searchText = ""
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.tertiary)
+                            .foregroundStyle(.primary)
                     }
+                    .tint(.primary)
                     .transition(.scale.combined(with: .opacity))
                 }
             }
