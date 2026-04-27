@@ -54,6 +54,7 @@ struct SearchView: View {
             }
             .padding(.top, 4)
         }
+        .scrollDismissesKeyboard(.immediately)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
