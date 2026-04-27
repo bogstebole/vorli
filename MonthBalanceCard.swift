@@ -11,6 +11,12 @@ struct MonthBalanceCard: View {
     let month: String
     let currentBalance: Decimal
     let spent: Decimal
+    let spentToday: Decimal
+    
+    // Action closures
+    var onAddNew: () -> Void = {}
+    var onDashboard: () -> Void = {}
+    var onSettings: () -> Void = {}
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -23,12 +29,44 @@ struct MonthBalanceCard: View {
                 Text(yearString)
                     .font(.system(.title, design: .monospaced, weight: .regular))
                     .foregroundStyle(.secondary)
+                
+                Spacer()
+                
+                // Menu button with Liquid Glass effect
+                Menu {
+                    Button {
+                        onAddNew()
+                    } label: {
+                        Label("Dodaj novo", systemImage: "plus.app.fill")
+                    }
+                    
+                    Button {
+                        onDashboard()
+                    } label: {
+                        Label("Kontrolna tabla", systemImage: "square.grid.2x2.fill")
+                    }
+                    
+                    Button {
+                        onSettings()
+                    } label: {
+                        Label("Podešavanja", systemImage: "gearshape.fill")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .tint (.primary)
+                        .frame(width: 36, height: 36)
+                        .glassEffect(.regular.interactive(), in: .circle)
+                }
+                .tint(.primary)
+                .accessibilityLabel("Opcije meseca")
             }
             .padding(.bottom, 6)
             
             // Current Balance
             HStack(spacing: 4) {
-                Text("Current balance:")
+                Text("Stanje na računu:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                 
@@ -39,11 +77,21 @@ struct MonthBalanceCard: View {
             
             // Spent This Month
             HStack(spacing: 4) {
-                Text("Spent:")
+                Text("Mesečni trošak:")
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.secondary)
                 
                 Text(formatCurrency(spent))
+                    .font(.system(.body, design: .monospaced, weight: .regular))
+                    .foregroundStyle(.primary)
+            }
+            // Spent Today
+            HStack(spacing: 4) {
+                Text("Dnevni trošak:")
+                    .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            
+                Text(formatCurrency(spentToday))
                     .font(.system(.body, design: .monospaced, weight: .regular))
                     .foregroundStyle(.primary)
             }
@@ -60,7 +108,8 @@ struct MonthBalanceCard: View {
     private var monthName: String {
         // Extract month name from the month string (e.g., "December" from "December 2025")
         let components = month.components(separatedBy: " ")
-        return components.first ?? month
+        let name = components.first ?? month
+        return name.prefix(1).uppercased() + name.dropFirst()
     }
     
     private var yearString: String {
@@ -83,9 +132,10 @@ struct MonthBalanceCard: View {
 
 #Preview {
     MonthBalanceCard(
-        month: "December 2025",
+        month: "decembar 2025",
         currentBalance: 15420.00,
-        spent: 8650.00
+        spent: 8650.00,
+        spentToday: 150.00
     )
     .padding()
 }

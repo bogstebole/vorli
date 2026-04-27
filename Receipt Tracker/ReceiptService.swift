@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftData
+import UIKit
 
 /// Service for managing receipts and budget
 @MainActor
@@ -66,6 +67,63 @@ class ReceiptService {
         return receipt
     }
     
+    /// Scans and saves a receipt from an image using OCR
+    func processReceiptImage(_ image: UIImage) async throws -> Receipt {
+        print("🚀 ReceiptService.processReceiptImage called")
+        print("📐 Image size: \(image.size)")
+        
+        // Parse the receipt using OCR
+        print("🔄 About to call ReceiptOCRParser.parseReceipt")
+        let parsed = try await ReceiptOCRParser.parseReceipt(from: image)
+        print("✅ ReceiptOCRParser returned successfully")
+        
+        // Check if receipt already exists (by receipt number if available)
+        if !parsed.receiptNumber.isEmpty {
+            let receiptNumber = parsed.receiptNumber
+            let descriptor = FetchDescriptor<Receipt>(
+                predicate: #Predicate { $0.receiptNumber == receiptNumber }
+            )
+            
+            if (try? modelContext.fetch(descriptor).first) != nil {
+                throw ReceiptError.duplicateReceipt
+            }
+        }
+        
+        // Create receipt items
+        let items = parsed.items.map { parsedItem in
+            ReceiptItem(
+                name: parsedItem.name,
+                quantity: parsedItem.quantity,
+                unitPrice: parsedItem.unitPrice,
+                lineTotal: parsedItem.lineTotal
+            )
+        }
+        
+        // Create receipt
+        let receipt = Receipt(
+            url: parsed.url,
+            merchantName: parsed.merchantName,
+            merchantAddress: parsed.merchantAddress,
+            merchantCity: parsed.merchantCity,
+            timestamp: parsed.timestamp,
+            totalAmount: parsed.totalAmount,
+            totalTax: parsed.totalTax,
+            paymentMethod: parsed.paymentMethod,
+            receiptNumber: parsed.receiptNumber,
+            cashRegisterNumber: parsed.cashRegisterNumber,
+            items: items
+        )
+        
+        // Update budget
+        try await deductFromBudget(amount: parsed.totalAmount)
+        
+        // Save to SwiftData
+        modelContext.insert(receipt)
+        try modelContext.save()
+        
+        return receipt
+    }
+    
     /// Gets or creates the user's budget
     func getBudget() throws -> Budget {
         let descriptor = FetchDescriptor<Budget>()
@@ -88,6 +146,27 @@ class ReceiptService {
         budget.currentBalance = newBalance
         budget.lastUpdated = Date()
         try modelContext.save()
+    }
+    
+    /// Adds balance and creates a budget entry for tracking
+    func addBalanceEntry(amount: Decimal) throws {
+        let budget = try getBudget()
+        budget.currentBalance += amount
+        budget.lastUpdated = Date()
+        
+        // Create a budget entry to track this addition
+        let entry = BudgetEntry(amount: amount, timestamp: Date())
+        modelContext.insert(entry)
+        
+        try modelContext.save()
+    }
+    
+    /// Fetches all budget entries sorted by date
+    func fetchBudgetEntries() throws -> [BudgetEntry] {
+        let descriptor = FetchDescriptor<BudgetEntry>(
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
     }
     
     /// Deducts an amount from the budget

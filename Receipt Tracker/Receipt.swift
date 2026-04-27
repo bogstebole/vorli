@@ -21,10 +21,10 @@ final class Receipt {
     var paymentMethod: String
     var receiptNumber: String
     var cashRegisterNumber: String
-    
+
     @Relationship(deleteRule: .cascade, inverse: \ReceiptItem.receipt)
     var items: [ReceiptItem]
-    
+
     init(
         id: UUID = UUID(),
         url: String,
@@ -61,9 +61,9 @@ final class ReceiptItem {
     var quantity: Double
     var unitPrice: Decimal
     var lineTotal: Decimal
-    
+
     var receipt: Receipt?
-    
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -84,7 +84,7 @@ final class Budget {
     var id: UUID
     var currentBalance: Decimal
     var lastUpdated: Date
-    
+
     init(
         id: UUID = UUID(),
         currentBalance: Decimal,
@@ -93,5 +93,38 @@ final class Budget {
         self.id = id
         self.currentBalance = currentBalance
         self.lastUpdated = lastUpdated
+    }
+}
+
+@Model
+final class BudgetEntry {
+    var id: UUID
+    var amount: Decimal
+    var timestamp: Date
+    var note: String
+
+    init(
+        id: UUID = UUID(),
+        amount: Decimal,
+        timestamp: Date = Date(),
+        note: String = ""
+    ) {
+        self.id = id
+        self.amount = amount
+        self.timestamp = timestamp
+        self.note = note
+    }
+}
+
+@Model
+final class SavingsGoal {
+    var naziv: String
+    var ciljniIznos: Decimal
+    var rok: Date
+
+    init(naziv: String = "", ciljniIznos: Decimal = 0, rok: Date = Date()) {
+        self.naziv = naziv
+        self.ciljniIznos = ciljniIznos
+        self.rok = rok
     }
 }

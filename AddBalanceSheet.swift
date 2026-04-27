@@ -24,12 +24,12 @@ struct AddBalanceSheet: View {
                     .padding(.top, 20)
                 
                 // Title
-                Text("Add Balance")
+                Text("Dodaj budžet")
                     .font(.system(.title2, design: .monospaced, weight: .bold))
                 
                 // Amount Input
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Amount (RSD)")
+                    Text("Iznos (RSD)")
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                     
@@ -56,7 +56,7 @@ struct AddBalanceSheet: View {
                 Button {
                     addBalance()
                 } label: {
-                    Text("Add Balance")
+                    Text("Dodaj budžet")
                         .font(.system(.headline, design: .monospaced))
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -67,11 +67,11 @@ struct AddBalanceSheet: View {
                 .disabled(!isValidAmount)
                 .padding()
             }
-            .navigationTitle("Add Balance")
+            .navigationTitle("Dodaj budžet")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("Otkaži") {
                         dismiss()
                     }
                 }

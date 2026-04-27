@@ -9,84 +9,189 @@ import SwiftUI
 
 struct DashboardSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     let receipts: [Receipt]
     let onMonthSelected: (Date) -> Void
+    
+    @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
+    @State private var budgetEntries: [BudgetEntry] = []
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Summary Card
+                    // Year Header with swipe indicators
                     VStack(spacing: 12) {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.blue.gradient)
+                        HStack(spacing: 16) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(.title3, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            
+                            Text(String(format: "%d", selectedYear))
+                                .font(.system(.largeTitle, design: .default, weight: .bold))
+                                .foregroundStyle(.primary)
+                                .contentTransition(.numericText())
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.system(.title3, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                        }
                         
-                        Text("Monthly Overview")
-                            .font(.system(.title3, design: .monospaced, weight: .bold))
-                        
-                        Text("Tap a month to view details")
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    
-                    // Monthly breakdown
-                    ForEach(monthlyData, id: \.month) { data in
-                        MonthlyChartCard(
-                            month: data.monthName,
-                            spent: data.totalSpent,
-                            receiptCount: data.receiptCount
-                        )
-                        .onTapGesture {
-                            onMonthSelected(data.month)
-                            dismiss()
+                        // Legend
+                        HStack(spacing: 20) {
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color.cyan)
+                                    .frame(width: 8, height: 8)
+                                
+                                Text("Preostalo stanje")
+                                    .font(.system(.caption, design: .default))
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            HStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color.purple)
+                                    .frame(width: 8, height: 8)
+                                
+                                Text("Potrošeno")
+                                    .font(.system(.caption, design: .default))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
+                    .padding(.top, 8)
+                    
+                    // Monthly Grid
+                    LazyVGrid(columns: [
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12),
+                        GridItem(.flexible(), spacing: 12)
+                    ], spacing: 12) {
+                        ForEach(monthlyDataForYear, id: \.monthIndex) { data in
+                            MonthTileView(
+                                month: data.monthName,
+                                receiptCount: data.receiptCount,
+                                leftOverBalance: data.leftOverBalance,
+                                spent: data.spent
+                            )
+                            .onTapGesture {
+                                onMonthSelected(data.month)
+                                dismiss()
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
                 }
-                .padding()
+                .padding(.bottom, 20)
             }
-            .navigationTitle("Dashboard")
+            .navigationTitle("Kontrolna tabla")
             .navigationBarTitleDisplayMode(.inline)
+            .gesture(
+                DragGesture(minimumDistance: 50)
+                    .onEnded { value in
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            if value.translation.width > 0 {
+                                // Swipe right - go to previous year
+                                selectedYear -= 1
+                            } else {
+                                // Swipe left - go to next year
+                                selectedYear += 1
+                            }
+                        }
+                    }
+            )
+            .task {
+                loadBudgetEntries()
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(.body, weight: .medium))
+                            .foregroundStyle(.primary)
                     }
                 }
             }
         }
     }
     
-    // Calculate monthly data from receipts
-    private var monthlyData: [MonthData] {
+    // MARK: - Computed Properties
+    
+    // Calculate monthly data for all 12 months of the selected year
+    private var monthlyDataForYear: [MonthData] {
         let calendar = Calendar.current
         
-        // Group receipts by month
-        let grouped = Dictionary(grouping: receipts) { receipt in
-            calendar.startOfMonth(for: receipt.timestamp)
+        // Get all months for the selected year
+        var allMonths: [MonthData] = []
+        
+        for monthIndex in 1...12 {
+            guard let monthDate = calendar.date(from: DateComponents(year: selectedYear, month: monthIndex, day: 1)) else {
+                continue
+            }
+            
+            // Filter receipts for this specific month
+            let monthReceipts = receipts.filter { receipt in
+                calendar.isDate(receipt.timestamp, equalTo: monthDate, toGranularity: .month)
+            }
+            
+            // Calculate spent amount
+            let spent = monthReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
+            
+            // For demonstration, we'll use a placeholder for leftOverBalance
+            // In a real app, you'd calculate this from Budget history or other data
+            let leftOverBalance = calculateLeftOverBalance(for: monthDate, spent: spent)
+            
+            allMonths.append(MonthData(
+                month: monthDate,
+                monthIndex: monthIndex,
+                monthName: formatMonthName(monthDate),
+                spent: spent,
+                leftOverBalance: leftOverBalance,
+                receiptCount: monthReceipts.count
+            ))
         }
         
-        // Create monthly data and sort by date descending
-        return grouped.map { month, receipts in
-            MonthData(
-                month: month,
-                monthName: formatMonthYear(month),
-                totalSpent: receipts.reduce(Decimal(0)) { $0 + $1.totalAmount },
-                receiptCount: receipts.count
-            )
-        }
-        .sorted { $0.month > $1.month } // Most recent first
+        return allMonths
     }
     
-    private func formatMonthYear(_ date: Date) -> String {
+    // MARK: - Helper Methods
+    
+    private func loadBudgetEntries() {
+        let service = ReceiptService(modelContext: modelContext)
+        budgetEntries = (try? service.fetchBudgetEntries()) ?? []
+    }
+    
+    private func formatMonthName(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        formatter.locale = Locale(identifier: "sr_RS")
+        formatter.dateFormat = "MMMM"
+        formatter.locale = Locale(identifier: "sr_Latn_RS")
         return formatter.string(from: date)
+    }
+    
+    private func calculateLeftOverBalance(for date: Date, spent: Decimal) -> Decimal {
+        let calendar = Calendar.current
+        
+        // Get the start and end of the month
+        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: date)),
+              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart) else {
+            return 0
+        }
+        
+        // Get all budget entries for this month
+        let monthBudgetEntries = budgetEntries.filter { entry in
+            calendar.isDate(entry.timestamp, equalTo: date, toGranularity: .month)
+        }
+        
+        // Sum all budget entries added in this month
+        let totalBudgetAdded = monthBudgetEntries.reduce(Decimal(0)) { $0 + $1.amount }
+        
+        // Leftover balance = budget added this month - spent this month
+        let leftOver = totalBudgetAdded - spent
+        
+        return max(leftOver, 0) // Don't show negative values in the chart
     }
 }
 
@@ -94,62 +199,11 @@ struct DashboardSheet: View {
 
 struct MonthData {
     let month: Date
+    let monthIndex: Int
     let monthName: String
-    let totalSpent: Decimal
-    let receiptCount: Int
-}
-
-// MARK: - Monthly Chart Card
-
-struct MonthlyChartCard: View {
-    let month: String
     let spent: Decimal
+    let leftOverBalance: Decimal
     let receiptCount: Int
-    
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(month)
-                    .font(.system(.headline, design: .monospaced, weight: .semibold))
-                    .foregroundStyle(.primary)
-                
-                HStack(spacing: 12) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "cart.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        
-                        Text("\(receiptCount) receipts")
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            
-            Spacer()
-            
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(formatCurrency(spent))
-                    .font(.system(.title3, design: .monospaced, weight: .bold))
-                    .foregroundStyle(.red)
-                
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(16)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-    
-    private func formatCurrency(_ amount: Decimal) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "RSD"
-        formatter.locale = Locale(identifier: "sr_RS")
-        return formatter.string(from: amount as NSDecimalNumber) ?? "0 RSD"
-    }
 }
 
 // MARK: - Calendar Extension
@@ -170,10 +224,22 @@ extension Calendar {
                 merchantAddress: "Address",
                 merchantCity: "City",
                 timestamp: Date(),
-                totalAmount: 1000,
-                totalTax: 100,
+                totalAmount: 63250,
+                totalTax: 10000,
                 paymentMethod: "Card",
                 receiptNumber: "123",
+                cashRegisterNumber: "456"
+            ),
+            Receipt(
+                url: "https://example.com",
+                merchantName: "Store 2",
+                merchantAddress: "Address",
+                merchantCity: "City",
+                timestamp: Calendar.current.date(byAdding: .month, value: -1, to: Date())!,
+                totalAmount: 56500,
+                totalTax: 9000,
+                paymentMethod: "Card",
+                receiptNumber: "124",
                 cashRegisterNumber: "456"
             )
         ],
