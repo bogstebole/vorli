@@ -12,6 +12,10 @@ struct AddNewSheet: View {
 
     var onAddBalance: () -> Void = {}
 
+    @State private var showFiksniTroskovi = false
+    @State private var showDodajTrosak = false
+    @State private var showListaZelja = false
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -21,13 +25,13 @@ struct AddNewSheet: View {
                         onAddBalance()
                     }
                     AddNewRow(icon: "repeat", title: "Fiksni mesečni troškovi") {
-                        dismiss()
+                        showFiksniTroskovi = true
                     }
                     AddNewRow(icon: "plus.circle", title: "Dodaj trošak ručno") {
-                        dismiss()
+                        showDodajTrosak = true
                     }
                     AddNewRow(icon: "app.gift.fill", title: "Lista želja") {
-                        dismiss()
+                        showListaZelja = true
                     }
                 }
                 .padding(.horizontal, 8)
@@ -47,6 +51,15 @@ struct AddNewSheet: View {
                             .foregroundStyle(.primary)
                     }
                 }
+            }
+            .sheet(isPresented: $showFiksniTroskovi) {
+                FiksniTroskoviSheet()
+            }
+            .sheet(isPresented: $showDodajTrosak) {
+                DodajTrosakSheet()
+            }
+            .sheet(isPresented: $showListaZelja) {
+                ListaZeljaSheet()
             }
         }
         .presentationDetents([.medium])
@@ -71,7 +84,6 @@ struct AddNewRow: View {
                 Text(title)
                     .font(.system(size: 13, design: .monospaced))
                     .tracking(-0.43)
-                    .textCase(.uppercase)
                     .foregroundStyle(.primary)
 
                 Spacer()

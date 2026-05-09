@@ -11,6 +11,7 @@ struct AddBalanceSheet: View {
     @Environment(\.dismiss) private var dismiss
     let onAdd: (Decimal) -> Void
 
+    @State private var displayText: String = ""
     @State private var rawDigits: String = ""
     @FocusState private var isAmountFocused: Bool
 
@@ -21,13 +22,18 @@ struct AddBalanceSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("0", text: Binding(
-                        get: { formatted(rawDigits) },
-                        set: { rawDigits = $0.filter(\.isNumber) }
-                    ))
-                    .keyboardType(.numberPad)
-                    .focused($isAmountFocused)
-                    .font(.system(.title3, design: .monospaced))
+                    TextField("0", text: $displayText)
+                        .keyboardType(.numberPad)
+                        .focused($isAmountFocused)
+                        .font(.system(.subheadline, design: .monospaced))
+                        .onChange(of: displayText) { _, newValue in
+                            let digits = newValue.filter(\.isNumber)
+                            let reformatted = formatted(digits)
+                            rawDigits = digits
+                            if reformatted != newValue {
+                                displayText = reformatted
+                            }
+                        }
                 } header: {
                     Text("Iznos (RSD)")
                         .font(.system(.caption, design: .monospaced))
@@ -36,7 +42,7 @@ struct AddBalanceSheet: View {
                 Section {
                     Toggle(isOn: $autoAdd) {
                         Text("Automatski dodaj svaki mesec")
-                            .font(.system(.body, design: .monospaced))
+                            .font(.system(.subheadline, design: .monospaced))
                     }
                 } footer: {
                     Text("Kada je uključeno, iznos se automatski dodaje na početku svakog meseca.")
@@ -68,6 +74,7 @@ struct AddBalanceSheet: View {
             .onAppear {
                 if !storedAmount.isEmpty {
                     rawDigits = storedAmount
+                    displayText = formatted(storedAmount)
                 }
                 isAmountFocused = true
             }
