@@ -9,60 +9,33 @@ import SwiftUI
 
 struct AddNewSheet: View {
     @Environment(\.dismiss) private var dismiss
-    
-    // Action closures
+
     var onAddBalance: () -> Void = {}
-    
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                // Bento grid - 2x2
-                LazyVGrid(columns: [
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12)
-                ], spacing: 12) {
-                    BentoActionTile(
-                        title: "Mesečni priliv",
-                        icon: "arrow.down.circle.fill",
-                        color: .green
-                    ) {
+            VStack(spacing: 0) {
+                VStack(spacing: 0) {
+                    AddNewRow(icon: "wallet.bifold.fill", title: "Mesečna zarada") {
                         dismiss()
                         onAddBalance()
                     }
-                    
-                    BentoActionTile(
-                        title: "Dodaj trošak ručno",
-                        icon: "pencil.circle.fill",
-                        color: .orange
-                    ) {
-                        // TODO: Manual expense entry
+                    AddNewRow(icon: "repeat", title: "Fiksni mesečni troškovi") {
                         dismiss()
                     }
-                    
-                    BentoActionTile(
-                        title: "Lista želja",
-                        icon: "heart.circle.fill",
-                        color: .pink
-                    ) {
-                        // TODO: Wishlist
+                    AddNewRow(icon: "plus.circle", title: "Dodaj trošak ručno") {
                         dismiss()
                     }
-                    
-                    BentoActionTile(
-                        title: "Fiksni mesečni troškovi",
-                        icon: "repeat.circle.fill",
-                        color: .purple
-                    ) {
-                        // TODO: Fixed monthly expenses
+                    AddNewRow(icon: "app.gift.fill", title: "Lista želja") {
                         dismiss()
                     }
                 }
-                .padding(.horizontal)
-                
+                .padding(.horizontal, 8)
+                .padding(.top, 8)
+
                 Spacer()
             }
-            .padding(.top, 20)
-            .navigationTitle("Dodaj novo")
+            .navigationTitle("Dodaj")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -80,33 +53,46 @@ struct AddNewSheet: View {
     }
 }
 
-// MARK: - Bento Action Tile
+// MARK: - Row
 
-struct BentoActionTile: View {
-    let title: String
+struct AddNewRow: View {
     let icon: String
-    let color: Color
+    let title: String
     let action: () -> Void
-    
+
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 12) {
+            HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 32))
-                    .foregroundStyle(color)
-                
-                Text(title)
-                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
+                    .font(.system(.body, weight: .medium))
+                    .frame(width: 24, alignment: .center)
                     .foregroundStyle(.primary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
+
+                Text(title)
+                    .font(.system(size: 13, design: .monospaced))
+                    .tracking(-0.43)
+                    .textCase(.uppercase)
+                    .foregroundStyle(.primary)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 120)
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(16)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AddNewRowButtonStyle())
+    }
+}
+
+struct AddNewRowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? Color.primary.opacity(0.08) : Color.clear)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 
