@@ -10,8 +10,7 @@ import SwiftUI
 struct AddNewSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    var onAddBalance: () -> Void = {}
-
+    @State private var showMesecnaZarada = false
     @State private var showFiksniTroskovi = false
     @State private var showDodajTrosak = false
     @State private var showListaZelja = false
@@ -21,8 +20,7 @@ struct AddNewSheet: View {
             VStack(spacing: 0) {
                 VStack(spacing: 0) {
                     AddNewRow(icon: "wallet.bifold.fill", title: "Mesečna zarada") {
-                        dismiss()
-                        onAddBalance()
+                        showMesecnaZarada = true
                     }
                     AddNewRow(icon: "repeat", title: "Fiksni mesečni troškovi") {
                         showFiksniTroskovi = true
@@ -51,6 +49,9 @@ struct AddNewSheet: View {
                             .foregroundStyle(.primary)
                     }
                 }
+            }
+            .sheet(isPresented: $showMesecnaZarada) {
+                AddBalanceSheet()
             }
             .sheet(isPresented: $showFiksniTroskovi) {
                 FiksniTroskoviSheet()

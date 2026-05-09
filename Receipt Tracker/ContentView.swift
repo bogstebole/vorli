@@ -20,7 +20,6 @@ struct ContentView: View {
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var showScanner = false
-    @State private var showAddBalance = false
     @State private var showAddNew = false
     @State private var showDashboard = false
     @State private var showSettings = false
@@ -128,11 +127,8 @@ struct ContentView: View {
                     Task { await processReceiptImage(image) }
                 }
             }
-            .sheet(isPresented: $showAddNew) {
-                AddNewSheet(onAddBalance: { showAddBalance = true })
-            }
-            .sheet(isPresented: $showAddBalance) {
-                AddBalanceSheet { amount in addBalance(amount) }
+            .sheet(isPresented: $showAddNew, onDismiss: loadBudget) {
+                AddNewSheet()
             }
             .sheet(isPresented: $showDashboard) {
                 DashboardSheet(receipts: allReceipts) { month in selectedMonth = month }
@@ -203,8 +199,8 @@ struct ContentView: View {
 
     private func autoAddMonthlyIncomeIfNeeded() {
         guard let amount = MonthlyIncomeScheduler.shouldAutoAdd() else { return }
-        let service = ReceiptService(modelContext: modelContext)
-        try? service.addBalanceEntry(amount: amount)
+        let entry = BudgetEntry(amount: amount, timestamp: Date(), note: "mesecna_zarada")
+        modelContext.insert(entry)
         MonthlyIncomeScheduler.recordAutoAdd()
         loadBudget()
     }
@@ -243,11 +239,6 @@ struct ContentView: View {
         loadBudget()
     }
 
-    private func addBalance(_ amount: Decimal) {
-        let service = ReceiptService(modelContext: modelContext)
-        try? service.addBalanceEntry(amount: amount)
-        loadBudget()
-    }
 }
 
 // MARK: - Custom Header
