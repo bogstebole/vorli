@@ -151,6 +151,7 @@ struct ContentView: View {
         }
         .task {
             loadBudget()
+            autoAddMonthlyIncomeIfNeeded()
         }
     }
 
@@ -198,6 +199,14 @@ struct ContentView: View {
         if let fetchedBudget = try? service.getBudget() {
             budget = fetchedBudget
         }
+    }
+
+    private func autoAddMonthlyIncomeIfNeeded() {
+        guard let amount = MonthlyIncomeScheduler.shouldAutoAdd() else { return }
+        let service = ReceiptService(modelContext: modelContext)
+        try? service.addBalanceEntry(amount: amount)
+        MonthlyIncomeScheduler.recordAutoAdd()
+        loadBudget()
     }
 
     private func processReceipt(from urlString: String) async {
