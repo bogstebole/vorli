@@ -11,7 +11,7 @@ struct AddBalanceSheet: View {
     @Environment(\.dismiss) private var dismiss
     let onAdd: (Decimal) -> Void
 
-    @State private var amountText: String = ""
+    @State private var rawDigits: String = ""
     @FocusState private var isAmountFocused: Bool
 
     @AppStorage("monthlyIncomeAmount") private var storedAmount: String = ""
@@ -20,17 +20,27 @@ struct AddBalanceSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Iznos (RSD)") {
-                    TextField("0", text: $amountText)
-                        .keyboardType(.decimalPad)
-                        .focused($isAmountFocused)
-                        .font(.system(.title3, design: .monospaced))
+                Section {
+                    TextField("0", text: Binding(
+                        get: { formatted(rawDigits) },
+                        set: { rawDigits = $0.filter(\.isNumber) }
+                    ))
+                    .keyboardType(.numberPad)
+                    .focused($isAmountFocused)
+                    .font(.system(.title3, design: .monospaced))
+                } header: {
+                    Text("Iznos (RSD)")
+                        .font(.system(.caption, design: .monospaced))
                 }
 
                 Section {
-                    Toggle("Automatski dodaj svaki mesec", isOn: $autoAdd)
+                    Toggle(isOn: $autoAdd) {
+                        Text("Automatski dodaj svaki mesec")
+                            .font(.system(.body, design: .monospaced))
+                    }
                 } footer: {
                     Text("Kada je uključeno, iznos se automatski dodaje na početku svakog meseca.")
+                        .font(.system(.caption, design: .monospaced))
                 }
             }
             .navigationTitle("Mesečna zarada")
@@ -46,16 +56,18 @@ struct AddBalanceSheet: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Dodaj") {
+                    Button {
                         save()
+                    } label: {
+                        Image(systemName: "checkmark")
+                            .font(.system(.body, weight: .semibold))
                     }
                     .disabled(!isValidAmount)
-                    .fontWeight(.semibold)
                 }
             }
             .onAppear {
                 if !storedAmount.isEmpty {
-                    amountText = storedAmount
+                    rawDigits = storedAmount
                 }
                 isAmountFocused = true
             }
@@ -63,17 +75,31 @@ struct AddBalanceSheet: View {
     }
 
     private var isValidAmount: Bool {
-        guard let amount = Decimal(string: amountText.replacingOccurrences(of: ",", with: ".")) else {
-            return false
+        guard let value = Int(rawDigits) else { return false }
+        return value > 0
+    }
+
+    private func formatted(_ digits: String) -> String {
+        guard !digits.isEmpty else { return "" }
+        let reversed = Array(digits.reversed())
+        var groups: [String] = []
+        var chunk = ""
+        for (i, char) in reversed.enumerated() {
+            chunk.append(char)
+            if (i + 1) % 3 == 0 && i + 1 < reversed.count {
+                groups.append(String(chunk.reversed()))
+                chunk = ""
+            }
         }
-        return amount > 0
+        if !chunk.isEmpty { groups.append(String(chunk.reversed())) }
+        return groups.reversed().joined(separator: ".")
     }
 
     private func save() {
-        guard let amount = Decimal(string: amountText.replacingOccurrences(of: ",", with: ".")) else { return }
+        guard let amount = Decimal(string: rawDigits), amount > 0 else { return }
 
         if autoAdd {
-            storedAmount = amountText
+            storedAmount = rawDigits
             MonthlyIncomeScheduler.recordAutoAdd()
         } else {
             storedAmount = ""
