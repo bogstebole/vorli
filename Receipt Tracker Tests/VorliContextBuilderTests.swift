@@ -24,16 +24,16 @@ final class VorliContextBuilderTests: XCTestCase {
 
     func testCiljeviBlock() throws {
         // GIVEN: one future savings goal
-        let goal = SavingsGoal(
+        let goal = Wish(
             naziv: "Odmor",
-            ciljniIznos: Decimal(150_000),
+            cilj: Decimal(150_000),
             rok: futureDate(monthsFromNow: 6)
         )
 
         // WHEN: building context with that goal
         let json = VorliContextBuilder.build(
             currentReceipts: [],
-            savingsGoals: [goal]
+            wishes: [goal]
         )
 
         // THEN: finansije.ciljevi contains one entry with the required keys
@@ -52,16 +52,16 @@ final class VorliContextBuilderTests: XCTestCase {
 
     func testExpiredGoalClampedToZero() throws {
         // GIVEN: a goal whose deadline was yesterday
-        let goal = SavingsGoal(
+        let goal = Wish(
             naziv: "Laptop",
-            ciljniIznos: Decimal(80_000),
+            cilj: Decimal(80_000),
             rok: pastDate(daysAgo: 1)
         )
 
         // WHEN: building context
         let json = VorliContextBuilder.build(
             currentReceipts: [],
-            savingsGoals: [goal]
+            wishes: [goal]
         )
 
         // THEN: preostalo_meseci is 0 (never negative)
@@ -75,9 +75,9 @@ final class VorliContextBuilderTests: XCTestCase {
 
     func testFinansijeCreatedForGoalsOnly() throws {
         // GIVEN: no budget, no income, but one goal present
-        let goal = SavingsGoal(
+        let goal = Wish(
             naziv: "Kola",
-            ciljniIznos: Decimal(500_000),
+            cilj: Decimal(500_000),
             rok: futureDate(monthsFromNow: 24)
         )
 
@@ -86,7 +86,7 @@ final class VorliContextBuilderTests: XCTestCase {
             currentReceipts: [],
             budget: nil,
             userProfile: nil,
-            savingsGoals: [goal]
+            wishes: [goal]
         )
 
         // THEN: finansije key is present

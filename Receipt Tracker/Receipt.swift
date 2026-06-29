@@ -128,3 +128,55 @@ final class SavingsGoal {
         self.rok = rok
     }
 }
+
+@Model
+final class Wish {
+    var id: UUID
+    var naziv: String
+    var cilj: Decimal
+    var usteceno: Decimal
+    var rok: Date?
+    var createdAt: Date
+    var isArchived: Bool
+
+    init(
+        id: UUID = UUID(),
+        naziv: String = "",
+        cilj: Decimal = 0,
+        usteceno: Decimal = 0,
+        rok: Date? = nil,
+        createdAt: Date = Date(),
+        isArchived: Bool = false
+    ) {
+        self.id = id
+        self.naziv = naziv
+        self.cilj = cilj
+        self.usteceno = usteceno
+        self.rok = rok
+        self.createdAt = createdAt
+        self.isArchived = isArchived
+    }
+}
+
+@Model
+final class FixedCost {
+    var id: UUID
+    var naziv: String
+    var iznos: Decimal
+    var isActive: Bool
+    var createdAt: Date
+
+    init(
+        id: UUID = UUID(),
+        naziv: String = "",
+        iznos: Decimal = 0,
+        isActive: Bool = true,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.naziv = naziv
+        self.iznos = iznos
+        self.isActive = isActive
+        self.createdAt = createdAt
+    }
+}

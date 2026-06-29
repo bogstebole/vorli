@@ -15,7 +15,7 @@ struct VorliChatView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
     @Query private var budgets: [Budget]
-    @Query private var savingsGoals: [SavingsGoal]
+    @Query private var wishes: [Wish]
 
     @State private var viewModel: VorliChatViewModel?
     @State private var inputText = ""
@@ -82,7 +82,7 @@ struct VorliChatView: View {
                 VStack(spacing: 0) {
                     if viewModel?.messages.isEmpty == true {
                         QuickPromptsRow { prompt in
-                            viewModel?.sendQuickPrompt(prompt, savingsGoals: savingsGoals)
+                            viewModel?.sendQuickPrompt(prompt, wishes: wishes)
                         }
                         .padding(.bottom, 4)
                     }
@@ -128,7 +128,7 @@ struct VorliChatView: View {
         guard !text.isEmpty else { return }
         inputText = ""
         inputFocused = false
-        viewModel?.send(text, savingsGoals: savingsGoals)
+        viewModel?.send(text, wishes: wishes)
     }
 }
 
@@ -675,5 +675,5 @@ struct ChatHistoryView: View {
 
 #Preview {
     VorliChatView()
-        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self, SavingsGoal.self], inMemory: true)
+        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self, SavingsGoal.self, Wish.self, FixedCost.self], inMemory: true)
 }

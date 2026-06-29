@@ -14,6 +14,7 @@ struct ContentView: View {
     // @Environment(AuthenticationManager.self) private var authManager
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
     @Query(sort: \BudgetEntry.timestamp, order: .reverse) private var budgetEntries: [BudgetEntry]
+    @Query private var fixedCosts: [FixedCost]
     @State private var budget: Budget?
 
     @State private var selectedMonth: Date = Date()
@@ -146,6 +147,7 @@ struct ContentView: View {
             }
         }
         .task {
+            migrateSavingsGoalsIfNeeded()
             loadBudget()
             autoAddMonthlyIncomeIfNeeded()
         }
@@ -167,8 +169,13 @@ struct ContentView: View {
         }
     }
 
+    private var fixedCostsTotal: Decimal {
+        fixedCosts.filter(\.isActive).reduce(Decimal(0)) { $0 + $1.iznos }
+    }
+
     private var currentMonthSpent: Decimal {
-        filteredReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
+        let receiptsSpent = filteredReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
+        return receiptsSpent + fixedCostsTotal
     }
 
     private var currentDaySpent: Decimal {
@@ -195,6 +202,21 @@ struct ContentView: View {
         if let fetchedBudget = try? service.getBudget() {
             budget = fetchedBudget
         }
+    }
+
+    /// One-time migration of legacy SavingsGoal records into the new Wish model.
+    private func migrateSavingsGoalsIfNeeded() {
+        let flagKey = "savingsGoalsMigratedToWish"
+        guard !UserDefaults.standard.bool(forKey: flagKey) else { return }
+
+        let goals = (try? modelContext.fetch(FetchDescriptor<SavingsGoal>())) ?? []
+        for goal in goals {
+            let wish = Wish(naziv: goal.naziv, cilj: goal.ciljniIznos, rok: goal.rok)
+            modelContext.insert(wish)
+            modelContext.delete(goal)
+        }
+        try? modelContext.save()
+        UserDefaults.standard.set(true, forKey: flagKey)
     }
 
     private func autoAddMonthlyIncomeIfNeeded() {
@@ -284,5 +306,5 @@ struct EmptyReceiptsView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self], inMemory: true)
+        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self, FixedCost.self, Wish.self], inMemory: true)
 }

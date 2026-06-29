@@ -54,7 +54,7 @@ struct VorliContextBuilder {
         requestType: String = "REPORT",
         budget: Budget? = nil,
         userProfile: VorliUserProfile? = nil,
-        savingsGoals: [SavingsGoal] = []
+        wishes: [Wish] = []
     ) -> String {
         let currentJSON = currentReceipts.map { encode($0) }
         let previousJSON = previousReceipts.map { encode($0) }
@@ -81,7 +81,7 @@ struct VorliContextBuilder {
         }
 
         // Add finansije block if budget, income, or goals data is available
-        if budget != nil || (userProfile?.mesecniPrihod ?? 0) > 0 || !savingsGoals.isEmpty {
+        if budget != nil || (userProfile?.mesecniPrihod ?? 0) > 0 || !wishes.isEmpty {
             var finansijeDict: [String: Any] = [:]
 
             if let budget {
@@ -99,17 +99,22 @@ struct VorliContextBuilder {
                 ]
             }
 
-            if !savingsGoals.isEmpty {
+            let activeWishes = wishes.filter { !$0.isArchived }
+            if !activeWishes.isEmpty {
                 let today = Date()
                 let calendar = Calendar.current
-                let goalMaps: [[String: Any]] = savingsGoals.map { goal in
-                    let months = calendar.dateComponents([.month], from: today, to: goal.rok).month ?? 0
-                    return [
-                        "naziv": goal.naziv,
-                        "cilj_rsd": Double(truncating: goal.ciljniIznos as NSDecimalNumber),
-                        "rok": dateFormatter.string(from: goal.rok),
-                        "preostalo_meseci": max(0, months)
+                let goalMaps: [[String: Any]] = activeWishes.map { wish in
+                    var map: [String: Any] = [
+                        "naziv": wish.naziv,
+                        "cilj_rsd": Double(truncating: wish.cilj as NSDecimalNumber),
+                        "usteceno_rsd": Double(truncating: wish.usteceno as NSDecimalNumber)
                     ]
+                    if let rok = wish.rok {
+                        let months = calendar.dateComponents([.month], from: today, to: rok).month ?? 0
+                        map["rok"] = dateFormatter.string(from: rok)
+                        map["preostalo_meseci"] = max(0, months)
+                    }
+                    return map
                 }
                 finansijeDict["ciljevi"] = goalMaps
             }

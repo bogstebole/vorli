@@ -132,7 +132,7 @@ final class VorliChatViewModel {
 
     // MARK: - Send
 
-    func send(_ text: String, requestType: String = "PRETRAGA", savingsGoals: [SavingsGoal] = []) {
+    func send(_ text: String, requestType: String = "PRETRAGA", wishes: [Wish] = []) {
         guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         guard !isStreaming else { return }
 
@@ -161,7 +161,7 @@ final class VorliChatViewModel {
             default:             window = TimeWindow(rawValue: requestType) ?? .recent
             }
 
-            let context = buildContext(for: window, savingsGoals: savingsGoals)
+            let context = buildContext(for: window, wishes: wishes)
 
             // Append empty assistant message to stream into
             let assistantMsg = VorliMessage(role: .assistant, content: .text(""))
@@ -226,37 +226,37 @@ final class VorliChatViewModel {
 
     // MARK: - Quick Prompts
 
-    func sendQuickPrompt(_ prompt: QuickPrompt, savingsGoals: [SavingsGoal] = []) {
-        send(prompt.userMessage, requestType: prompt.requestType, savingsGoals: savingsGoals)
+    func sendQuickPrompt(_ prompt: QuickPrompt, wishes: [Wish] = []) {
+        send(prompt.userMessage, requestType: prompt.requestType, wishes: wishes)
     }
 
     // MARK: - Context Builder
 
-    private func buildContext(for window: TimeWindow, savingsGoals: [SavingsGoal] = []) -> String {
+    private func buildContext(for window: TimeWindow, wishes: [Wish] = []) -> String {
         let profile = VorliUserProfile.load()
         switch window {
         case .thisMonth:
             let current = VorliContextBuilder.receiptsForCurrentMonth(from: allReceipts)
             let previous = VorliContextBuilder.receiptsForPreviousMonth(from: allReceipts)
-            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", budget: budget, userProfile: profile, savingsGoals: savingsGoals)
+            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", budget: budget, userProfile: profile, wishes: wishes)
 
         case .lastMonth:
             let lastMonth = VorliContextBuilder.receiptsForPreviousMonth(from: allReceipts)
-            return VorliContextBuilder.build(currentReceipts: lastMonth, requestType: "PRETRAGA", budget: budget, userProfile: profile, savingsGoals: savingsGoals)
+            return VorliContextBuilder.build(currentReceipts: lastMonth, requestType: "PRETRAGA", budget: budget, userProfile: profile, wishes: wishes)
 
         case .thisWeek:
             let current = VorliContextBuilder.receiptsForCurrentWeek(from: allReceipts)
             let previous = VorliContextBuilder.receiptsForPreviousWeek(from: allReceipts)
-            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", budget: budget, userProfile: profile, savingsGoals: savingsGoals)
+            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", budget: budget, userProfile: profile, wishes: wishes)
 
         case .lastWeek:
             let lastWeek = VorliContextBuilder.receiptsForPreviousWeek(from: allReceipts)
-            return VorliContextBuilder.build(currentReceipts: lastWeek, requestType: "PRETRAGA", budget: budget, userProfile: profile, savingsGoals: savingsGoals)
+            return VorliContextBuilder.build(currentReceipts: lastWeek, requestType: "PRETRAGA", budget: budget, userProfile: profile, wishes: wishes)
 
         case .recent:
             let cutoff = Calendar.current.date(byAdding: .month, value: -6, to: Date()) ?? Date()
             let recent = allReceipts.filter { $0.timestamp >= cutoff }
-            return VorliContextBuilder.build(currentReceipts: recent, requestType: "PRETRAGA", budget: budget, userProfile: profile, savingsGoals: savingsGoals)
+            return VorliContextBuilder.build(currentReceipts: recent, requestType: "PRETRAGA", budget: budget, userProfile: profile, wishes: wishes)
         }
     }
 }
