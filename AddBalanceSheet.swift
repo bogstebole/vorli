@@ -244,6 +244,7 @@ struct AddBalanceSheet: View {
         let entry = BudgetEntry(amount: amount, timestamp: Date(), note: "mesecna_zarada")
         modelContext.insert(entry)
         ensureBudgetExists()
+        try? modelContext.save()
 
         if autoAdd {
             storedAmount = rawDigits
@@ -262,6 +263,7 @@ struct AddBalanceSheet: View {
     private func removeIncome() {
         for entry in currentMonthEntries { modelContext.delete(entry) }
         storedAmount = ""
+        try? modelContext.save()
     }
 
     private func ensureBudgetExists() {
