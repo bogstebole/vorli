@@ -91,7 +91,7 @@ struct FiksniTroskoviSheet: View {
                             }
                         }
                         Spacer()
-                        Text(formatted(amountDigits(cost.iznos)) + " RSD")
+                        Text(MoneyFormat.decimalString(cost.iznos) + " RSD")
                             .font(.system(.subheadline, design: .monospaced))
                             .foregroundStyle(cost.isActive ? .primary : .secondary)
                     }
@@ -129,7 +129,7 @@ struct FiksniTroskoviSheet: View {
 
     private var formattedTotal: String {
         let total = fixedCosts.filter(\.isActive).reduce(Decimal(0)) { $0 + $1.iznos }
-        return formatted(amountDigits(total))
+        return MoneyFormat.decimalString(total)
     }
 
     // MARK: - Helpers
@@ -178,7 +178,6 @@ struct FixedCostEditSheet: View {
 
     @State private var naziv: String = ""
     @State private var displayText: String = ""
-    @State private var rawDigits: String = ""
     @State private var isActive: Bool = true
     @FocusState private var nameFocused: Bool
 
@@ -228,12 +227,10 @@ struct FixedCostEditSheet: View {
 
                 Section {
                     TextField("0", text: $displayText)
-                        .keyboardType(.numberPad)
+                        .keyboardType(.decimalPad)
                         .font(.system(.subheadline, design: .monospaced))
                         .onChange(of: displayText) { _, newValue in
-                            let digits = newValue.filter(\.isNumber)
-                            let reformatted = formatted(digits)
-                            rawDigits = digits
+                            let reformatted = formatAmountInput(newValue)
                             if reformatted != newValue {
                                 displayText = reformatted
                             }
@@ -278,8 +275,7 @@ struct FixedCostEditSheet: View {
             .onAppear {
                 if let cost {
                     naziv = cost.naziv
-                    rawDigits = amountDigits(cost.iznos)
-                    displayText = formatted(rawDigits)
+                    displayText = MoneyFormat.decimalString(cost.iznos)
                     isActive = cost.isActive
                 } else {
                     nameFocused = true
@@ -288,13 +284,24 @@ struct FixedCostEditSheet: View {
         }
     }
 
+    /// Formats live input allowing an optional decimal comma, e.g. "2500,5" →
+    /// "2.500,5". Integer part is grouped; up to two decimals are kept.
+    private func formatAmountInput(_ input: String) -> String {
+        let filtered = input.filter { $0.isNumber || $0 == "," }
+        let parts = filtered.split(separator: ",", omittingEmptySubsequences: false)
+        let intGrouped = formatted(String(parts.first ?? ""))
+        guard filtered.contains(",") else { return intGrouped }
+        let frac = parts.count > 1 ? String(parts[1].prefix(2)) : ""
+        return (intGrouped.isEmpty ? "0" : intGrouped) + "," + frac
+    }
+
     private var isValid: Bool {
-        guard let value = Int(rawDigits), value > 0 else { return false }
+        guard let amount = MoneyFormat.parse(displayText), amount > 0 else { return false }
         return !naziv.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private func save() {
-        guard let amount = Decimal(string: rawDigits), amount > 0 else { return }
+        guard let amount = MoneyFormat.parse(displayText), amount > 0 else { return }
         let trimmed = naziv.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
 

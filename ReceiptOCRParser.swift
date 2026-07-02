@@ -59,8 +59,13 @@ struct ReceiptOCRParser {
             throw OCRError.imageProcessingFailed
         }
         
+        // Pass the image's display orientation so Vision reads upright text.
+        // Without this, a portrait photo (orientation .right) is processed
+        // rotated 90°, which collapses recognition quality.
+        let cgOrientation = CGImagePropertyOrientation(image.imageOrientation)
+
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<String, Error>) in
-            let requestHandler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            let requestHandler = VNImageRequestHandler(cgImage: cgImage, orientation: cgOrientation, options: [:])
             
             let request = VNRecognizeTextRequest { request, error in
                 if let error = error {
@@ -79,10 +84,17 @@ struct ReceiptOCRParser {
                     guard let topCandidate = observation.topCandidates(1).first else {
                         return nil
                     }
-                    
+
+                    // Drop low-confidence lines — these are OCR noise (stray
+                    // symbols, garbled separators) that corrupt parsing.
+                    guard topCandidate.confidence >= 0.45 else {
+                        print("🗑️ Skipping low-confidence line (\(String(format: "%.2f", topCandidate.confidence))): \(topCandidate.string)")
+                        return nil
+                    }
+
                     // Decode HTML entities from OCR text
                     let decodedString = topCandidate.string.decodingHTMLEntities()
-                    
+
                     print("📝 OCR Line (confidence: \(String(format: "%.2f", topCandidate.confidence))): \(decodedString)")
                     return decodedString
                 }
@@ -100,7 +112,11 @@ struct ReceiptOCRParser {
             request.recognitionLanguages = ["sr-Latn", "sr", "en-US"]
             request.recognitionLevel = .accurate
             request.usesLanguageCorrection = false // Disable to avoid autocorrect changing numbers
-            request.automaticallyDetectsLanguage = true
+            // Force the configured languages; auto-detect overrides recognitionLanguages
+            // and can pick the wrong script for short, number-heavy receipt lines.
+            request.automaticallyDetectsLanguage = false
+            // Catch small fine-print lines on long thermal receipts.
+            request.minimumTextHeight = 0.012
             request.revision = VNRecognizeTextRequestRevision3 // Use latest OCR version
             
             // Improve accuracy for receipts
@@ -122,10 +138,42 @@ struct ReceiptOCRParser {
     
     /// Parses extracted text into receipt data
     private static func parseText(_ text: String) throws -> ParsedReceipt {
-        let lines = text.components(separatedBy: .newlines)
+        let rawLines = text.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-        
+        let lines = mergeSplitDecimals(rawLines)
+
+        print("📄 OCR Extracted \(lines.count) lines")
+        print("Lines:")
+        for (i, line) in lines.enumerated() {
+            print("  [\(i)]: \(line)")
+        }
+
+        return try parseLines(lines)
+    }
+
+    /// Merges OCR lines where a decimal amount was split across two lines,
+    /// e.g. "661" followed by ",95" → "661,95". Common on LIDL-style receipts.
+    private static func mergeSplitDecimals(_ lines: [String]) -> [String] {
+        var result: [String] = []
+        var i = 0
+        while i < lines.count {
+            let line = lines[i]
+            if i + 1 < lines.count,
+               lines[i + 1].range(of: #"^[.,]\d{2}$"#, options: .regularExpression) != nil,
+               line.range(of: #"^\d[\d.,]*\d$|^\d$"#, options: .regularExpression) != nil {
+                result.append(line + lines[i + 1])
+                i += 2
+            } else {
+                result.append(line)
+                i += 1
+            }
+        }
+        return result
+    }
+
+    private static func parseLines(_ lines: [String]) throws -> ParsedReceipt {
+
         print("📄 OCR Extracted \(lines.count) lines")
         print("Lines:")
         for (i, line) in lines.enumerated() {
@@ -525,23 +573,6 @@ struct ReceiptOCRParser {
                 if lowercasedLine.contains(pattern) || line.contains(description) {
                     print("  Found '\(description)' pattern at line \(index): \(line)")
                     
-                    // Special handling for "Ukupan iznos:" - may be on same line or next line
-                    // But skip if followed by "Gotovina:" or "Povracaj:"
-                    if pattern.contains("ukupan iznos") {
-                        // Check if this is followed by "Gotovina:" or "Povracaj:" labels
-                        var isActualTotal = true
-                        for checkOffset in 1...3 {
-                            if index + checkOffset < lines.count {
-                                let checkLine = lines[index + checkOffset].lowercased()
-                                    .folding(options: .diacriticInsensitive, locale: .current)
-                                if checkLine.contains("gotovina:") || checkLine.contains("povracaj:") {
-                                    isActualTotal = true // This IS the total we want!
-                                    break
-                                }
-                            }
-                        }
-                    }
-                    
                     // Try to extract amount from same line
                     if let amount = extractDecimal(from: line) {
                         print("✅ Found payment (same line): \(amount)")
@@ -708,28 +739,77 @@ struct ReceiptOCRParser {
             }
         }
         
-        // Last resort: try to find the largest reasonable number on the receipt
-        if total == 0 {
-            print("⚠️ Could not find total with standard patterns, looking for largest amount...")
-            var largestAmount: Decimal = 0
-            
-            for line in lines {
-                if let amount = extractDecimal(from: line), amount > largestAmount && amount < 1000000 {
-                    largestAmount = amount
-                    print("  Found amount: \(amount) in line: \(line)")
-                }
-            }
-            
-            if largestAmount > 0 {
-                print("⚠️ Using largest amount as total: \(largestAmount)")
-                total = largestAmount
-            } else {
-                throw OCRError.parsingError("Nije pronađen ukupan iznos")
-            }
+        // The total is the largest money amount on the receipt. Prefer it when
+        // it's larger than whatever the label-based logic found — this corrects
+        // cases where OCR split the decimals (661 vs 661,95) or matched an item.
+        let largestMoney = findTotalRobust(from: lines)
+        if let largestMoney, largestMoney > total {
+            print("✅ Using largest money value as total: \(largestMoney) (was \(total))")
+            total = largestMoney
         }
-        
+        if total == 0 {
+            throw OCRError.parsingError("Nije pronađen ukupan iznos")
+        }
+
         print("💰 Final parsed totals - Total: \(total), Tax: \(tax), Payment: \(paymentMethod)")
         return (total: total, tax: tax, paymentMethod: paymentMethod)
+    }
+
+    /// The receipt total is the largest well-formed money amount on the ticket:
+    /// every line item and the tax are ≤ the total, and IDs / counters /
+    /// quantities are excluded because they lack a 2-decimal money shape.
+    /// This is the single most consistent signal across jumbled OCR layouts.
+    ///
+    /// Exception: cash tendered ("Gotovina") and change ("Povraćaj") are the
+    /// only amounts that can legitimately EXCEED the total (paying 2.000 for a
+    /// 1.319,50 bill), so those lines — and a bare amount on the line right
+    /// after such a label — must not participate in the max.
+    private static func findTotalRobust(from lines: [String]) -> Decimal? {
+        var candidates: [Decimal] = []
+        var skipNextBareAmount = false
+
+        for line in lines {
+            // Transliterate Cyrillic → Latin so "Готовина" matches "gotovin".
+            let latin = line.applyingTransform(StringTransform("Any-Latin; Latin-ASCII"), reverse: false) ?? line
+            let folded = latin.lowercased().folding(options: .diacriticInsensitive, locale: .current)
+            // "gotovin" also matches "bezgotovinsko" — safe to exclude, since a
+            // card-payment line only ever repeats the total printed elsewhere.
+            let isPaymentLine = folded.contains("gotovin") || folded.contains("povra")
+                || folded.contains("kusur") || folded.contains("predato")
+                || folded.contains("uplaceno") || folded.contains("placeno")
+
+            if isPaymentLine {
+                // Amount may be on this line or alone on the next one.
+                skipNextBareAmount = moneyValues(in: line).isEmpty
+                continue
+            }
+
+            let values = moneyValues(in: line)
+            if skipNextBareAmount {
+                skipNextBareAmount = false
+                // A line that is nothing but the amount belongs to the payment
+                // label above it; a line with other text is a regular line.
+                let stripped = line.replacingOccurrences(of: #"[\d.,\s]"#, with: "", options: .regularExpression)
+                if stripped.isEmpty && !values.isEmpty { continue }
+            }
+            candidates.append(contentsOf: values)
+        }
+
+        let largest = candidates.max()
+        return (largest ?? 0) > 0 ? largest : nil
+    }
+
+    /// All well-formed money amounts on a line (1.750,00 / 1750.00 / 661,95).
+    /// Requires either plain digits or proper 3-digit thousands groups before a
+    /// 2-decimal ending, so garbage like "12.08.09.60" is rejected.
+    private static func moneyValues(in text: String) -> [Decimal] {
+        let pattern = #"(?<![\d.,])(?:\d{1,3}(?:[.,]\d{3})+|\d+)[.,]\d{2}(?![\d.,])"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+        return matches.compactMap { match -> Decimal? in
+            guard let range = Range(match.range, in: text) else { return nil }
+            return normalizeAmount(String(text[range]))
+        }
     }
     
     /// Parses line items
@@ -823,98 +903,83 @@ struct ReceiptOCRParser {
         }
         
         print("  Starting item parsing from line \(i)")
-        
-        while i < end {
-            let line = lines[i]
-            
-            // Skip separators, empty lines, and headers
-            if line.contains("===") || line.contains("---") || line.contains("____") ||
-               line.contains("はニニ") || line.contains("月") || // OCR artifacts
-               line.trimmingCharacters(in: .whitespaces).isEmpty {
-                i += 1
-                continue
-            }
-            
-            let lowercased = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
-            // Skip if this looks like a summary line
-            if lowercased.contains("oznaka") || lowercased.contains("ukupan") ||
-               lowercased.contains("stopa") {
-                print("  Reached summary section at line \(i): \(line)")
-                break
-            }
-            
-            // Skip OCR garbage (Japanese characters, too many digits)
-            let hasJapanese = line.range(of: "[\\p{Hiragana}\\p{Katakana}\\p{Han}]", options: .regularExpression) != nil
-            if hasJapanese {
-                print("  Skipping OCR artifact at line \(i): \(line)")
-                i += 1
-                continue
-            }
-            
-            // Look for item name followed by quantity/price line
-            // Serbian receipts often have format:
-            // Item Name (with possible barcode)
-            // price or (quantity kom. x unit_price RSD) [optional] total_price
-            
-            // Check if current line looks like an item name (has letters, not just numbers/symbols)
-            let hasLetters = line.rangeOfCharacter(from: .letters) != nil
-            let hasPrices = extractPrices(from: line) != nil
-            
-            // Check if this line contains a barcode followed by text (common pattern)
-            let barcodeWithTextPattern = #"\d{10,}\s+([a-zA-Zа-яА-ЯčćžšđČĆŽŠĐ\s]+)"#
-            let hasBarcodeWithText = line.range(of: barcodeWithTextPattern, options: .regularExpression) != nil
-            
-            if (hasLetters && !hasPrices) || hasBarcodeWithText {
-                // This could be an item name, check next line for prices
-                print("  Potential item name at line \(i): \(line)")
-                
-                if i + 1 < end {
-                    let nextLine = lines[i + 1]
-                    print("    Checking detail line: \(nextLine)")
-                    
-                    // Check if next line has quantity pattern like "(2,000 kom. x 429,00 RSD)"
-                    if let itemData = parseItemLine(name: line, detailLine: nextLine) {
-                        items.append(itemData)
-                        print("  ✓ Found item: \(itemData.name) - \(itemData.lineTotal)")
-                        i += 2 // Skip both name and detail line
-                        continue
-                    } else if let prices = extractPrices(from: nextLine), !prices.isEmpty {
-                        // Fallback: just use the price from next line
-                        // But clean up the item name first
-                        var cleanedName = line
-                        
-                        // Remove barcode
-                        let barcodePattern = #"\b\d{10,}\b"#
-                        if let regex = try? NSRegularExpression(pattern: barcodePattern) {
-                            cleanedName = regex.stringByReplacingMatches(
-                                in: cleanedName,
-                                range: NSRange(cleanedName.startIndex..., in: cleanedName),
-                                withTemplate: ""
-                            )
-                        }
-                        
-                        cleanedName = cleanedName
-                            .replacingOccurrences(of: #"\s*[\(\[]$"#, with: "", options: .regularExpression)
-                            .trimmingCharacters(in: .whitespaces)
-                        
-                        let item = ParsedReceiptItem(
-                            name: cleanedName,
-                            quantity: 1.0,
-                            unitPrice: prices.last ?? 0,
-                            lineTotal: prices.last ?? 0
-                        )
-                        items.append(item)
-                        print("  ✓ Found simple item: \(item.name) - \(item.lineTotal)")
-                        i += 2
-                        continue
-                    }
-                }
-            }
-            
-            i += 1
+
+        // Column headers / noise words that are never item names.
+        func isHeaderWord(_ s: String) -> Bool {
+            let l = s.lowercased().folding(options: .diacriticInsensitive, locale: .current)
+            return ["naziv", "cena", "kol", "kal", "ukupno", "artikl", "jed", "kom", "barkod", "sifra",
+                    "konobar", "kasir", "esir", "promet", "prodaja", "brojac"]
+                .contains { l.contains($0) }
         }
+        // A summary/total marker means we've left the items section.
+        func isSummaryMarker(_ s: String) -> Bool {
+            let l = s.lowercased().folding(options: .diacriticInsensitive, locale: .current)
+            return (l.contains("ukup") && l.contains("iznos")) || l.contains("gotovin") ||
+                   l.contains("kartic") || l.contains("placen") || l.contains("povrat") ||
+                   l.contains("oznaka") || l.contains("porez") || l.contains("stopa")
+        }
+        // 2-decimal token = money; 3-decimal token = quantity.
+        func moneyValue(_ s: String) -> Decimal? {
+            let t = s.trimmingCharacters(in: .whitespaces)
+            guard t.range(of: #"^\d[\d.,]*\d$"#, options: .regularExpression) != nil else { return nil }
+            if t.range(of: #"[.,]\d{3}$"#, options: .regularExpression) != nil { return nil } // quantity
+            return normalizeAmount(t)
+        }
+        func quantityValue(_ s: String) -> Double? {
+            let t = s.trimmingCharacters(in: .whitespaces)
+            guard t.range(of: #"^\d+[.,]\d{3}$"#, options: .regularExpression) != nil else { return nil }
+            return Double(t.replacingOccurrences(of: ",", with: "."))
+        }
+        func cleanName(_ s: String) -> String {
+            s.replacingOccurrences(of: #"(\s*\([^)]*\))+\s*$"#, with: "", options: .regularExpression)
+                .trimmingCharacters(in: .whitespaces)
+        }
+
+        struct ItemDraft { var name: String; var monies: [Decimal]; var qty: Double }
+        var current: ItemDraft?
+
+        func flush() {
+            defer { current = nil }
+            guard let d = current, !d.monies.isEmpty else { return }
+            let name = cleanName(d.name)
+            guard !name.isEmpty, name.rangeOfCharacter(from: .letters) != nil else { return }
+            let lineTotal = d.monies.last ?? 0
+            let unit = d.monies.first ?? lineTotal
+            items.append(ParsedReceiptItem(name: name, quantity: d.qty > 0 ? d.qty : 1.0,
+                                           unitPrice: unit, lineTotal: lineTotal))
+        }
+
+        while i < end {
+            let line = lines[i].trimmingCharacters(in: .whitespaces)
+            i += 1
+
+            if line.isEmpty || line.contains("===") || line.contains("---") || line.contains("____") { continue }
+            if isSummaryMarker(line) { break } // totals section may appear before the detected end
+            // Tax-rate label like "(11)", "(Ђ)" on its own line.
+            if line.range(of: #"^\([^)]*\)$"#, options: .regularExpression) != nil { continue }
+
+            if let money = moneyValue(line) {
+                current?.monies.append(money)
+                continue
+            }
+            if let qty = quantityValue(line) {
+                current?.qty = qty
+                continue
+            }
+            if isHeaderWord(line) { continue }
+            guard line.rangeOfCharacter(from: .letters) != nil else { continue } // stray symbols
+
+            if var draft = current, draft.monies.isEmpty {
+                // Name wrapped across lines — append.
+                draft.name += " " + line
+                current = draft
+            } else {
+                // A new item begins.
+                flush()
+                current = ItemDraft(name: line, monies: [], qty: 1.0)
+            }
+        }
+        flush()
         
         print("✅ Parsed \(items.count) items total")
         return items
@@ -1003,58 +1068,80 @@ struct ReceiptOCRParser {
         return decimals.isEmpty ? nil : decimals
     }
     
-    /// Extracts first decimal number from text
+    /// Extracts a decimal amount from a line. Finds all numeric tokens
+    /// (any number of digits, "." or "," separators) and returns the last one
+    /// normalized — amounts are typically right-aligned on receipts.
     private static func extractDecimal(from text: String) -> Decimal? {
-        // Try multiple patterns to catch OCR errors
-        let patterns = [
-            #"(\d{1,3}(?:\.\d{3})*,\d{2})"#,     // Serbian: 1.234,56
-            #"(\d{1,3}(?:,\d{3})*\.\d{2})"#,     // English: 1,234.56
-            #"(\d+,\d{2})"#,                      // Simple: 1234,56
-            #"(\d+\.\d{2})"#                      // Simple: 1234.56
-        ]
-        
-        for pattern in patterns {
-            guard let regex = try? NSRegularExpression(pattern: pattern),
-                  let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-                  let range = Range(match.range, in: text) else {
-                continue
+        let pattern = #"\d[\d.,]*\d|\d"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+        let values = matches.compactMap { match -> Decimal? in
+            guard let range = Range(match.range, in: text) else { return nil }
+            return normalizeAmount(String(text[range]))
+        }
+        return values.last
+    }
+
+    /// Backwards-compatible alias used by item/price parsing.
+    private static func parseDecimal(from string: String) -> Decimal? {
+        normalizeAmount(string)
+    }
+
+    /// Normalizes a numeric token into a Decimal, tolerant of both Serbian
+    /// (1.234,56) and English (1,234.56) grouping, plain integers, and plain
+    /// decimals (1750.00). Rule: when both separators are present the LAST one
+    /// is the decimal separator; a lone separator with exactly two trailing
+    /// digits is decimal, otherwise it is thousands grouping.
+    private static func normalizeAmount(_ raw: String) -> Decimal? {
+        var s = raw.filter { $0.isNumber || $0 == "." || $0 == "," }
+        guard s.contains(where: \.isNumber) else { return nil }
+
+        let hasDot = s.contains(".")
+        let hasComma = s.contains(",")
+
+        if hasDot && hasComma {
+            if s.lastIndex(of: ",")! > s.lastIndex(of: ".")! {
+                // comma is the decimal separator
+                s = s.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: ",", with: ".")
+            } else {
+                // dot is the decimal separator
+                s = s.replacingOccurrences(of: ",", with: "")
             }
-            
-            let numberString = String(text[range])
-            
-            // Try to parse as Serbian format first (. = thousands, , = decimal)
-            if numberString.contains(",") {
-                if let decimal = parseDecimal(from: numberString) {
-                    return decimal
-                }
+        } else if hasComma {
+            let parts = s.split(separator: ",", omittingEmptySubsequences: false)
+            if parts.count == 2, parts.last?.count == 2 {
+                s = s.replacingOccurrences(of: ",", with: ".")
+            } else {
+                s = s.replacingOccurrences(of: ",", with: "")
             }
-            
-            // Try to parse as English format (. = decimal)
-            if numberString.contains(".") && !numberString.contains(",") {
-                let cleaned = numberString
-                    .replacingOccurrences(of: ",", with: "")
-                    .trimmingCharacters(in: .whitespaces)
-                if let decimal = Decimal(string: cleaned) {
-                    return decimal
-                }
+        } else if hasDot {
+            let parts = s.split(separator: ".", omittingEmptySubsequences: false)
+            if !(parts.count == 2 && parts.last?.count == 2) {
+                // not a plain decimal → treat dots as thousands grouping
+                s = s.replacingOccurrences(of: ".", with: "")
             }
         }
-        
-        return nil
-    }
-    
-    /// Parses a Decimal from Serbian number format (1.234,56)
-    private static func parseDecimal(from string: String) -> Decimal? {
-        let cleaned = string
-            .replacingOccurrences(of: ".", with: "")
-            .replacingOccurrences(of: ",", with: ".")
-            .trimmingCharacters(in: .whitespaces)
-        
-        return Decimal(string: cleaned)
+
+        return Decimal(string: s)
     }
     
     /// Parses receipt number
     private static func parseReceiptNumber(from lines: [String]) -> String {
+        // Primary: the PFR receipt number has a distinctive shape —
+        // two alphanumeric blocks plus a counter, e.g. "96J62P13-96J62P13-26589".
+        // Match it directly regardless of how the label OCR'd.
+        let pfrPattern = #"\b[A-Z0-9]{6,}-[A-Z0-9]{6,}-\d{2,}\b"#
+        if let regex = try? NSRegularExpression(pattern: pfrPattern) {
+            for line in lines {
+                if let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+                   let range = Range(match.range, in: line) {
+                    let number = String(line[range])
+                    print("  Extracted PFR receipt number (signature): \(number)")
+                    return number
+                }
+            }
+        }
+
         for (index, line) in lines.enumerated() {
             let lowercased = line.lowercased()
                 .folding(options: .diacriticInsensitive, locale: .current)
@@ -1130,5 +1217,21 @@ struct ReceiptOCRParser {
             }
         }
         return ""
+    }
+}
+
+extension CGImagePropertyOrientation {
+    init(_ orientation: UIImage.Orientation) {
+        switch orientation {
+        case .up: self = .up
+        case .upMirrored: self = .upMirrored
+        case .down: self = .down
+        case .downMirrored: self = .downMirrored
+        case .left: self = .left
+        case .leftMirrored: self = .leftMirrored
+        case .right: self = .right
+        case .rightMirrored: self = .rightMirrored
+        @unknown default: self = .up
+        }
     }
 }

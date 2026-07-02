@@ -76,19 +76,25 @@ class ReceiptService {
         print("🔄 About to call ReceiptOCRParser.parseReceipt")
         let parsed = try await ReceiptOCRParser.parseReceipt(from: image)
         print("✅ ReceiptOCRParser returned successfully")
-        
+
+        return try await save(parsed: parsed)
+    }
+
+    /// Persists an already-parsed receipt (used by the OCR confirmation flow,
+    /// where the user may have edited the fields before saving).
+    func save(parsed: ParsedReceipt) async throws -> Receipt {
         // Check if receipt already exists (by receipt number if available)
         if !parsed.receiptNumber.isEmpty {
             let receiptNumber = parsed.receiptNumber
             let descriptor = FetchDescriptor<Receipt>(
                 predicate: #Predicate { $0.receiptNumber == receiptNumber }
             )
-            
+
             if (try? modelContext.fetch(descriptor).first) != nil {
                 throw ReceiptError.duplicateReceipt
             }
         }
-        
+
         // Create receipt items
         let items = parsed.items.map { parsedItem in
             ReceiptItem(
@@ -98,7 +104,7 @@ class ReceiptService {
                 lineTotal: parsedItem.lineTotal
             )
         }
-        
+
         // Create receipt
         let receipt = Receipt(
             url: parsed.url,
@@ -113,14 +119,14 @@ class ReceiptService {
             cashRegisterNumber: parsed.cashRegisterNumber,
             items: items
         )
-        
+
         // Update budget
         try await deductFromBudget(amount: parsed.totalAmount)
-        
+
         // Save to SwiftData
         modelContext.insert(receipt)
         try modelContext.save()
-        
+
         return receipt
     }
     

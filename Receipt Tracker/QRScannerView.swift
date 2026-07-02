@@ -17,8 +17,8 @@ enum ScanMode: String, CaseIterable {
 struct QRScannerView: View {
     @Environment(\.dismiss) private var dismiss
     let onScan: (String) -> Void
-    let onReceiptScan: ((UIImage) -> Void)?
-    
+    let onReceiptParsed: ((ParsedReceipt) -> Void)?
+
     @State private var isAuthorized = false
     @State private var showAuthAlert = false
     @State private var selectedPhoto: PhotosPickerItem?
@@ -26,10 +26,11 @@ struct QRScannerView: View {
     @State private var errorMessage = ""
     @State private var scanMode: ScanMode = .qrCode
     @State private var isProcessing = false
-    
-    init(onScan: @escaping (String) -> Void, onReceiptScan: ((UIImage) -> Void)? = nil) {
+    @State private var showDocScanner = false
+
+    init(onScan: @escaping (String) -> Void, onReceiptParsed: ((ParsedReceipt) -> Void)? = nil) {
         self.onScan = onScan
-        self.onReceiptScan = onReceiptScan
+        self.onReceiptParsed = onReceiptParsed
     }
     
     var body: some View {
@@ -55,9 +56,28 @@ struct QRScannerView: View {
                                     dismiss()
                                 })
                             } else {
-                                ReceiptScannerCameraView(onCapture: { image in
-                                    handleReceiptCapture(image)
-                                })
+                                VStack(spacing: 20) {
+                                    Image(systemName: "doc.viewfinder")
+                                        .font(.system(size: 60))
+                                        .foregroundStyle(.secondary)
+                                    Text("Skeniraj račun")
+                                        .font(.system(.title2, design: .monospaced, weight: .bold))
+                                    Text("Postavi račun na ravnu površinu — ivice se prepoznaju automatski.")
+                                        .font(.system(.subheadline, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.center)
+                                        .padding(.horizontal)
+                                    Button { showDocScanner = true } label: {
+                                        Label("Otvori skener", systemImage: "camera.viewfinder")
+                                            .font(.system(.body, design: .monospaced))
+                                            .padding()
+                                            .background(Color.blue.gradient)
+                                            .foregroundStyle(.white)
+                                            .clipShape(Capsule())
+                                    }
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                             }
                             
                             // Processing overlay
@@ -143,35 +163,49 @@ struct QRScannerView: View {
                 }
             }
         }
+        .onChange(of: scanMode) { _, mode in
+            if mode == .receipt && DocumentScannerView.isSupported {
+                showDocScanner = true
+            }
+        }
+        .fullScreenCover(isPresented: $showDocScanner) {
+            DocumentScannerView(
+                onScan: { image in
+                    showDocScanner = false
+                    handleReceiptCapture(image)
+                },
+                onCancel: { showDocScanner = false },
+                onError: { error in
+                    showDocScanner = false
+                    errorMessage = "Greška skenera: \(error.localizedDescription)"
+                    showError = true
+                }
+            )
+            .ignoresSafeArea()
+        }
     }
     
+    /// May be called from the photo-capture delegate's background thread, so
+    /// all state mutation is funneled onto the main actor.
     private func handleReceiptCapture(_ image: UIImage) {
         print("📷 QRScannerView.handleReceiptCapture called")
         print("📐 Image size: \(image.size)")
-        isProcessing = true
-        
-        Task {
+
+        Task { @MainActor in
+            isProcessing = true
             do {
                 // Use OCR parser to extract receipt data
-                print("🔍 About to call ReceiptOCRParser.parseReceipt from QRScannerView")
                 let parsedReceipt = try await ReceiptOCRParser.parseReceipt(from: image)
-                print("✅ OCR parsing completed in QRScannerView")
-                
-                // For now, we'll call the onReceiptScan callback if provided
-                // Or we can pass the parsed data directly
-                await MainActor.run {
-                    print("🎯 Calling onReceiptScan callback")
-                    isProcessing = false
-                    onReceiptScan?(image)
-                    dismiss()
-                }
+
+                // Hand the parsed result to the confirmation flow (parse once).
+                isProcessing = false
+                onReceiptParsed?(parsedReceipt)
+                dismiss()
             } catch {
                 print("❌ Error in handleReceiptCapture: \(error)")
-                await MainActor.run {
-                    isProcessing = false
-                    errorMessage = "Neuspešna obrada računa: \(error.localizedDescription)"
-                    showError = true
-                }
+                isProcessing = false
+                errorMessage = "Neuspešna obrada računa: \(error.localizedDescription)"
+                showError = true
             }
         }
     }
@@ -274,86 +308,95 @@ struct QRScannerCameraView: UIViewControllerRepresentable {
 
 class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     var onScan: ((String) -> Void)?
-    
+
     private var captureSession: AVCaptureSession?
     private var previewLayer: AVCaptureVideoPreviewLayer?
-    
+    // All session configuration and start/stop happens off the main thread —
+    // AVCaptureSession setup takes long enough to cause a visible UI hitch.
+    private let sessionQueue = DispatchQueue(label: "qr.scanner.session", qos: .userInitiated)
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCamera()
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
-        if let captureSession = captureSession, !captureSession.isRunning {
-            DispatchQueue.global(qos: .userInitiated).async {
-                captureSession.startRunning()
+
+        sessionQueue.async { [weak self] in
+            if let session = self?.captureSession, !session.isRunning {
+                session.startRunning()
             }
         }
     }
-    
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        
-        if let captureSession = captureSession, captureSession.isRunning {
-            DispatchQueue.global(qos: .userInitiated).async {
-                captureSession.stopRunning()
+
+        sessionQueue.async { [weak self] in
+            if let session = self?.captureSession, session.isRunning {
+                session.stopRunning()
             }
         }
     }
-    
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         previewLayer?.frame = view.layer.bounds
     }
-    
+
     private func setupCamera() {
-        captureSession = AVCaptureSession()
-        
-        guard let captureSession = captureSession,
-              let videoCaptureDevice = AVCaptureDevice.default(for: .video) else {
-            return
-        }
-        
-        do {
-            let videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
-            
-            if captureSession.canAddInput(videoInput) {
-                captureSession.addInput(videoInput)
-            } else {
-                failed()
+        let session = AVCaptureSession()
+        captureSession = session
+
+        // Preview layer and overlay can attach immediately; frames appear
+        // once the session is configured and started on the session queue.
+        let layer = AVCaptureVideoPreviewLayer(session: session)
+        layer.frame = view.layer.bounds
+        layer.videoGravity = .resizeAspectFill
+        view.layer.addSublayer(layer)
+        previewLayer = layer
+
+        addScanningReticle()
+
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+
+            guard let videoCaptureDevice = AVCaptureDevice.default(for: .video),
+                  let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice) else {
+                DispatchQueue.main.async { self.failed() }
                 return
             }
-            
+
+            session.beginConfiguration()
+
+            guard session.canAddInput(videoInput) else {
+                session.commitConfiguration()
+                DispatchQueue.main.async { self.failed() }
+                return
+            }
+            session.addInput(videoInput)
+
             let metadataOutput = AVCaptureMetadataOutput()
-            
-            if captureSession.canAddOutput(metadataOutput) {
-                captureSession.addOutput(metadataOutput)
-                
-                metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
-                metadataOutput.metadataObjectTypes = [.qr]
-            } else {
-                failed()
+            guard session.canAddOutput(metadataOutput) else {
+                session.commitConfiguration()
+                DispatchQueue.main.async { self.failed() }
                 return
             }
-            
-            previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-            previewLayer?.frame = view.layer.bounds
-            previewLayer?.videoGravity = .resizeAspectFill
-            
-            if let previewLayer = previewLayer {
-                view.layer.addSublayer(previewLayer)
+            session.addOutput(metadataOutput)
+            metadataOutput.metadataObjectTypes = [.qr]
+
+            session.commitConfiguration()
+
+            // The delegate is main-actor isolated, so hook it up on the main
+            // thread, then start the session (ordered via the session queue so
+            // no scan can arrive before the delegate is set).
+            DispatchQueue.main.async {
+                metadataOutput.setMetadataObjectsDelegate(self, queue: DispatchQueue.main)
+                self.sessionQueue.async {
+                    session.startRunning()
+                }
             }
-            
-            // Add scanning reticle overlay
-            addScanningReticle()
-            
-            DispatchQueue.global(qos: .userInitiated).async {
-                captureSession.startRunning()
-            }
-        } catch {
-            failed()
         }
     }
     
@@ -456,81 +499,82 @@ struct ReceiptScannerCameraView: UIViewControllerRepresentable {
 
 class ReceiptScannerViewController: UIViewController {
     var onCapture: ((UIImage) -> Void)?
-    
+
     private var captureSession: AVCaptureSession?
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var photoOutput: AVCapturePhotoOutput?
     private var captureButton: UIButton?
-    
+    // All session configuration and start/stop happens off the main thread —
+    // AVCaptureSession setup takes long enough to cause a visible UI hitch.
+    private let sessionQueue = DispatchQueue(label: "receipt.scanner.session", qos: .userInitiated)
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupCamera()
         setupCaptureButton()
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
-        if let captureSession = captureSession, !captureSession.isRunning {
-            DispatchQueue.global(qos: .userInitiated).async {
-                captureSession.startRunning()
+
+        sessionQueue.async { [weak self] in
+            if let session = self?.captureSession, !session.isRunning {
+                session.startRunning()
             }
         }
     }
-    
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        
-        if let captureSession = captureSession, captureSession.isRunning {
-            DispatchQueue.global(qos: .userInitiated).async {
-                captureSession.stopRunning()
+
+        sessionQueue.async { [weak self] in
+            if let session = self?.captureSession, session.isRunning {
+                session.stopRunning()
             }
         }
     }
-    
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         previewLayer?.frame = view.layer.bounds
     }
-    
+
     private func setupCamera() {
-        captureSession = AVCaptureSession()
-        captureSession?.sessionPreset = .photo
-        
-        guard let captureSession = captureSession,
-              let videoCaptureDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-            return
-        }
-        
-        do {
-            let videoInput = try AVCaptureDeviceInput(device: videoCaptureDevice)
-            
-            if captureSession.canAddInput(videoInput) {
-                captureSession.addInput(videoInput)
+        let session = AVCaptureSession()
+        captureSession = session
+
+        let layer = AVCaptureVideoPreviewLayer(session: session)
+        layer.frame = view.layer.bounds
+        layer.videoGravity = .resizeAspectFill
+        view.layer.addSublayer(layer)
+        previewLayer = layer
+
+        addReceiptFrameOverlay()
+
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+
+            guard let videoCaptureDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+                  let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice) else {
+                print("Error setting up receipt camera: no device/input")
+                return
             }
-            
-            photoOutput = AVCapturePhotoOutput()
-            
-            if let photoOutput = photoOutput, captureSession.canAddOutput(photoOutput) {
-                captureSession.addOutput(photoOutput)
+
+            session.beginConfiguration()
+            session.sessionPreset = .photo
+
+            if session.canAddInput(videoInput) {
+                session.addInput(videoInput)
             }
-            
-            previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-            previewLayer?.frame = view.layer.bounds
-            previewLayer?.videoGravity = .resizeAspectFill
-            
-            if let previewLayer = previewLayer {
-                view.layer.addSublayer(previewLayer)
+
+            let output = AVCapturePhotoOutput()
+            if session.canAddOutput(output) {
+                session.addOutput(output)
             }
-            
-            // Add receipt frame overlay
-            addReceiptFrameOverlay()
-            
-            DispatchQueue.global(qos: .userInitiated).async {
-                captureSession.startRunning()
-            }
-        } catch {
-            print("Error setting up camera: \(error)")
+            self.photoOutput = output
+
+            session.commitConfiguration()
+            session.startRunning()
         }
     }
     
@@ -679,24 +723,25 @@ extension ReceiptScannerViewController: AVCapturePhotoCaptureDelegate {
         }
         
         print("✅ Photo converted to UIImage, size: \(image.size)")
-        
-        // Stop the camera
-        captureSession?.stopRunning()
-        
-        // Provide haptic feedback
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
-        
-        // Call the capture handler
-        print("🎯 Calling onCapture handler")
-        onCapture?(image)
+
+        // Stop the camera off the main thread.
+        sessionQueue.async { [weak self] in
+            self?.captureSession?.stopRunning()
+        }
+
+        // Haptics and the capture callback belong on the main thread.
+        DispatchQueue.main.async { [weak self] in
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            self?.onCapture?(image)
+        }
     }
 }
 
 #Preview {
     QRScannerView { url in
         print("Scanned URL: \(url)")
-    } onReceiptScan: { image in
-        print("Scanned receipt image")
+    } onReceiptParsed: { parsed in
+        print("Parsed receipt: \(parsed.merchantName)")
     }
 }

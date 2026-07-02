@@ -711,3 +711,7 @@ struct ParsedReceiptItem {
     let unitPrice: Decimal
     let lineTotal: Decimal
 }
+
+extension ParsedReceipt: Identifiable {
+    var id: String { "\(receiptNumber)|\(url)|\(timestamp.timeIntervalSince1970)" }
+}

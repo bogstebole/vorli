@@ -43,4 +43,51 @@ enum MoneyFormat {
         let body = magnitude.isEmpty ? "0" : magnitude
         return isNegative ? "-" + body : body
     }
+
+    /// Point-of-sale style display: interprets a digit string as cents and
+    /// formats with two decimals, e.g. "66195" → "661,95", "" → "0,00".
+    static func centsDisplay(_ digits: String) -> String {
+        let d = digits.filter(\.isNumber)
+        guard !d.isEmpty, let cents = Decimal(string: d) else { return "0,00" }
+        return decimalString(cents / 100)
+    }
+
+    /// Serbian-style display with two decimals, e.g. 661.95 → "661,95".
+    static func decimalString(_ value: Decimal) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        formatter.groupingSeparator = "."
+        formatter.decimalSeparator = ","
+        return formatter.string(from: value as NSDecimalNumber) ?? "0,00"
+    }
+
+    /// Parses a free-form amount string into a Decimal, tolerant of Serbian
+    /// (1.661,95) and English (1,661.95) formats. The last separator is treated
+    /// as the decimal point; a lone separator with two trailing digits is decimal.
+    static func parse(_ raw: String) -> Decimal? {
+        var s = raw.filter { $0.isNumber || $0 == "." || $0 == "," }
+        guard s.contains(where: \.isNumber) else { return nil }
+        let hasDot = s.contains(".")
+        let hasComma = s.contains(",")
+        if hasDot && hasComma {
+            if s.lastIndex(of: ",")! > s.lastIndex(of: ".")! {
+                s = s.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: ",", with: ".")
+            } else {
+                s = s.replacingOccurrences(of: ",", with: "")
+            }
+        } else if hasComma {
+            let parts = s.split(separator: ",", omittingEmptySubsequences: false)
+            s = (parts.count == 2 && parts.last?.count == 2)
+                ? s.replacingOccurrences(of: ",", with: ".")
+                : s.replacingOccurrences(of: ",", with: "")
+        } else if hasDot {
+            let parts = s.split(separator: ".", omittingEmptySubsequences: false)
+            if !(parts.count == 2 && parts.last?.count == 2) {
+                s = s.replacingOccurrences(of: ".", with: "")
+            }
+        }
+        return Decimal(string: s)
+    }
 }

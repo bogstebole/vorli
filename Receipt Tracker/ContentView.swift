@@ -26,6 +26,7 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showVorli = false
     @State private var scannedReceipt: Receipt?
+    @State private var pendingReceipt: ParsedReceipt?
 
     var body: some View {
         NavigationStack {
@@ -124,8 +125,14 @@ struct ContentView: View {
             .sheet(isPresented: $showScanner) {
                 QRScannerView { url in
                     Task { await processReceipt(from: url) }
-                } onReceiptScan: { image in
-                    Task { await processReceiptImage(image) }
+                } onReceiptParsed: { parsed in
+                    pendingReceipt = parsed
+                }
+            }
+            .sheet(item: $pendingReceipt) { parsed in
+                ReceiptConfirmView(parsed: parsed) { receipt in
+                    loadBudget()
+                    scannedReceipt = receipt
                 }
             }
             .sheet(isPresented: $showAddNew, onDismiss: loadBudget) {
