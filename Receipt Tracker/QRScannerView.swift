@@ -14,6 +14,12 @@ enum ScanMode: String, CaseIterable {
     case receipt = "Račun"
 }
 
+extension Notification.Name {
+    /// Posted after the QR capture session has fully stopped and released the
+    /// camera device.
+    static let qrScannerSessionDidStop = Notification.Name("qrScannerSessionDidStop")
+}
+
 struct QRScannerView: View {
     @Environment(\.dismiss) private var dismiss
     let onScan: (String) -> Void
@@ -164,7 +170,20 @@ struct QRScannerView: View {
             }
         }
         .onChange(of: scanMode) { _, mode in
-            if mode == .receipt && DocumentScannerView.isSupported {
+            guard mode == .receipt, DocumentScannerView.isSupported else { return }
+            // Don't present the document scanner immediately: the QR session
+            // is still releasing the camera, and the system scanner stalls for
+            // seconds waiting on it. The .qrScannerSessionDidStop notification
+            // presents it as soon as the camera is free; this is only a
+            // fallback in case the QR session was never running.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                if scanMode == .receipt && !showDocScanner {
+                    showDocScanner = true
+                }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .qrScannerSessionDidStop)) { _ in
+            if scanMode == .receipt && !showDocScanner {
                 showDocScanner = true
             }
         }
@@ -337,6 +356,12 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
             if let session = self?.captureSession, session.isRunning {
                 session.stopRunning()
             }
+            // Tell whoever is waiting (the document scanner) that the camera
+            // is now free — presenting it before the QR session releases the
+            // device makes the system camera stall for seconds on arbitration.
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .qrScannerSessionDidStop, object: nil)
+            }
         }
     }
 
@@ -468,8 +493,10 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
     }
     
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
-        captureSession?.stopRunning()
-        
+        sessionQueue.async { [weak self] in
+            self?.captureSession?.stopRunning()
+        }
+
         if let metadataObject = metadataObjects.first,
            let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject,
            let stringValue = readableObject.stringValue {
