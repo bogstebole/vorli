@@ -33,8 +33,8 @@ enum FinanceCalculator {
             - activeFixedTotal(fixed)
     }
 
-    /// Average monthly leftover across the most recent months that had income or receipts.
-    static func averageMonthlyLeftover(receipts: [Receipt], entries: [BudgetEntry], fixed: [FixedCost], maxMonths: Int = 6, calendar: Calendar = .current) -> Decimal {
+    /// Months (as dates) that had any income or receipt activity, newest first.
+    private static func activityMonths(receipts: [Receipt], entries: [BudgetEntry], calendar: Calendar) -> [Date] {
         var anchors = Set<DateComponents>()
         for r in receipts {
             anchors.insert(calendar.dateComponents([.year, .month], from: r.timestamp))
@@ -42,15 +42,35 @@ enum FinanceCalculator {
         for e in entries where e.note == incomeNote {
             anchors.insert(calendar.dateComponents([.year, .month], from: e.timestamp))
         }
-        let monthDates = anchors
+        return anchors
             .compactMap { calendar.date(from: $0) }
             .sorted(by: >)
+    }
+
+    /// Average monthly leftover across the most recent months that had income or receipts.
+    static func averageMonthlyLeftover(receipts: [Receipt], entries: [BudgetEntry], fixed: [FixedCost], maxMonths: Int = 6, calendar: Calendar = .current) -> Decimal {
+        let monthDates = activityMonths(receipts: receipts, entries: entries, calendar: calendar)
             .prefix(maxMonths)
         guard !monthDates.isEmpty else { return 0 }
         let total = monthDates.reduce(Decimal(0)) {
             $0 + leftover(month: $1, receipts: receipts, entries: entries, fixed: fixed, calendar: calendar)
         }
         return total / Decimal(monthDates.count)
+    }
+
+    /// Cumulative savings: the sum of leftovers across ALL months with activity.
+    /// This is what wish reservations are drawn from — a wish is funded over
+    /// many months, so comparing it against a single month's leftover would
+    /// go negative as soon as reservations outgrow one month's surplus.
+    ///
+    /// A month that ended with nothing left over contributes 0, never a minus:
+    /// you can't "un-save" money, and months with receipts but no recorded
+    /// income would otherwise show up as debt that doesn't exist.
+    static func totalLeftover(receipts: [Receipt], entries: [BudgetEntry], fixed: [FixedCost], calendar: Calendar = .current) -> Decimal {
+        activityMonths(receipts: receipts, entries: entries, calendar: calendar)
+            .reduce(Decimal(0)) {
+                $0 + max(0, leftover(month: $1, receipts: receipts, entries: entries, fixed: fixed, calendar: calendar))
+            }
     }
 
     /// Total amount the user has set aside across active wishes.

@@ -56,7 +56,15 @@ struct ListaZeljaSheet: View {
     private var summarySection: some View {
         Section {
             HStack {
-                Text("Ukupno odvojeno")
+                Text("Ukupna ušteđevina")
+                    .font(.system(.subheadline, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(MoneyFormat.signed(totalSavings) + " RSD")
+                    .font(.system(.subheadline, design: .monospaced))
+            }
+            HStack {
+                Text("Odvojeno za želje")
                     .font(.system(.subheadline, design: .monospaced))
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -76,11 +84,14 @@ struct ListaZeljaSheet: View {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
-                    Text("Trošiš iz svoje štednje.")
+                    Text("Odvojio si više nego što ti je ukupno ostalo od zarade.")
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
             }
+        } footer: {
+            Text("Ušteđevina = zbir svega što ti je ostalo na kraju svakog meseca. Raspoloživo = ušteđevina minus odvojeno za želje.")
+                .font(.system(.caption, design: .monospaced))
         }
     }
 
@@ -124,11 +135,12 @@ struct ListaZeljaSheet: View {
 
     private var totalReserved: Decimal { FinanceCalculator.totalReserved(wishes) }
 
-    private var currentBalance: Decimal {
-        FinanceCalculator.leftover(month: Date(), receipts: receipts, entries: budgetEntries, fixed: fixedCosts)
+    /// All-time savings: sum of monthly leftovers across every month with activity.
+    private var totalSavings: Decimal {
+        FinanceCalculator.totalLeftover(receipts: receipts, entries: budgetEntries, fixed: fixedCosts)
     }
 
-    private var available: Decimal { currentBalance - totalReserved }
+    private var available: Decimal { totalSavings - totalReserved }
 
     private var avgLeftover: Decimal {
         FinanceCalculator.averageMonthlyLeftover(receipts: receipts, entries: budgetEntries, fixed: fixedCosts)
