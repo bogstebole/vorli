@@ -155,6 +155,7 @@ struct ContentView: View {
         }
         .task {
             migrateSavingsGoalsIfNeeded()
+            backfillNormalizedItemNamesIfNeeded()
             loadBudget()
             autoAddMonthlyIncomeIfNeeded()
         }
@@ -221,6 +222,20 @@ struct ContentView: View {
             let wish = Wish(naziv: goal.naziv, cilj: goal.ciljniIznos, rok: goal.rok)
             modelContext.insert(wish)
             modelContext.delete(goal)
+        }
+        try? modelContext.save()
+        UserDefaults.standard.set(true, forKey: flagKey)
+    }
+
+    /// One-time backfill of ReceiptItem.normalizedName for records created
+    /// before the price-history feature existed.
+    private func backfillNormalizedItemNamesIfNeeded() {
+        let flagKey = "receiptItemNormalizedNamesBackfilled"
+        guard !UserDefaults.standard.bool(forKey: flagKey) else { return }
+
+        let items = (try? modelContext.fetch(FetchDescriptor<ReceiptItem>())) ?? []
+        for item in items where item.normalizedName.isEmpty {
+            item.normalizedName = PriceHistory.normalize(item.name)
         }
         try? modelContext.save()
         UserDefaults.standard.set(true, forKey: flagKey)

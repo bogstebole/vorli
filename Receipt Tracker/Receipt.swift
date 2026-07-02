@@ -61,6 +61,10 @@ final class ReceiptItem {
     var quantity: Double
     var unitPrice: Decimal
     var lineTotal: Decimal
+    /// Normalized form of `name` used to match the same product across
+    /// receipts (price history). Empty on records created before the feature —
+    /// backfilled once at app start.
+    var normalizedName: String = ""
 
     var receipt: Receipt?
 
@@ -76,6 +80,7 @@ final class ReceiptItem {
         self.quantity = quantity
         self.unitPrice = unitPrice
         self.lineTotal = lineTotal
+        self.normalizedName = PriceHistory.normalize(name)
     }
 }
 
