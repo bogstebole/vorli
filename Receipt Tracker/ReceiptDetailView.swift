@@ -6,11 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ReceiptDetailView: View {
     let receipt: Receipt
     @Environment(\.dismiss) private var dismiss
-    
+    @Query private var allReceipts: [Receipt]
+    @State private var historyItem: ReceiptItem?
+
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
@@ -84,7 +87,14 @@ struct ReceiptDetailView: View {
                     
                     VStack(spacing: 0) {
                         ForEach(receipt.items) { item in
-                            ArticleRowView(item: item)
+                            let history = PriceHistory.history(for: item, in: allReceipts)
+                            ArticleRowView(
+                                item: item,
+                                change: PriceHistory.change(for: item, in: allReceipts),
+                                hasHistory: history.count >= 2
+                            ) {
+                                historyItem = item
+                            }
                         }
                     }
                 }
@@ -112,6 +122,9 @@ struct ReceiptDetailView: View {
         }
         .navigationTitle("Racun")
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $historyItem) { item in
+            PriceHistorySheet(item: item)
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -133,54 +146,93 @@ struct ReceiptDetailView: View {
 
 struct ArticleRowView: View {
     let item: ReceiptItem
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Article Name
-            Text(item.name)
-                .font(.system(.subheadline, design: .monospaced, weight: .medium))
-                .lineLimit(2)
-            
-            // Price Info
-            HStack(spacing: 16) {
-                // Unit Price
-                HStack(spacing: 4) {
-                    Text(item.unitPrice.asSerbianNumber)
-                        .font(.system(.subheadline, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                    Text("RSD")
-                        .font(.system(.subheadline, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-                
-                // Quantity
-                HStack(spacing: 4) {
-                    Text("×")
-                        .font(.system(.subheadline, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                    Text(formatQuantity(item.quantity))
-                        .font(.system(.subheadline, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-                
-                // Line Total
-                Text(item.lineTotal.asRSD)
-                    .font(.system(.subheadline, design: .monospaced, weight: .regular))
-                    .foregroundStyle(.primary)
-            }
-        }
-        .padding()
+    var change: PriceHistory.Change? = nil
+    var hasHistory: Bool = false
+    var onHistoryTap: () -> Void = {}
 
+    var body: some View {
+        Button(action: { if hasHistory { onHistoryTap() } }) {
+            VStack(alignment: .leading, spacing: 8) {
+                // Article Name + price change vs previous purchase
+                HStack(alignment: .top, spacing: 8) {
+                    Text(item.name)
+                        .font(.system(.subheadline, design: .monospaced, weight: .medium))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+
+                    Spacer()
+
+                    if let change {
+                        PriceChangeBadge(change: change)
+                    }
+                }
+
+                // Price Info
+                HStack(spacing: 16) {
+                    // Unit Price
+                    HStack(spacing: 4) {
+                        Text(item.unitPrice.asSerbianNumber)
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Text("RSD")
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    // Quantity
+                    HStack(spacing: 4) {
+                        Text("×")
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Text(formatQuantity(item.quantity))
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    // Line Total
+                    Text(item.lineTotal.asRSD)
+                        .font(.system(.subheadline, design: .monospaced, weight: .regular))
+                        .foregroundStyle(.primary)
+
+                    if hasHistory {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            }
+            .padding()
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
-    
+
     private func formatQuantity(_ quantity: Double) -> String {
         if quantity.truncatingRemainder(dividingBy: 1) == 0 {
             return String(format: "%.0f", quantity)
         } else {
             return String(format: "%.2f", quantity)
         }
+    }
+}
+
+// MARK: - Price Change Badge
+
+struct PriceChangeBadge: View {
+    let change: PriceHistory.Change
+
+    private var tint: Color { change.isIncrease ? .orange : .green }
+
+    var body: some View {
+        Text("\(change.isIncrease ? "▲ +" : "▼ −")\(change.percentText)%")
+            .font(.system(.caption2, design: .monospaced, weight: .semibold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(tint.opacity(0.14))
+            .clipShape(Capsule())
     }
 }
 
