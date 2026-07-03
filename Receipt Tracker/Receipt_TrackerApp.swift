@@ -33,7 +33,8 @@ struct Receipt_TrackerApp: App {
             BudgetEntry.self,
             SavingsGoal.self,
             FixedCost.self,
-            Wish.self
+            Wish.self,
+            MerchantCategory.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
