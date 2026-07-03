@@ -13,11 +13,14 @@ enum PriceHistory {
 
     // MARK: - Matching keys
 
-    /// Normalized product key: lowercased, diacritics folded, punctuation
-    /// collapsed to single spaces. The same chain prints the same name on
-    /// every receipt, so this key is stable within a merchant.
+    /// Normalized product key: transliterated to Latin, lowercased, diacritics
+    /// folded, punctuation collapsed to single spaces. Transliteration makes
+    /// "Млеко" and "Mleko" the same key — receipts mix both scripts. The same
+    /// chain prints the same name on every receipt, so this key is stable
+    /// within a merchant.
     static func normalize(_ name: String) -> String {
-        name.lowercased()
+        (name.applyingTransform(StringTransform("Any-Latin; Latin-ASCII"), reverse: false) ?? name)
+            .lowercased()
             .folding(options: .diacriticInsensitive, locale: Locale(identifier: "sr_Latn_RS"))
             .map { $0.isLetter || $0.isNumber ? $0 : " " }
             .reduce(into: "") { result, char in

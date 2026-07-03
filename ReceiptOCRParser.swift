@@ -136,10 +136,17 @@ struct ReceiptOCRParser {
         }
     }
     
-    /// Parses extracted text into receipt data
+    /// Parses extracted text into receipt data.
+    ///
+    /// All lines are transliterated Cyrillic → Latin up front (case and
+    /// diacritics preserved: "Артикли" → "Artikli", "Ђ" → "Đ"). Serbian
+    /// receipts freely mix the two scripts, so the rest of the parser works
+    /// over a single script and no check needs per-script variants. Latin
+    /// text passes through the transform unchanged.
     private static func parseText(_ text: String) throws -> ParsedReceipt {
         let rawLines = text.components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .map { ($0.applyingTransform(StringTransform("Any-Latin"), reverse: false) ?? $0)
+                .trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         let lines = mergeSplitDecimals(rawLines)
 
@@ -235,9 +242,8 @@ struct ReceiptOCRParser {
         
         // Strategy 1: Look for company name with DOO/D.O.O. first (most reliable)
         for (index, line) in lines.enumerated() {
-            let lowercased = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
+            let lowercased = latinFolded(line)
+
             // Look for company type indicators
             if (lowercased.contains("doo") || lowercased.contains("d.o.o") || 
                 lowercased.contains("d. o. o")) && line.count > 5 {
@@ -250,9 +256,8 @@ struct ReceiptOCRParser {
                 // Skip any ID numbers or office/branch info
                 while addressIndex < lines.count {
                     let nextLine = lines[addressIndex]
-                    let nextLowercased = nextLine.lowercased()
-                        .folding(options: .diacriticInsensitive, locale: .current)
-                    
+                    let nextLowercased = latinFolded(nextLine)
+
                     // Skip PIB, MB, tax office numbers, branch info
                     if nextLowercased.contains("pib") || 
                        nextLowercased.contains("mb:") ||
@@ -274,9 +279,8 @@ struct ReceiptOCRParser {
                         // Next line is likely city/postal code
                         if addressIndex < lines.count {
                             let cityLine = lines[addressIndex]
-                            let cityLowercased = cityLine.lowercased()
-                                .folding(options: .diacriticInsensitive, locale: .current)
-                            
+                            let cityLowercased = latinFolded(cityLine)
+
                             // Skip more ID lines
                             if !cityLowercased.contains("pib") && 
                                !cityLine.contains("700/") &&
@@ -300,9 +304,8 @@ struct ReceiptOCRParser {
         // Strategy 2: Look near fiscal header if DOO not found
         if name.isEmpty {
             for (index, line) in lines.enumerated() {
-                let lowercased = line.lowercased()
-                    .folding(options: .diacriticInsensitive, locale: .current)
-                
+                let lowercased = latinFolded(line)
+
                 // Look for fiscal receipt header
                 if lowercased.contains("fiskalni racun") || lowercased.contains("fiskalni") || 
                    lowercased.contains("fiskalnog") {
@@ -353,9 +356,8 @@ struct ReceiptOCRParser {
         // Strategy 3: Fallback - look for uppercase company names
         if name.isEmpty {
             for (index, line) in lines.enumerated() {
-                let lowercased = line.lowercased()
-                    .folding(options: .diacriticInsensitive, locale: .current)
-                
+                let lowercased = latinFolded(line)
+
                 // Skip the first few lines and look for uppercase text
                 if index > 2 && line.count > 5 && 
                    line.uppercased() == line && 
@@ -391,14 +393,12 @@ struct ReceiptOCRParser {
     
     /// Parses timestamp from receipt
     private static func parseTimestamp(from lines: [String]) -> Date {
-        // Priority 1: Look for "ПФР време:" (PFR time) - this is the official receipt timestamp
+        // Priority 1: Look for "PFR vreme:" - this is the official receipt timestamp
         for (index, line) in lines.enumerated() {
-            let lowercased = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
-            // Check for "ПФР време:" specifically (fiscal receipt time)
-            if (lowercased.contains("pfr") && lowercased.contains("vreme")) || 
-               (line.contains("ПФР") && line.contains("време")) {
+            let lowercased = latinFolded(line)
+
+            // Check for "PFR vreme:" specifically (fiscal receipt time)
+            if lowercased.contains("pfr") && lowercased.contains("vreme") {
                 print("  Found PFR time label at line \(index): \(line)")
                 
                 // Check next line for the actual timestamp
@@ -429,12 +429,11 @@ struct ReceiptOCRParser {
             }
         }
         
-        // Priority 2: Look for general "време:" or "vreme:" labels
+        // Priority 2: Look for general "vreme:" labels
         for (index, line) in lines.enumerated() {
-            let lowercased = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
-            if lowercased.contains("vreme:") || line.contains("време:") {
+            let lowercased = latinFolded(line)
+
+            if lowercased.contains("vreme:") {
                 print("  Found time label at line \(index): \(line)")
                 
                 // Check next line for the actual timestamp
@@ -468,9 +467,8 @@ struct ReceiptOCRParser {
         // Priority 3: Look for date pattern directly in any line (but skip parking tickets)
         for (index, line) in lines.enumerated() {
             // Skip parking ticket dates and registration info
-            let lowercased = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
+            let lowercased = latinFolded(line)
+
             if lowercased.contains("reg") || lowercased.contains("parking") ||
                lowercased.contains("datum") || lowercased.contains("uatue") {
                 continue
@@ -547,32 +545,30 @@ struct ReceiptOCRParser {
             print("  Line \(index): \(line)")
         }
         
-        // Strategy: Look for multiple total patterns in priority order
-        // Priority 1: "За уплату:" / "Za uplatu:"
-        // Priority 2: "Ukupan iznos:" / "Укупан износ:" (total amount to pay)
-        // Priority 3: "УКУПНО:" / "Ukupno:"
+        // Strategy: Look for multiple total patterns in priority order.
+        // Lines are already transliterated to Latin, and latinFolded matching
+        // covers both scripts anyway ("За уплату" → "za uplatu").
         // Note: Skip "Gotovina" amounts (cash given) and "Povracaj" (change)
-        
+
         let totalPatterns = [
-            ("uplatu", "За уплату"),
-            ("ukupan iznos:", "Укупан износ:"),
-            ("ukupan iznos", "Укупан износ"),
-            ("ukupno za naplatu", "Ukupno za naplatu"),
-            ("ukupno:", "УКУПНО")
+            "uplatu",
+            "ukupan iznos:",
+            "ukupan iznos",
+            "ukupno za naplatu",
+            "ukupno:"
         ]
-        
+
         // First pass - look for explicit payment amount markers
-        for (pattern, description) in totalPatterns {
+        for pattern in totalPatterns {
             if foundPaymentAmount { break }
-            
+
             for (index, line) in lines.enumerated() {
-                let lowercasedLine = line.lowercased()
-                    .folding(options: .diacriticInsensitive, locale: .current)
-                
+                let lowercasedLine = latinFolded(line)
+
                 // Check if this line matches the pattern
-                if lowercasedLine.contains(pattern) || line.contains(description) {
-                    print("  Found '\(description)' pattern at line \(index): \(line)")
-                    
+                if lowercasedLine.contains(pattern) {
+                    print("  Found '\(pattern)' pattern at line \(index): \(line)")
+
                     // Try to extract amount from same line
                     if let amount = extractDecimal(from: line) {
                         print("✅ Found payment (same line): \(amount)")
@@ -585,12 +581,10 @@ struct ReceiptOCRParser {
                         for offset in 1...10 {
                             if index + offset >= lines.count { break }
                             let nextLine = lines[index + offset]
-                            let nextLowercased = nextLine.lowercased()
-                                .folding(options: .diacriticInsensitive, locale: .current)
-                            
+                            let nextLowercased = latinFolded(nextLine)
+
                             // Skip separator lines and OCR artifacts
                             if nextLine.contains("===") || nextLine.contains("ニニ") ||
-                               nextLine.contains("111") || nextLine.contains("215") || 
                                nextLine.contains("日") || nextLine.contains("---") {
                                 print("    Skipping separator line: \(nextLine)")
                                 continue
@@ -646,15 +640,11 @@ struct ReceiptOCRParser {
         
         // Second pass - look for tax and payment method
         for (index, line) in lines.enumerated() {
-            let lowercasedLine = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
+            let lowercasedLine = latinFolded(line)
+
             // Tax - look for "Ukupan iznos poreza" or similar
-            if (lowercasedLine.contains("porez") || lowercasedLine.contains("pdv") ||
-                line.contains("Порез") || line.contains("порез")) && 
-               (lowercasedLine.contains("ukupan") || lowercasedLine.contains("iznos") ||
-                line.contains("Укупан") || line.contains("укупан") ||
-                line.contains("износ")) {
+            if (lowercasedLine.contains("porez") || lowercasedLine.contains("pdv")) &&
+               (lowercasedLine.contains("ukupan") || lowercasedLine.contains("iznos")) {
                 print("  Found tax header at line \(index): \(line)")
                 if let amount = extractDecimal(from: line) {
                     print("✅ Found tax (same line): \(amount)")
@@ -664,9 +654,8 @@ struct ReceiptOCRParser {
                     for offset in 1...5 {
                         if index + offset >= lines.count { break }
                         let nextLine = lines[index + offset]
-                        let nextLowercased = nextLine.lowercased()
-                            .folding(options: .diacriticInsensitive, locale: .current)
-                        
+                        let nextLowercased = latinFolded(nextLine)
+
                         // Skip separator lines
                         if nextLine.contains("===") || nextLine.contains("ニニ") ||
                            nextLine.contains("---") {
@@ -721,19 +710,17 @@ struct ReceiptOCRParser {
                 }
             }
             
-            // Payment method - improved detection  
-            if lowercasedLine.contains("gotovina") || lowercasedLine.contains("kes") ||
-               line.contains("Готовина") || line.contains("готовина") {
+            // Payment method - improved detection
+            if lowercasedLine.contains("gotovina") || lowercasedLine.contains("kes") {
                 // For cash payments, check if there's a return/change amount
                 // If "povracaj" or "kusur" is mentioned after, it's cash
                 paymentMethod = "Gotovina"
                 print("✅ Found payment method: cash")
-            } else if lowercasedLine.contains("bezgotovinsko") || 
-                      lowercasedLine.contains("kartic") || 
-                      lowercasedLine.contains("platna kartica") ||
+            } else if lowercasedLine.contains("bezgotovinsko") ||
+                      lowercasedLine.contains("kartic") ||
+                      lowercasedLine.contains("platna") ||
                       lowercasedLine.contains("debitna") ||
-                      lowercasedLine.contains("kreditna") ||
-                      line.contains("Платна") || line.contains("платна") {
+                      lowercasedLine.contains("kreditna") {
                 paymentMethod = "Bezgotovinsko plaćanje"
                 print("✅ Found payment method: card")
             }
@@ -1128,17 +1115,14 @@ struct ReceiptOCRParser {
         }
 
         for (index, line) in lines.enumerated() {
-            let lowercased = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
+            let lowercased = latinFolded(line)
+
             // Look for receipt number patterns with OCR error tolerance
-            if lowercased.contains("broj racuna") || 
-               lowercased.contains("broj racuna") ||
-               line.contains("број рачуна") ||
-               line.contains("броj рачуна") || // OCR error: j instead of ј
-               line.contains("броз рачуна") || // OCR error: з instead of ј
+            // ("broz" covers the з-for-ј OCR confusion after transliteration)
+            if lowercased.contains("broj racuna") ||
+               lowercased.contains("broz racuna") ||
                lowercased.contains("pfr broj") ||
-               lowercased.contains("pfr broz") { // OCR error tolerance
+               lowercased.contains("pfr broz") {
                 
                 print("  Found receipt number label: \(line)")
                 
@@ -1183,18 +1167,10 @@ struct ReceiptOCRParser {
     /// Parses cash register number
     private static func parseCashRegister(from lines: [String]) -> String {
         for line in lines {
-            let lowercased = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
-            if lowercased.contains("esir") && lowercased.contains("broj") {
-                let components = line.components(separatedBy: ":")
-                if components.count > 1 {
-                    return components[1].trimmingCharacters(in: .whitespaces)
-                }
-            }
-            
-            // Also check for ESIR at start of line
-            if line.hasPrefix("ЕСИР") || line.hasPrefix("ESIR") {
+            let lowercased = latinFolded(line)
+
+            if (lowercased.contains("esir") && lowercased.contains("broj")) ||
+               lowercased.hasPrefix("esir") {
                 let components = line.components(separatedBy: ":")
                 if components.count > 1 {
                     return components[1].trimmingCharacters(in: .whitespaces)

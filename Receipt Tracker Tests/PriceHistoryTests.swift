@@ -64,6 +64,20 @@ struct PriceHistoryTests {
         #expect(PriceHistory.normalize("Kačkavalj") == PriceHistory.normalize("Kackavalj"))
     }
 
+    @Test func normalizeTransliteratesCyrillic() {
+        // Receipts mix scripts — the same product must map to the same key.
+        #expect(PriceHistory.normalize("Млеко свеже 2,8% 1Л") == PriceHistory.normalize("Mleko sveže 2,8% 1L"))
+        #expect(PriceHistory.merchantKey("ЛИДЛ СРБИЈА КД") == PriceHistory.merchantKey("LIDL SRBIJA KD"))
+    }
+
+    @Test func cyrillicAndLatinReceiptsShareHistory() {
+        let old = makeReceipt(merchant: "ЛИДЛ СРБИЈА КД", daysAgo: 30, items: [item("Млеко 1Л", 99)])
+        let new = makeReceipt(merchant: "LIDL SRBIJA KD", daysAgo: 0, items: [item("Mleko 1L", 105)])
+
+        let change = PriceHistory.change(for: new.items[0], in: [old, new])
+        #expect(change?.previousPrice == 99)
+    }
+
     // MARK: - Comparability
 
     @Test func onlyQRReceiptsAreComparable() {

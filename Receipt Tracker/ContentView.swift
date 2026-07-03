@@ -227,14 +227,15 @@ struct ContentView: View {
         UserDefaults.standard.set(true, forKey: flagKey)
     }
 
-    /// One-time backfill of ReceiptItem.normalizedName for records created
-    /// before the price-history feature existed.
+    /// One-time backfill of ReceiptItem.normalizedName. v2: recomputes ALL
+    /// items (not just empty ones) because normalize() now transliterates
+    /// Cyrillic — keys computed by the old version would not match.
     private func backfillNormalizedItemNamesIfNeeded() {
-        let flagKey = "receiptItemNormalizedNamesBackfilled"
+        let flagKey = "receiptItemNormalizedNamesBackfilled_v2"
         guard !UserDefaults.standard.bool(forKey: flagKey) else { return }
 
         let items = (try? modelContext.fetch(FetchDescriptor<ReceiptItem>())) ?? []
-        for item in items where item.normalizedName.isEmpty {
+        for item in items {
             item.normalizedName = PriceHistory.normalize(item.name)
         }
         try? modelContext.save()
