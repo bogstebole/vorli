@@ -154,25 +154,14 @@ struct ReceiptDetailView: View {
         .sheet(isPresented: $showCategoryPicker) {
             CategoryPickerSheet(merchantName: receipt.merchantName)
         }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button {
-                    shareReceipt()
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                }
-            }
-        }
+        // Share button removed until sharing is actually implemented —
+        // non-functional controls are an App Review rejection risk.
     }
-    
+
     /// User-assigned category for this receipt's merchant, if any.
     private var category: MerchantCategory? {
         let key = PriceHistory.merchantKey(receipt.merchantName)
         return merchantCategories.first { $0.merchantKey == key }
-    }
-
-    private func shareReceipt() {
-        // TODO: Implement sharing functionality
     }
 }
 

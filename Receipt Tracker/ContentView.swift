@@ -97,11 +97,12 @@ struct ContentView: View {
             .navigationBarHidden(true)
             .toolbar {
                 ToolbarItemGroup(placement: .bottomBar) {
-                    Button {
-                        showVorli = true
-                    } label: {
-                        Image(systemName: "sparkles")
-                    }
+                    // COMMENTED OUT FOR FIRST RELEASE - VORLI AI NOT SHIPPING YET
+                    // Button {
+                    //     showVorli = true
+                    // } label: {
+                    //     Image(systemName: "sparkles")
+                    // }
 
                     Spacer()
 
@@ -142,9 +143,10 @@ struct ContentView: View {
                     // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
                     // .environment(authManager)
             }
-            .fullScreenCover(isPresented: $showVorli) {
-                VorliChatView()
-            }
+            // COMMENTED OUT FOR FIRST RELEASE - VORLI AI NOT SHIPPING YET
+            // .fullScreenCover(isPresented: $showVorli) {
+            //     VorliChatView()
+            // }
             .navigationDestination(item: $scannedReceipt) { receipt in
                 ReceiptDetailView(receipt: receipt)
             }

@@ -7,112 +7,124 @@
 
 import SwiftUI
 import SwiftData
-// COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-// import FirebaseAuth
+
+/// App-level constants surfaced in Settings and App Store metadata.
+/// ⚠️ Before submitting to TestFlight/App Store: the privacy policy page must
+/// actually exist at this URL (App Store Connect requires the same link).
+enum AppInfo {
+    static let supportEmail = "bogstedsgn@gmail.com"
+    static let privacyPolicyURL = URL(string: "https://bogstebole.github.io/vorli/privacy.html")!
+
+    static var version: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        return "\(version) (\(build))"
+    }
+}
 
 struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
-    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-    // @Environment(AuthenticationManager.self) private var authManager
+    @Environment(\.openURL) private var openURL
 
-    @State private var apiKey: String = UserDefaults.standard.string(forKey: VorliService.apiKeyDefaultsKey) ?? ""
-    @State private var apiKeyVisible = false
+    @State private var showDeleteConfirmation = false
+    @State private var showDeleteDone = false
 
     var body: some View {
         NavigationStack {
             List {
-                // Vorli AI Section
+                // Data & privacy
                 Section {
-                    HStack {
-                        if apiKeyVisible {
-                            TextField("sk-ant-...", text: $apiKey)
-                                .font(.system(.body, design: .monospaced))
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
-                                .onChange(of: apiKey) { _, newValue in
-                                    UserDefaults.standard.set(newValue, forKey: VorliService.apiKeyDefaultsKey)
-                                }
-                        } else {
-                            SecureField("sk-ant-...", text: $apiKey)
-                                .font(.system(.body, design: .monospaced))
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
-                                .onChange(of: apiKey) { _, newValue in
-                                    UserDefaults.standard.set(newValue, forKey: VorliService.apiKeyDefaultsKey)
-                                }
-                        }
-
-                        Button {
-                            apiKeyVisible.toggle()
-                        } label: {
-                            Image(systemName: apiKeyVisible ? "eye.slash" : "eye")
-                                .foregroundStyle(.secondary)
-                        }
-                        .buttonStyle(.plain)
+                    HStack(spacing: 8) {
+                        Image(systemName: "iphone.and.arrow.forward.inward")
+                            .foregroundStyle(.secondary)
+                        Text("Svi podaci ostaju na ovom uređaju")
+                            .font(.system(.subheadline, design: .monospaced))
                     }
-                } header: {
-                    Text("Vorli AI — API ključ")
-                        .font(.system(.caption, design: .monospaced))
-                } footer: {
-                    Text("Anthropic API ključ se čuva lokalno na uređaju. Nikad se ne šalje nigde osim direktno na api.anthropic.com.")
-                        .font(.system(.caption2, design: .monospaced))
-                }
-
-                // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-                /*
-                // Account Section
-                Section {
-                    if let user = authManager.user {
+                    Link(destination: AppInfo.privacyPolicyURL) {
                         HStack {
-                            Text("Email")
-                                .font(.system(.body, design: .monospaced))
+                            Text("Politika privatnosti")
+                                .font(.system(.subheadline, design: .monospaced))
                             Spacer()
-                            Text(user.email ?? "No email")
-                                .font(.system(.body, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                        }
-
-                        HStack {
-                            Text("User ID")
-                                .font(.system(.body, design: .monospaced))
-                            Spacer()
-                            Text(user.uid.prefix(8) + "...")
-                                .font(.system(.caption, design: .monospaced))
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(.caption, weight: .medium))
                                 .foregroundStyle(.tertiary)
                         }
                     }
                 } header: {
-                    Text("Account")
+                    Text("Privatnost")
                         .font(.system(.caption, design: .monospaced))
+                } footer: {
+                    Text("Računi, iznosi i kategorije se čuvaju isključivo lokalno. Aplikacija ne šalje podatke nigde.")
+                        .font(.system(.caption2, design: .monospaced))
                 }
 
-                // Actions Section
+                // Permissions
                 Section {
                     Button {
-                        showSignOutConfirmation = true
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            openURL(url)
+                        }
                     } label: {
                         HStack {
-                            Image(systemName: "rectangle.portrait.and.arrow.right")
-                            Text("Sign Out")
-                                .font(.system(.body, design: .monospaced))
+                            Text("Dozvole aplikacije")
+                                .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.primary)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.system(.caption, weight: .medium))
+                                .foregroundStyle(.tertiary)
                         }
                     }
+                } footer: {
+                    Text("Kamera se koristi samo za skeniranje QR koda i računa.")
+                        .font(.system(.caption2, design: .monospaced))
+                }
 
-                    Button(role: .destructive) {
-                        showDeleteAccountConfirmation = true
-                    } label: {
+                // Support
+                Section {
+                    Link(destination: URL(string: "mailto:\(AppInfo.supportEmail)")!) {
                         HStack {
-                            Image(systemName: "trash")
-                            Text("Delete Account")
-                                .font(.system(.body, design: .monospaced))
+                            Text("Kontakt i podrška")
+                                .font(.system(.subheadline, design: .monospaced))
+                            Spacer()
+                            Text(AppInfo.supportEmail)
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.secondary)
                         }
                     }
                 } header: {
-                    Text("Actions")
+                    Text("Podrška")
                         .font(.system(.caption, design: .monospaced))
                 }
-                */
+
+                // Data management
+                Section {
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label("Obriši sve podatke", systemImage: "trash")
+                            .font(.system(.subheadline, design: .monospaced))
+                    }
+                } footer: {
+                    Text("Trajno briše sve račune, zaradu, fiksne troškove, želje i kategorije sa uređaja.")
+                        .font(.system(.caption2, design: .monospaced))
+                }
+
+                // About
+                Section {
+                    HStack {
+                        Text("Verzija")
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(AppInfo.version)
+                            .font(.system(.subheadline, design: .monospaced))
+                    }
+                } header: {
+                    Text("O aplikaciji")
+                        .font(.system(.caption, design: .monospaced))
+                }
             }
             .navigationTitle("Podešavanja")
             .navigationBarTitleDisplayMode(.inline)
@@ -123,39 +135,39 @@ struct SettingsSheet: View {
                     }
                 }
             }
+            .confirmationDialog(
+                "Obriši sve podatke?",
+                isPresented: $showDeleteConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Obriši sve", role: .destructive) { deleteAllData() }
+                Button("Otkaži", role: .cancel) {}
+            } message: {
+                Text("Ova radnja je trajna i ne može da se opozove.")
+            }
+            .alert("Podaci obrisani", isPresented: $showDeleteDone) {
+                Button("OK", role: .cancel) { dismiss() }
+            }
         }
     }
 
-    // MARK: - Methods
+    // MARK: - Actions
 
-    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-    /*
-    private func signOut() {
-        do {
-            try authManager.signOut()
-            dismiss()
-        } catch {
-            errorMessage = error.localizedDescription
-            showError = true
-        }
+    private func deleteAllData() {
+        // ReceiptItem rows go with their Receipt (cascade delete rule).
+        try? modelContext.delete(model: Receipt.self)
+        try? modelContext.delete(model: BudgetEntry.self)
+        try? modelContext.delete(model: FixedCost.self)
+        try? modelContext.delete(model: Wish.self)
+        try? modelContext.delete(model: MerchantCategory.self)
+        try? modelContext.delete(model: SavingsGoal.self)
+        try? modelContext.delete(model: Budget.self)
+        try? modelContext.save()
+        showDeleteDone = true
     }
-
-    private func deleteAccount() async {
-        do {
-            try await authManager.deleteAccount()
-            dismiss()
-        } catch {
-            errorMessage = error.localizedDescription
-            showError = true
-        }
-    }
-    */
 }
 
-// COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-/*
 #Preview {
     SettingsSheet()
-        .environment(AuthenticationManager())
+        .modelContainer(for: [Receipt.self, BudgetEntry.self, FixedCost.self, Wish.self, MerchantCategory.self], inMemory: true)
 }
-*/

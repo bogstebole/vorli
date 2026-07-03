@@ -12,7 +12,10 @@ import FirebaseCore
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        FirebaseApp.configure()
+        // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION, NOTHING USES FIREBASE.
+        // Not initializing it means the app genuinely sends nothing off-device,
+        // which keeps the App Store privacy label at "Data Not Collected".
+        // FirebaseApp.configure()
         return true
     }
 }
