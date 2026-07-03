@@ -58,7 +58,7 @@ final class VorliMessageTests: XCTestCase {
     // Test 3: Create a VorliChatViewModel, call emitCard(payload),
     // assert messages.last?.content == .card(payload).
     func testEmitCardAppendsCardMessage() async {
-        let viewModel = VorliChatViewModel(allReceipts: [], budget: nil)
+        let viewModel = VorliChatViewModel(allReceipts: [], stanje: nil)
         let payload = VorliCardPayload(
             cardType: .shoppingList,
             title: "Lista kupovine",
@@ -80,7 +80,7 @@ final class VorliMessageTests: XCTestCase {
     // Test 4: Call emitCard with .loading state, then updateCardState to .ready,
     // assert messages.last has .ready actionState.
     func testUpdateCardStateTransitionsActionState() async {
-        let viewModel = VorliChatViewModel(allReceipts: [], budget: nil)
+        let viewModel = VorliChatViewModel(allReceipts: [], stanje: nil)
         let payload = VorliCardPayload(
             cardType: .pdf,
             title: "PDF izveštaj",

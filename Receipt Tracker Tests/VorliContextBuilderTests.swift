@@ -81,10 +81,10 @@ final class VorliContextBuilderTests: XCTestCase {
             rok: futureDate(monthsFromNow: 24)
         )
 
-        // WHEN: building context with budget=nil and no userProfile
+        // WHEN: building context with stanje=nil and no userProfile
         let json = VorliContextBuilder.build(
             currentReceipts: [],
-            budget: nil,
+            stanje: nil,
             userProfile: nil,
             wishes: [goal]
         )

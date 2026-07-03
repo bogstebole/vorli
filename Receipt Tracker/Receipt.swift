@@ -84,6 +84,10 @@ final class ReceiptItem {
     }
 }
 
+/// LEGACY — no longer read or written anywhere. Balances are derived from
+/// receipts, BudgetEntry and FixedCost (see FinanceCalculator). The model
+/// stays registered in the schema only so existing stores keep opening
+/// without a migration; delete together with a proper schema migration.
 @Model
 final class Budget {
     var id: UUID

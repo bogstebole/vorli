@@ -243,7 +243,6 @@ struct AddBalanceSheet: View {
 
         let entry = BudgetEntry(amount: amount, timestamp: Date(), note: "mesecna_zarada")
         modelContext.insert(entry)
-        ensureBudgetExists()
         try? modelContext.save()
 
         if autoAdd {
@@ -264,10 +263,5 @@ struct AddBalanceSheet: View {
         for entry in currentMonthEntries { modelContext.delete(entry) }
         storedAmount = ""
         try? modelContext.save()
-    }
-
-    private func ensureBudgetExists() {
-        let service = ReceiptService(modelContext: modelContext)
-        _ = try? service.getBudget()
     }
 }

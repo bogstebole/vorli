@@ -14,7 +14,8 @@ import PhotosUI
 struct VorliChatView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
-    @Query private var budgets: [Budget]
+    @Query private var budgetEntries: [BudgetEntry]
+    @Query private var fixedCosts: [FixedCost]
     @Query private var wishes: [Wish]
 
     @State private var viewModel: VorliChatViewModel?
@@ -115,7 +116,10 @@ struct VorliChatView: View {
             }
         }
         .task {
-            viewModel = VorliChatViewModel(allReceipts: allReceipts, budget: budgets.first)
+            viewModel = VorliChatViewModel(
+                allReceipts: allReceipts,
+                stanje: FinanceCalculator.totalLeftover(receipts: allReceipts, entries: budgetEntries, fixed: fixedCosts)
+            )
         }
     }
 

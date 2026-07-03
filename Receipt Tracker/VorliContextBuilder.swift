@@ -45,14 +45,14 @@ struct VorliContextBuilder {
     ///   - currentReceipts: Receipts for the primary period (e.g. current month/week).
     ///   - previousReceipts: Receipts for comparison period (previous month/week). Pass empty for search.
     ///   - requestType: One of REPORT | PLAN | PRETRAGA
-    ///   - budget: Optional budget model; when provided, adds balance and last-updated to "finansije" block.
+    ///   - stanje: Optional derived balance (cumulative savings); when provided, added to "finansije" block.
     ///   - userProfile: Optional user profile; when provided, adds income and budget split to "finansije" block.
     ///   - savingsGoals: Savings goals; when non-empty, adds "ciljevi" array to "finansije" block.
     static func build(
         currentReceipts: [Receipt],
         previousReceipts: [Receipt] = [],
         requestType: String = "REPORT",
-        budget: Budget? = nil,
+        stanje: Decimal? = nil,
         userProfile: VorliUserProfile? = nil,
         wishes: [Wish] = []
     ) -> String {
@@ -80,13 +80,12 @@ struct VorliContextBuilder {
             dict["racuni_prethodni"] = toJSONArray(previousJSON)
         }
 
-        // Add finansije block if budget, income, or goals data is available
-        if budget != nil || (userProfile?.mesecniPrihod ?? 0) > 0 || !wishes.isEmpty {
+        // Add finansije block if balance, income, or goals data is available
+        if stanje != nil || (userProfile?.mesecniPrihod ?? 0) > 0 || !wishes.isEmpty {
             var finansijeDict: [String: Any] = [:]
 
-            if let budget {
-                finansijeDict["stanje"] = Double(truncating: budget.currentBalance as NSDecimalNumber)
-                finansijeDict["poslednji_unos"] = dateFormatter.string(from: budget.lastUpdated)
+            if let stanje {
+                finansijeDict["stanje"] = Double(truncating: stanje as NSDecimalNumber)
             }
 
             if let profile = userProfile {
