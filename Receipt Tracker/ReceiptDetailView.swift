@@ -12,13 +12,39 @@ struct ReceiptDetailView: View {
     let receipt: Receipt
     @Environment(\.dismiss) private var dismiss
     @Query private var allReceipts: [Receipt]
+    @Query private var merchantCategories: [MerchantCategory]
     @State private var historyItem: ReceiptItem?
+    @State private var showCategoryPicker = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 12) {
                 // Header Card - Merchant Info
                 VStack(spacing: 12) {
+                    // Category chip — assigned by the user, per merchant.
+                    Button {
+                        showCategoryPicker = true
+                    } label: {
+                        if let category {
+                            Text(category.name)
+                                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                                .foregroundStyle(Color.accentColor)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(Color.accentColor.opacity(0.12))
+                                .clipShape(Capsule())
+                        } else {
+                            Label("Kategorija", systemImage: "plus")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(.quaternary.opacity(0.5))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .buttonStyle(.plain)
+
                     Text(receipt.merchantName)
                         .font(.system(.body, design: .monospaced, weight: .medium))
                         .multilineTextAlignment(.center)
@@ -125,6 +151,9 @@ struct ReceiptDetailView: View {
         .sheet(item: $historyItem) { item in
             PriceHistorySheet(item: item)
         }
+        .sheet(isPresented: $showCategoryPicker) {
+            CategoryPickerSheet(merchantName: receipt.merchantName)
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
@@ -136,6 +165,12 @@ struct ReceiptDetailView: View {
         }
     }
     
+    /// User-assigned category for this receipt's merchant, if any.
+    private var category: MerchantCategory? {
+        let key = PriceHistory.merchantKey(receipt.merchantName)
+        return merchantCategories.first { $0.merchantKey == key }
+    }
+
     private func shareReceipt() {
         // TODO: Implement sharing functionality
         print("Share receipt: \(receipt.receiptNumber)")

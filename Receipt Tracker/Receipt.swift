@@ -164,6 +164,36 @@ final class Wish {
 }
 
 @Model
+final class MerchantCategory {
+    var id: UUID
+    /// Normalized merchant name (PriceHistory.merchantKey) this category is
+    /// bound to. One category per merchant — every receipt of that merchant,
+    /// past and future, derives its category from this record.
+    var merchantKey: String
+    var name: String
+    var createdAt: Date
+
+    init(
+        id: UUID = UUID(),
+        merchantKey: String,
+        name: String,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.merchantKey = merchantKey
+        self.name = name
+        self.createdAt = createdAt
+    }
+
+    /// Preset category names offered in the picker; the user can also type
+    /// a custom one.
+    static let presets = [
+        "Namirnice", "Restorani i kafići", "Gorivo", "Apoteka i zdravlje",
+        "Odeća i obuća", "Kuća", "Tehnika", "Zabava", "Prevoz", "Ostalo"
+    ]
+}
+
+@Model
 final class FixedCost {
     var id: UUID
     var naziv: String
