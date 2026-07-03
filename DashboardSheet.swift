@@ -6,13 +6,15 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct DashboardSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     let receipts: [Receipt]
     let onMonthSelected: (Date) -> Void
-    
+
+    @Query private var merchantCategories: [MerchantCategory]
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var budgetEntries: [BudgetEntry] = []
     
@@ -82,6 +84,30 @@ struct DashboardSheet: View {
                         }
                     }
                     .padding(.horizontal)
+
+                    // Spending by category for the selected year
+                    if !categoryBreakdown.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionDivider(title: "Po kategorijama")
+
+                            ForEach(categoryBreakdown, id: \.name) { row in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(row.name)
+                                            .font(.system(.subheadline, design: .monospaced))
+                                            .foregroundStyle(row.isUncategorized ? .secondary : .primary)
+                                        Spacer()
+                                        Text(MoneyFormat.grouped(row.total) + " RSD")
+                                            .font(.system(.subheadline, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    ProgressView(value: row.fraction)
+                                        .tint(row.isUncategorized ? Color.secondary : Color.accentColor)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
                 }
                 .padding(.bottom, 20)
             }
@@ -157,8 +183,62 @@ struct DashboardSheet: View {
         return allMonths
     }
     
+    // MARK: - Category breakdown
+
+    private struct CategoryRow {
+        let name: String
+        let total: Decimal
+        let fraction: Double
+        let isUncategorized: Bool
+    }
+
+    /// Spending per user-assigned category for the selected year. Merchants
+    /// without a category are grouped under "Bez kategorije" at the end.
+    private var categoryBreakdown: [CategoryRow] {
+        let calendar = Calendar.current
+        let yearReceipts = receipts.filter {
+            calendar.component(.year, from: $0.timestamp) == selectedYear
+        }
+        guard !yearReceipts.isEmpty else { return [] }
+
+        let categoryByMerchant = Dictionary(
+            merchantCategories.map { ($0.merchantKey, $0.name) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        var totals: [String: Decimal] = [:]
+        var uncategorized: Decimal = 0
+        for receipt in yearReceipts {
+            let key = PriceHistory.merchantKey(receipt.merchantName)
+            if let category = categoryByMerchant[key] {
+                totals[category, default: 0] += receipt.totalAmount
+            } else {
+                uncategorized += receipt.totalAmount
+            }
+        }
+        // Only worth showing once at least one category is assigned.
+        guard !totals.isEmpty else { return [] }
+
+        let grandTotal = totals.values.reduce(uncategorized, +)
+        let grandTotalD = (grandTotal as NSDecimalNumber).doubleValue
+        guard grandTotalD > 0 else { return [] }
+
+        func fraction(_ value: Decimal) -> Double {
+            (value as NSDecimalNumber).doubleValue / grandTotalD
+        }
+
+        var rows = totals
+            .map { CategoryRow(name: $0.key, total: $0.value, fraction: fraction($0.value), isUncategorized: false) }
+            .sorted { $0.total > $1.total }
+        if uncategorized > 0 {
+            rows.append(CategoryRow(name: "Bez kategorije", total: uncategorized,
+                                    fraction: fraction(uncategorized), isUncategorized: true))
+        }
+        return rows
+    }
+
     // MARK: - Helper Methods
-    
+
     private func loadBudgetEntries() {
         let service = ReceiptService(modelContext: modelContext)
         budgetEntries = (try? service.fetchBudgetEntries()) ?? []
