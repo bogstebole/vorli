@@ -136,6 +136,10 @@ struct SettingsSheet: View {
             }
             .navigationTitle("Podešavanja")
             .navigationBarTitleDisplayMode(.inline)
+            // List applies the accent tint to button/link rows even over an
+            // explicit foregroundStyle — override the tint itself so every
+            // row is monochrome (destructive stays red by role).
+            .tint(.primary)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
