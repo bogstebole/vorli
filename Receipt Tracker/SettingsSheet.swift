@@ -41,7 +41,9 @@ struct SettingsSheet: View {
                         Text("Svi podaci ostaju na ovom uređaju")
                             .font(.system(.subheadline, design: .monospaced))
                     }
-                    Link(destination: AppInfo.privacyPolicyURL) {
+                    Button {
+                        openURL(AppInfo.privacyPolicyURL)
+                    } label: {
                         HStack {
                             Text("Politika privatnosti")
                                 .font(.system(.subheadline, design: .monospaced))
@@ -84,7 +86,11 @@ struct SettingsSheet: View {
 
                 // Support
                 Section {
-                    Link(destination: URL(string: "mailto:\(AppInfo.supportEmail)")!) {
+                    Button {
+                        if let url = URL(string: "mailto:\(AppInfo.supportEmail)") {
+                            openURL(url)
+                        }
+                    } label: {
                         HStack {
                             Text("Kontakt i podrška")
                                 .font(.system(.subheadline, design: .monospaced))
