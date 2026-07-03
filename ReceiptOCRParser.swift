@@ -769,9 +769,7 @@ struct ReceiptOCRParser {
         var skipNextBareAmount = false
 
         for line in lines {
-            // Transliterate Cyrillic → Latin so "Готовина" matches "gotovin".
-            let latin = line.applyingTransform(StringTransform("Any-Latin; Latin-ASCII"), reverse: false) ?? line
-            let folded = latin.lowercased().folding(options: .diacriticInsensitive, locale: .current)
+            let folded = latinFolded(line)
             // "gotovin" also matches "bezgotovinsko" — safe to exclude, since a
             // card-payment line only ever repeats the total printed elsewhere.
             let isPaymentLine = folded.contains("gotovin") || folded.contains("povra")
@@ -799,6 +797,14 @@ struct ReceiptOCRParser {
         return (largest ?? 0) > 0 ? largest : nil
     }
 
+    /// Transliterates Cyrillic → Latin, lowercases and strips diacritics, so
+    /// keyword checks work on both scripts ("Назив" → "naziv", "Плаћено" →
+    /// "placeno"). Serbian receipts freely mix the two.
+    private static func latinFolded(_ text: String) -> String {
+        let latin = text.applyingTransform(StringTransform("Any-Latin; Latin-ASCII"), reverse: false) ?? text
+        return latin.lowercased().folding(options: .diacriticInsensitive, locale: .current)
+    }
+
     /// All well-formed money amounts on a line (1.750,00 / 1750.00 / 661,95).
     /// Requires either plain digits or proper 3-digit thousands groups before a
     /// 2-decimal ending, so garbage like "12.08.09.60" is rejected.
@@ -812,61 +818,43 @@ struct ReceiptOCRParser {
         }
     }
     
-    /// Parses line items
-    private static func parseLineItems(from lines: [String]) -> [ParsedReceiptItem] {
+    /// Parses line items. Internal (not private) so tests can exercise it
+    /// with raw OCR lines directly.
+    static func parseLineItems(from lines: [String]) -> [ParsedReceiptItem] {
         var items: [ParsedReceiptItem] = []
-        
+
         print("🔍 Looking for items section...")
-        
-        // Find items section - look for various header patterns
+
+        // Find items section - look for various header patterns. latinFolded
+        // handles Cyrillic receipts ("Артикли" → "artikli").
         var itemsStart: Int?
         for (index, line) in lines.enumerated() {
-            let lowercased = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
-            // Look for item header variations - can be on same or separate lines
-            // Check both Latin and Cyrillic
-            if lowercased.contains("artikl") || 
-               lowercased.contains("naziv") ||
-               lowercased.contains("naэiv") || // OCR error for "naziv"
-               lowercased.contains("promet") ||
-               line.contains("Артикли") || line.contains("артикли") || // Cyrillic
-               line.contains("Назив") || line.contains("назив") {  // Cyrillic
+            let folded = latinFolded(line)
+
+            if folded.contains("artikl") ||
+               folded.contains("naziv") ||
+               folded.contains("naeiv") || // OCR error for "naziv" (Cyrillic э)
+               folded.contains("promet") {
                 itemsStart = index
                 print("✅ Found items header at line \(index): \(line)")
                 break
             }
-            
-            // Check if "naziv" is split across lines (like "Наэив" on one line and "артикла" on next)
-            if index + 1 < lines.count {
-                let nextLowercased = lines[index + 1].lowercased()
-                    .folding(options: .diacriticInsensitive, locale: .current)
-                if (lowercased.contains("naziv") || lowercased.contains("naэiv")) && 
-                   nextLowercased.contains("artikl") {
-                    itemsStart = index
-                    print("✅ Found split items header at lines \(index)-\(index+1): \(line) / \(lines[index+1])")
-                    break
-                }
-            }
         }
-        
+
         guard let start = itemsStart else {
             print("⚠️ Could not find items section header")
             return []
         }
-        
+
         // Find end of items section - look for summary section
         var itemsEnd: Int?
         for (index, line) in lines.enumerated() where index > start {
-            let lowercased = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
+            let folded = latinFolded(line)
+
             // End markers - be more specific to avoid false positives
-            if (lowercased.contains("oznaka") && !lowercased.contains("pdv")) ||
-               (lowercased.contains("ukupan") && lowercased.contains("iznos") && !lowercased.contains("artikl")) ||
-               lowercased.contains("stopa") ||
-               line.contains("Ознака") || line.contains("ознака") || // Cyrillic
-               line.contains("Укупан износ:") || line.contains("укупан износ:") { // Cyrillic
+            if (folded.contains("oznaka") && !folded.contains("pdv")) ||
+               (folded.contains("ukupan") && folded.contains("iznos") && !folded.contains("artikl")) ||
+               folded.contains("stopa") {
                 itemsEnd = index
                 print("✅ Found items end at line \(index): \(line)")
                 break
@@ -885,35 +873,29 @@ struct ReceiptOCRParser {
         
         print("📦 Parsing items from line \(i) to \(end)...")
         
-        // Skip column headers (Кол., Jед. цена, Укупно, etc.)
-        while i < end {
-            let line = lines[i]
-            let lowercased = line.lowercased()
-                .folding(options: .diacriticInsensitive, locale: .current)
-            
-            // Skip known header rows
-            if lowercased.contains("kol.") || lowercased.contains("jed") || 
-               lowercased.contains("ukupno") || lowercased.contains("pdv") ||
-               lowercased.contains("oznaka") {
-                i += 1
-                continue
-            }
-            
-            break
-        }
-        
         print("  Starting item parsing from line \(i)")
 
-        // Column headers / noise words that are never item names.
+        // Column-header / noise line: EVERY word on it is a known header word
+        // ("Назив Цена Кол. Укупно" → header; "KLAS RUZA / KOM" → item, since
+        // "klas" and "ruza" are not header words). Word-level matching on the
+        // transliterated line — substring matching would eat item names like
+        // "PECENA PAPRIKA" (contains "cena").
         func isHeaderWord(_ s: String) -> Bool {
-            let l = s.lowercased().folding(options: .diacriticInsensitive, locale: .current)
-            return ["naziv", "cena", "kol", "kal", "ukupno", "artikl", "jed", "kom", "barkod", "sifra",
-                    "konobar", "kasir", "esir", "promet", "prodaja", "brojac"]
-                .contains { l.contains($0) }
+            let headers = ["naziv", "cena", "kol", "kal", "kolicina", "ukupno", "artikl", "jed",
+                           "kom", "barkod", "sifra", "konobar", "kasir", "esir", "promet",
+                           "prodaja", "brojac", "pdv", "rsd", "din"]
+            let words = latinFolded(s)
+                .split { !$0.isLetter && !$0.isNumber }
+                .map(String.init)
+                .filter { $0.count >= 2 && $0.contains(where: \.isLetter) }
+            guard !words.isEmpty else { return false }
+            return words.allSatisfy { word in
+                headers.contains { word == $0 || word.hasPrefix($0) }
+            }
         }
         // A summary/total marker means we've left the items section.
         func isSummaryMarker(_ s: String) -> Bool {
-            let l = s.lowercased().folding(options: .diacriticInsensitive, locale: .current)
+            let l = latinFolded(s)
             return (l.contains("ukup") && l.contains("iznos")) || l.contains("gotovin") ||
                    l.contains("kartic") || l.contains("placen") || l.contains("povrat") ||
                    l.contains("oznaka") || l.contains("porez") || l.contains("stopa")
@@ -932,6 +914,9 @@ struct ReceiptOCRParser {
         }
         func cleanName(_ s: String) -> String {
             s.replacingOccurrences(of: #"(\s*\([^)]*\))+\s*$"#, with: "", options: .regularExpression)
+                // Barcodes/PLU codes printed before the product name.
+                .replacingOccurrences(of: #"\b\d{8,}\b"#, with: "", options: .regularExpression)
+                .replacingOccurrences(of: #"\s{2,}"#, with: " ", options: .regularExpression)
                 .trimmingCharacters(in: .whitespaces)
         }
 
