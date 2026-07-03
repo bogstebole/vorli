@@ -28,10 +28,10 @@ struct ReceiptDetailView: View {
                         if let category {
                             Text(category.name)
                                 .font(.system(.caption, design: .monospaced, weight: .semibold))
-                                .foregroundStyle(Color.accentColor)
+                                .foregroundStyle(.primary)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
-                                .background(Color.accentColor.opacity(0.12))
+                                .background(.quaternary.opacity(0.5))
                                 .clipShape(Capsule())
                         } else {
                             Label("Kategorija", systemImage: "plus")

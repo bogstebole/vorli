@@ -44,7 +44,7 @@ struct CategoryPickerSheet: View {
                                 if existing?.name == preset {
                                     Image(systemName: "checkmark")
                                         .font(.system(.subheadline, weight: .semibold))
-                                        .foregroundStyle(Color.accentColor)
+                                        .foregroundStyle(.primary)
                                 }
                             }
                             .contentShape(Rectangle())
