@@ -91,7 +91,7 @@ struct DashboardSheet: View {
                             SectionDivider(title: "Po kategorijama")
 
                             ForEach(categoryBreakdown, id: \.name) { row in
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: 6) {
                                     HStack {
                                         Text(row.name)
                                             .font(.system(.subheadline, design: .monospaced))
@@ -101,8 +101,18 @@ struct DashboardSheet: View {
                                             .font(.system(.subheadline, design: .monospaced))
                                             .foregroundStyle(.secondary)
                                     }
-                                    ProgressView(value: row.fraction)
-                                        .tint(row.isUncategorized ? Color.secondary : Color.accentColor)
+                                    // Same bar style as the month tiles: 8pt
+                                    // high, 4pt radius, solid fill.
+                                    GeometryReader { geometry in
+                                        ZStack(alignment: .leading) {
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(Color(uiColor: .secondarySystemBackground))
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(row.isUncategorized ? Color.gray : Color.purple)
+                                                .frame(width: geometry.size.width * row.fraction)
+                                        }
+                                    }
+                                    .frame(height: 8)
                                 }
                             }
                         }
