@@ -1,3 +1,5 @@
+// Debug-only screen — compiled out of release builds.
+#if DEBUG
 //
 //  DebugParserView.swift
 //  Receipt Tracker
@@ -178,3 +180,4 @@ struct DataRow: View {
 #Preview {
     DebugParserView()
 }
+#endif

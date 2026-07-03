@@ -1,3 +1,5 @@
+// Debug-only screen — compiled out of release builds.
+#if DEBUG
 //
 //  MainTabView.swift
 //  Receipt Tracker
@@ -31,3 +33,4 @@ struct MainTabView: View {
 #Preview {
     MainTabView()
 }
+#endif

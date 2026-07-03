@@ -423,12 +423,12 @@ class VorliService {
             urlRequest.httpBody = try JSONEncoder().encode(request)
             let (data, response) = try await URLSession.shared.data(for: urlRequest)
             if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                print("[VorliCard] API error \(http.statusCode): \(String(data: data, encoding: .utf8) ?? "")")
+                debugLog("[VorliCard] API error \(http.statusCode): \(String(data: data, encoding: .utf8) ?? "")")
                 return nil
             }
             let parsed = try JSONDecoder().decode(AnthropicSyncResponse.self, from: data)
             guard let raw = parsed.content.first(where: { $0.type == "text" })?.text else {
-                print("[VorliCard] no text block in response")
+                debugLog("[VorliCard] no text block in response")
                 return nil
             }
             var trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -441,7 +441,7 @@ class VorliService {
                     .replacingOccurrences(of: "```", with: "")
                     .trimmingCharacters(in: .whitespacesAndNewlines)
             }
-            print("[VorliCard] classification response: \(trimmed)")
+            debugLog("[VorliCard] classification response: \(trimmed)")
             guard let jsonData = trimmed.data(using: .utf8),
                   let obj = try? JSONDecoder().decode(CardClassificationResponse.self, from: jsonData),
                   obj.card else { return nil }
@@ -453,7 +453,7 @@ class VorliService {
                 actionState: .ready
             )
         } catch {
-            print("[VorliCard] error: \(error)")
+            debugLog("[VorliCard] error: \(error)")
             return nil
         }
     }

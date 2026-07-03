@@ -15,7 +15,6 @@ struct ContentView: View {
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
     @Query(sort: \BudgetEntry.timestamp, order: .reverse) private var budgetEntries: [BudgetEntry]
     @Query private var fixedCosts: [FixedCost]
-    @State private var budget: Budget?
 
     @State private var selectedMonth: Date = Date()
     @State private var errorMessage: String?
@@ -33,17 +32,15 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 ScrollView {
                     VStack(spacing: 12) {
-                        if budget != nil {
-                            MonthBalanceCard(
-                                month: currentMonthName,
-                                currentBalance: currentMonthLeftoverBalance,
-                                spent: currentMonthSpent,
-                                spentToday: currentDaySpent,
-                                onAddNew: { showAddNew = true },
-                                onDashboard: { showDashboard = true },
-                                onSettings: { showSettings = true }
-                            )
-                        }
+                        MonthBalanceCard(
+                            month: currentMonthName,
+                            currentBalance: currentMonthLeftoverBalance,
+                            spent: currentMonthSpent,
+                            spentToday: currentDaySpent,
+                            onAddNew: { showAddNew = true },
+                            onDashboard: { showDashboard = true },
+                            onSettings: { showSettings = true }
+                        )
 
                         SectionDivider(title: "Računi")
                             .padding(.horizontal)
@@ -131,11 +128,10 @@ struct ContentView: View {
             }
             .sheet(item: $pendingReceipt) { parsed in
                 ReceiptConfirmView(parsed: parsed) { receipt in
-                    loadBudget()
                     scannedReceipt = receipt
                 }
             }
-            .sheet(isPresented: $showAddNew, onDismiss: loadBudget) {
+            .sheet(isPresented: $showAddNew) {
                 AddNewSheet()
             }
             .sheet(isPresented: $showDashboard) {
@@ -156,7 +152,6 @@ struct ContentView: View {
         .task {
             migrateSavingsGoalsIfNeeded()
             backfillNormalizedItemNamesIfNeeded()
-            loadBudget()
             autoAddMonthlyIncomeIfNeeded()
         }
     }
@@ -205,13 +200,6 @@ struct ContentView: View {
 
     // MARK: - Methods
 
-    private func loadBudget() {
-        let service = ReceiptService(modelContext: modelContext)
-        if let fetchedBudget = try? service.getBudget() {
-            budget = fetchedBudget
-        }
-    }
-
     /// One-time migration of legacy SavingsGoal records into the new Wish model.
     private func migrateSavingsGoalsIfNeeded() {
         let flagKey = "savingsGoalsMigratedToWish"
@@ -247,14 +235,12 @@ struct ContentView: View {
         let entry = BudgetEntry(amount: amount, timestamp: Date(), note: "mesecna_zarada")
         modelContext.insert(entry)
         MonthlyIncomeScheduler.recordAutoAdd()
-        loadBudget()
     }
 
     private func processReceipt(from urlString: String) async {
         do {
             let service = ReceiptService(modelContext: modelContext)
             let receipt = try await service.processReceipt(from: urlString)
-            loadBudget()
             scannedReceipt = receipt
         } catch {
             errorMessage = error.localizedDescription
@@ -263,16 +249,15 @@ struct ContentView: View {
     }
 
     private func processReceiptImage(_ image: UIImage) async {
-        print("📸 ContentView.processReceiptImage called with image: \(image.size)")
+        debugLog("📸 ContentView.processReceiptImage called with image: \(image.size)")
         do {
             let service = ReceiptService(modelContext: modelContext)
-            print("🔧 Calling service.processReceiptImage")
+            debugLog("🔧 Calling service.processReceiptImage")
             let receipt = try await service.processReceiptImage(image)
-            print("✅ Receipt processed successfully: \(receipt.merchantName)")
-            loadBudget()
+            debugLog("✅ Receipt processed successfully: \(receipt.merchantName)")
             scannedReceipt = receipt
         } catch {
-            print("❌ Error in processReceiptImage: \(error)")
+            debugLog("❌ Error in processReceiptImage: \(error)")
             errorMessage = error.localizedDescription
             showError = true
         }
@@ -281,7 +266,6 @@ struct ContentView: View {
     private func deleteReceipt(_ receipt: Receipt) {
         let service = ReceiptService(modelContext: modelContext)
         try? service.deleteReceipt(receipt)
-        loadBudget()
     }
 
 }

@@ -1,3 +1,5 @@
+// Debug-only screen — compiled out of release builds.
+#if DEBUG
 //
 //  ReceiptHTMLDebugView.swift
 //  Receipt Tracker
@@ -124,3 +126,4 @@ struct ReceiptHTMLDebugView: View {
 #Preview {
     ReceiptHTMLDebugView()
 }
+#endif

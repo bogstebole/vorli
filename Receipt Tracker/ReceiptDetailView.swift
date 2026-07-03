@@ -173,7 +173,6 @@ struct ReceiptDetailView: View {
 
     private func shareReceipt() {
         // TODO: Implement sharing functionality
-        print("Share receipt: \(receipt.receiptNumber)")
     }
 }
 

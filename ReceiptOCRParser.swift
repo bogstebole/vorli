@@ -35,16 +35,16 @@ struct ReceiptOCRParser {
     /// Performs OCR on an image and parses the receipt
     static func parseReceipt(from image: UIImage) async throws -> ParsedReceipt {
         // Step 1: Extract text from image using Vision
-        print("🔍 Starting OCR on image...")
+        debugLog("🔍 Starting OCR on image...")
         let recognizedText = try await performOCR(on: image)
         
-        print("📝 OCR completed. Extracted text:")
-        print(String(repeating: "=", count: 50))
-        print(recognizedText)
-        print(String(repeating: "=", count: 50))
+        debugLog("📝 OCR completed. Extracted text:")
+        debugLog(String(repeating: "=", count: 50))
+        debugLog(recognizedText)
+        debugLog(String(repeating: "=", count: 50))
         
         // Step 2: Parse the recognized text
-        print("🔧 Starting to parse text...")
+        debugLog("🔧 Starting to parse text...")
         return try parseText(recognizedText)
     }
     
@@ -88,14 +88,14 @@ struct ReceiptOCRParser {
                     // Drop low-confidence lines — these are OCR noise (stray
                     // symbols, garbled separators) that corrupt parsing.
                     guard topCandidate.confidence >= 0.45 else {
-                        print("🗑️ Skipping low-confidence line (\(String(format: "%.2f", topCandidate.confidence))): \(topCandidate.string)")
+                        debugLog("🗑️ Skipping low-confidence line (\(String(format: "%.2f", topCandidate.confidence))): \(topCandidate.string)")
                         return nil
                     }
 
                     // Decode HTML entities from OCR text
                     let decodedString = topCandidate.string.decodingHTMLEntities()
 
-                    print("📝 OCR Line (confidence: \(String(format: "%.2f", topCandidate.confidence))): \(decodedString)")
+                    debugLog("📝 OCR Line (confidence: \(String(format: "%.2f", topCandidate.confidence))): \(decodedString)")
                     return decodedString
                 }
                 
@@ -103,7 +103,7 @@ struct ReceiptOCRParser {
                     continuation.resume(throwing: OCRError.noTextFound)
                 } else {
                     let fullText = recognizedStrings.joined(separator: "\n")
-                    print("\n✅ OCR completed with \(recognizedStrings.count) lines")
+                    debugLog("\n✅ OCR completed with \(recognizedStrings.count) lines")
                     continuation.resume(returning: fullText)
                 }
             }
@@ -150,10 +150,10 @@ struct ReceiptOCRParser {
             .filter { !$0.isEmpty }
         let lines = mergeSplitDecimals(rawLines)
 
-        print("📄 OCR Extracted \(lines.count) lines")
-        print("Lines:")
+        debugLog("📄 OCR Extracted \(lines.count) lines")
+        debugLog("Lines:")
         for (i, line) in lines.enumerated() {
-            print("  [\(i)]: \(line)")
+            debugLog("  [\(i)]: \(line)")
         }
 
         return try parseLines(lines)
@@ -181,36 +181,36 @@ struct ReceiptOCRParser {
 
     private static func parseLines(_ lines: [String]) throws -> ParsedReceipt {
 
-        print("📄 OCR Extracted \(lines.count) lines")
-        print("Lines:")
+        debugLog("📄 OCR Extracted \(lines.count) lines")
+        debugLog("Lines:")
         for (i, line) in lines.enumerated() {
-            print("  [\(i)]: \(line)")
+            debugLog("  [\(i)]: \(line)")
         }
         
         // Parse components
-        print("\n🔍 Parsing merchant info...")
+        debugLog("\n🔍 Parsing merchant info...")
         let merchantInfo = parseMerchantInfo(from: lines)
-        print("✅ Merchant: \(merchantInfo.name)")
+        debugLog("✅ Merchant: \(merchantInfo.name)")
         
-        print("\n🔍 Parsing timestamp...")
+        debugLog("\n🔍 Parsing timestamp...")
         let timestamp = parseTimestamp(from: lines)
-        print("✅ Timestamp: \(timestamp)")
+        debugLog("✅ Timestamp: \(timestamp)")
         
-        print("\n🔍 Parsing totals...")
+        debugLog("\n🔍 Parsing totals...")
         let totals = try parseTotals(from: lines)
-        print("✅ Totals: \(totals.total)")
+        debugLog("✅ Totals: \(totals.total)")
         
-        print("\n🔍 Parsing items...")
+        debugLog("\n🔍 Parsing items...")
         let items = parseLineItems(from: lines)
-        print("✅ Items: \(items.count)")
+        debugLog("✅ Items: \(items.count)")
         
-        print("\n🔍 Parsing receipt number...")
+        debugLog("\n🔍 Parsing receipt number...")
         let receiptNumber = parseReceiptNumber(from: lines)
-        print("✅ Receipt number: \(receiptNumber)")
+        debugLog("✅ Receipt number: \(receiptNumber)")
         
-        print("\n🔍 Parsing cash register...")
+        debugLog("\n🔍 Parsing cash register...")
         let cashRegister = parseCashRegister(from: lines)
-        print("✅ Cash register: \(cashRegister)")
+        debugLog("✅ Cash register: \(cashRegister)")
         
         let receipt = ParsedReceipt(
             url: "ocr://receipt/\(UUID().uuidString)", // Generate unique URL for OCR receipts
@@ -226,7 +226,7 @@ struct ReceiptOCRParser {
             items: items
         )
         
-        print("\n✅ Successfully parsed receipt!")
+        debugLog("\n✅ Successfully parsed receipt!")
         return receipt
     }
     
@@ -238,7 +238,7 @@ struct ReceiptOCRParser {
         var address = ""
         var city = ""
         
-        print("🏪 Looking for merchant info...")
+        debugLog("🏪 Looking for merchant info...")
         
         // Strategy 1: Look for company name with DOO/D.O.O. first (most reliable)
         for (index, line) in lines.enumerated() {
@@ -248,7 +248,7 @@ struct ReceiptOCRParser {
             if (lowercased.contains("doo") || lowercased.contains("d.o.o") || 
                 lowercased.contains("d. o. o")) && line.count > 5 {
                 name = line
-                print("  Found name (company type): \(name)")
+                debugLog("  Found name (company type): \(name)")
                 
                 // Try to get address and city from next lines
                 var addressIndex = index + 1
@@ -273,7 +273,7 @@ struct ReceiptOCRParser {
                     // First valid line after company name is likely address
                     if address.isEmpty && nextLine.rangeOfCharacter(from: .letters) != nil {
                         address = nextLine
-                        print("  Found address: \(address)")
+                        debugLog("  Found address: \(address)")
                         addressIndex += 1
                         
                         // Next line is likely city/postal code
@@ -286,7 +286,7 @@ struct ReceiptOCRParser {
                                !cityLine.contains("700/") &&
                                cityLine.rangeOfCharacter(from: .letters) != nil {
                                 city = cityLine
-                                print("  Found city: \(city)")
+                                debugLog("  Found city: \(city)")
                             }
                         }
                         break
@@ -309,7 +309,7 @@ struct ReceiptOCRParser {
                 // Look for fiscal receipt header
                 if lowercased.contains("fiskalni racun") || lowercased.contains("fiskalni") || 
                    lowercased.contains("fiskalnog") {
-                    print("  Found fiscal header at line \(index): \(line)")
+                    debugLog("  Found fiscal header at line \(index): \(line)")
                     
                     // Look for merchant info in nearby lines
                     for offset in 1...10 {
@@ -334,16 +334,16 @@ struct ReceiptOCRParser {
                                 nextLowercased.contains("doo") || 
                                 nextLowercased.contains("d.o.o")) {
                                 name = nextLine
-                                print("  Found name: \(name)")
+                                debugLog("  Found name: \(name)")
                             } else if !name.isEmpty && address.isEmpty && 
                                       nextLine.rangeOfCharacter(from: .letters) != nil &&
                                       !nextLine.contains("-") { // Skip lines with dashes (often org units)
                                 address = nextLine
-                                print("  Found address: \(address)")
+                                debugLog("  Found address: \(address)")
                             } else if !name.isEmpty && !address.isEmpty && city.isEmpty &&
                                       nextLine.rangeOfCharacter(from: .letters) != nil {
                                 city = nextLine
-                                print("  Found city: \(city)")
+                                debugLog("  Found city: \(city)")
                                 break
                             }
                         }
@@ -367,7 +367,7 @@ struct ReceiptOCRParser {
                    !line.contains("---") &&
                    line.rangeOfCharacter(from: .letters) != nil {
                     name = line
-                    print("  Found name (uppercase fallback): \(name)")
+                    debugLog("  Found name (uppercase fallback): \(name)")
                     
                     // Try to get address and city from next lines
                     if index + 1 < lines.count {
@@ -376,12 +376,12 @@ struct ReceiptOCRParser {
                            !nextLine.lowercased().contains("esir") &&
                            !nextLine.lowercased().contains("pib") {
                             address = nextLine
-                            print("  Found address (fallback): \(address)")
+                            debugLog("  Found address (fallback): \(address)")
                         }
                     }
                     if index + 2 < lines.count {
                         city = lines[index + 2]
-                        print("  Found city (fallback): \(city)")
+                        debugLog("  Found city (fallback): \(city)")
                     }
                     break
                 }
@@ -399,15 +399,15 @@ struct ReceiptOCRParser {
 
             // Check for "PFR vreme:" specifically (fiscal receipt time)
             if lowercased.contains("pfr") && lowercased.contains("vreme") {
-                print("  Found PFR time label at line \(index): \(line)")
+                debugLog("  Found PFR time label at line \(index): \(line)")
                 
                 // Check next line for the actual timestamp
                 if index + 1 < lines.count {
                     let nextLine = lines[index + 1]
-                    print("  Checking next line for PFR date: \(nextLine)")
+                    debugLog("  Checking next line for PFR date: \(nextLine)")
                     
                     if let date = extractDate(from: nextLine) {
-                        print("  ✅ Parsed PFR date from next line: \(date)")
+                        debugLog("  ✅ Parsed PFR date from next line: \(date)")
                         return date
                     }
                 }
@@ -422,7 +422,7 @@ struct ReceiptOCRParser {
                     formatter.locale = Locale(identifier: "sr_RS")
                     
                     if let date = formatter.date(from: dateString) {
-                        print("  ✅ Parsed PFR date from same line: \(date)")
+                        debugLog("  ✅ Parsed PFR date from same line: \(date)")
                         return date
                     }
                 }
@@ -434,15 +434,15 @@ struct ReceiptOCRParser {
             let lowercased = latinFolded(line)
 
             if lowercased.contains("vreme:") {
-                print("  Found time label at line \(index): \(line)")
+                debugLog("  Found time label at line \(index): \(line)")
                 
                 // Check next line for the actual timestamp
                 if index + 1 < lines.count {
                     let nextLine = lines[index + 1]
-                    print("  Checking next line for date: \(nextLine)")
+                    debugLog("  Checking next line for date: \(nextLine)")
                     
                     if let date = extractDate(from: nextLine) {
-                        print("  ✅ Parsed date from next line: \(date)")
+                        debugLog("  ✅ Parsed date from next line: \(date)")
                         return date
                     }
                 }
@@ -457,7 +457,7 @@ struct ReceiptOCRParser {
                     formatter.locale = Locale(identifier: "sr_RS")
                     
                     if let date = formatter.date(from: dateString) {
-                        print("  ✅ Parsed date from same line: \(date)")
+                        debugLog("  ✅ Parsed date from same line: \(date)")
                         return date
                     }
                 }
@@ -482,16 +482,16 @@ struct ReceiptOCRParser {
                 
                 // Only accept dates within 1 year of current date
                 if abs(currentYear - dateYear) <= 1 {
-                    print("  ✅ Found valid date pattern in line \(index): \(date)")
+                    debugLog("  ✅ Found valid date pattern in line \(index): \(date)")
                     return date
                 } else {
-                    print("  ⚠️ Skipping date from line \(index) (year \(dateYear) is too far from current year \(currentYear)): \(line)")
+                    debugLog("  ⚠️ Skipping date from line \(index) (year \(dateYear) is too far from current year \(currentYear)): \(line)")
                 }
             }
         }
         
         // Fallback to current date if not found
-        print("⚠️ Could not parse timestamp, using current date")
+        debugLog("⚠️ Could not parse timestamp, using current date")
         return Date()
     }
     
@@ -518,7 +518,7 @@ struct ReceiptOCRParser {
             }
             
             let dateString = String(text[range])
-            print("    Found date string: '\(dateString)' with pattern \(index)")
+            debugLog("    Found date string: '\(dateString)' with pattern \(index)")
             
             let formatter = DateFormatter()
             formatter.dateFormat = dateFormatters[index]
@@ -540,9 +540,9 @@ struct ReceiptOCRParser {
         var foundPaymentAmount = false
         
         // Print all lines for debugging
-        print("🔍 Looking for total in \(lines.count) lines:")
+        debugLog("🔍 Looking for total in \(lines.count) lines:")
         for (index, line) in lines.enumerated() {
-            print("  Line \(index): \(line)")
+            debugLog("  Line \(index): \(line)")
         }
         
         // Strategy: Look for multiple total patterns in priority order.
@@ -567,17 +567,17 @@ struct ReceiptOCRParser {
 
                 // Check if this line matches the pattern
                 if lowercasedLine.contains(pattern) {
-                    print("  Found '\(pattern)' pattern at line \(index): \(line)")
+                    debugLog("  Found '\(pattern)' pattern at line \(index): \(line)")
 
                     // Try to extract amount from same line
                     if let amount = extractDecimal(from: line) {
-                        print("✅ Found payment (same line): \(amount)")
+                        debugLog("✅ Found payment (same line): \(amount)")
                         total = amount
                         foundPaymentAmount = true
                         break
                     } else {
                         // Search next 10 lines for the amount
-                        print("  Checking next 10 lines for amount...")
+                        debugLog("  Checking next 10 lines for amount...")
                         for offset in 1...10 {
                             if index + offset >= lines.count { break }
                             let nextLine = lines[index + offset]
@@ -586,7 +586,7 @@ struct ReceiptOCRParser {
                             // Skip separator lines and OCR artifacts
                             if nextLine.contains("===") || nextLine.contains("ニニ") ||
                                nextLine.contains("日") || nextLine.contains("---") {
-                                print("    Skipping separator line: \(nextLine)")
+                                debugLog("    Skipping separator line: \(nextLine)")
                                 continue
                             }
                             
@@ -594,7 +594,7 @@ struct ReceiptOCRParser {
                             if nextLowercased.contains("ukupno") && !nextLowercased.contains("iznos") ||
                                nextLowercased.contains("pdv") ||
                                nextLowercased.contains("oznaka") {
-                                print("    Skipping header line: \(nextLine)")
+                                debugLog("    Skipping header line: \(nextLine)")
                                 continue
                             }
                             
@@ -602,7 +602,7 @@ struct ReceiptOCRParser {
                             if nextLowercased == "gotovina" || nextLowercased == "kartica" ||
                                nextLowercased == "karticu" || nextLowercased == "bezgotovinsko" ||
                                nextLowercased == "povracaj" || nextLowercased.contains("povracaj") {
-                                print("    Skipping payment method label: \(nextLine)")
+                                debugLog("    Skipping payment method label: \(nextLine)")
                                 continue
                             }
                             
@@ -610,7 +610,7 @@ struct ReceiptOCRParser {
                             if nextLowercased.contains("gotovina:") || 
                                nextLowercased.contains("povracaj:") ||
                                nextLowercased.contains("povrahaj:") { // OCR error
-                                print("    Skipping payment detail line: \(nextLine)")
+                                debugLog("    Skipping payment detail line: \(nextLine)")
                                 continue
                             }
                             
@@ -621,12 +621,12 @@ struct ReceiptOCRParser {
                                 let minAmount: Decimal = pattern.contains("uplatu") ? 100 : 50
                                 
                                 if amount >= minAmount {
-                                    print("✅ Found payment (\(offset) lines down): \(amount) from line: \(nextLine)")
+                                    debugLog("✅ Found payment (\(offset) lines down): \(amount) from line: \(nextLine)")
                                     total = amount
                                     foundPaymentAmount = true
                                     break
                                 } else {
-                                    print("    Found amount \(amount) but too small (< \(minAmount)), continuing...")
+                                    debugLog("    Found amount \(amount) but too small (< \(minAmount)), continuing...")
                                 }
                             }
                         }
@@ -645,9 +645,9 @@ struct ReceiptOCRParser {
             // Tax - look for "Ukupan iznos poreza" or similar
             if (lowercasedLine.contains("porez") || lowercasedLine.contains("pdv")) &&
                (lowercasedLine.contains("ukupan") || lowercasedLine.contains("iznos")) {
-                print("  Found tax header at line \(index): \(line)")
+                debugLog("  Found tax header at line \(index): \(line)")
                 if let amount = extractDecimal(from: line) {
-                    print("✅ Found tax (same line): \(amount)")
+                    debugLog("✅ Found tax (same line): \(amount)")
                     tax = amount
                 } else {
                     // Check next few lines for tax amount
@@ -659,14 +659,14 @@ struct ReceiptOCRParser {
                         // Skip separator lines
                         if nextLine.contains("===") || nextLine.contains("ニニ") ||
                            nextLine.contains("---") {
-                            print("    Skipping separator: \(nextLine)")
+                            debugLog("    Skipping separator: \(nextLine)")
                             continue
                         }
                         
                         // Skip other headers/labels
                         if nextLowercased.contains("pfr") || nextLowercased.contains("vreme") ||
                            nextLowercased.contains("racuna") {
-                            print("    Skipping header: \(nextLine)")
+                            debugLog("    Skipping header: \(nextLine)")
                             continue
                         }
                         
@@ -676,11 +676,11 @@ struct ReceiptOCRParser {
                             if total > 0 {
                                 let taxPercentage = (amount / total) * 100
                                 if taxPercentage > 50 {
-                                    print("    Amount \(amount) = \(taxPercentage)% of total, seems too large for tax, skipping...")
+                                    debugLog("    Amount \(amount) = \(taxPercentage)% of total, seems too large for tax, skipping...")
                                     continue
                                 }
                             }
-                            print("✅ Found tax (\(offset) lines down): \(amount) from line: \(nextLine)")
+                            debugLog("✅ Found tax (\(offset) lines down): \(amount) from line: \(nextLine)")
                             tax = amount
                             break
                         }
@@ -690,9 +690,9 @@ struct ReceiptOCRParser {
             
             // Tax label check (standalone "Porez" line)
             if (lowercasedLine == "porez" || lowercasedLine == "porea") {
-                print("  Found standalone tax label at line \(index): \(line)")
+                debugLog("  Found standalone tax label at line \(index): \(line)")
                 if index + 1 < lines.count, let amount = extractDecimal(from: lines[index + 1]) {
-                    print("✅ Found tax (next line): \(amount)")
+                    debugLog("✅ Found tax (next line): \(amount)")
                     tax = amount
                 }
             }
@@ -704,7 +704,7 @@ struct ReceiptOCRParser {
                    lowercasedLine.contains("total") || 
                    lowercasedLine.contains("svega") {
                     if let amount = extractDecimal(from: line) {
-                        print("✅ Found total: \(amount) in line: \(line)")
+                        debugLog("✅ Found total: \(amount) in line: \(line)")
                         total = amount
                     }
                 }
@@ -715,14 +715,14 @@ struct ReceiptOCRParser {
                 // For cash payments, check if there's a return/change amount
                 // If "povracaj" or "kusur" is mentioned after, it's cash
                 paymentMethod = "Gotovina"
-                print("✅ Found payment method: cash")
+                debugLog("✅ Found payment method: cash")
             } else if lowercasedLine.contains("bezgotovinsko") ||
                       lowercasedLine.contains("kartic") ||
                       lowercasedLine.contains("platna") ||
                       lowercasedLine.contains("debitna") ||
                       lowercasedLine.contains("kreditna") {
                 paymentMethod = "Bezgotovinsko plaćanje"
-                print("✅ Found payment method: card")
+                debugLog("✅ Found payment method: card")
             }
         }
         
@@ -731,14 +731,14 @@ struct ReceiptOCRParser {
         // cases where OCR split the decimals (661 vs 661,95) or matched an item.
         let largestMoney = findTotalRobust(from: lines)
         if let largestMoney, largestMoney > total {
-            print("✅ Using largest money value as total: \(largestMoney) (was \(total))")
+            debugLog("✅ Using largest money value as total: \(largestMoney) (was \(total))")
             total = largestMoney
         }
         if total == 0 {
             throw OCRError.parsingError("Nije pronađen ukupan iznos")
         }
 
-        print("💰 Final parsed totals - Total: \(total), Tax: \(tax), Payment: \(paymentMethod)")
+        debugLog("💰 Final parsed totals - Total: \(total), Tax: \(tax), Payment: \(paymentMethod)")
         return (total: total, tax: tax, paymentMethod: paymentMethod)
     }
 
@@ -810,7 +810,7 @@ struct ReceiptOCRParser {
     static func parseLineItems(from lines: [String]) -> [ParsedReceiptItem] {
         var items: [ParsedReceiptItem] = []
 
-        print("🔍 Looking for items section...")
+        debugLog("🔍 Looking for items section...")
 
         // Find items section - look for various header patterns. latinFolded
         // handles Cyrillic receipts ("Артикли" → "artikli").
@@ -823,13 +823,13 @@ struct ReceiptOCRParser {
                folded.contains("naeiv") || // OCR error for "naziv" (Cyrillic э)
                folded.contains("promet") {
                 itemsStart = index
-                print("✅ Found items header at line \(index): \(line)")
+                debugLog("✅ Found items header at line \(index): \(line)")
                 break
             }
         }
 
         guard let start = itemsStart else {
-            print("⚠️ Could not find items section header")
+            debugLog("⚠️ Could not find items section header")
             return []
         }
 
@@ -843,7 +843,7 @@ struct ReceiptOCRParser {
                (folded.contains("ukupan") && folded.contains("iznos") && !folded.contains("artikl")) ||
                folded.contains("stopa") {
                 itemsEnd = index
-                print("✅ Found items end at line \(index): \(line)")
+                debugLog("✅ Found items end at line \(index): \(line)")
                 break
             }
         }
@@ -852,15 +852,15 @@ struct ReceiptOCRParser {
         if let itemsEnd = itemsEnd {
             end = itemsEnd
         } else {
-            print("⚠️ Could not find end of items section, using all remaining lines")
+            debugLog("⚠️ Could not find end of items section, using all remaining lines")
             end = lines.count
         }
         
         var i = start + 1
         
-        print("📦 Parsing items from line \(i) to \(end)...")
+        debugLog("📦 Parsing items from line \(i) to \(end)...")
         
-        print("  Starting item parsing from line \(i)")
+        debugLog("  Starting item parsing from line \(i)")
 
         // Column-header / noise line: EVERY word on it is a known header word
         // ("Назив Цена Кол. Укупно" → header; "KLAS RUZA / KOM" → item, since
@@ -953,7 +953,7 @@ struct ReceiptOCRParser {
         }
         flush()
         
-        print("✅ Parsed \(items.count) items total")
+        debugLog("✅ Parsed \(items.count) items total")
         return items
     }
     
@@ -1108,7 +1108,7 @@ struct ReceiptOCRParser {
                 if let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
                    let range = Range(match.range, in: line) {
                     let number = String(line[range])
-                    print("  Extracted PFR receipt number (signature): \(number)")
+                    debugLog("  Extracted PFR receipt number (signature): \(number)")
                     return number
                 }
             }
@@ -1124,14 +1124,14 @@ struct ReceiptOCRParser {
                lowercased.contains("pfr broj") ||
                lowercased.contains("pfr broz") {
                 
-                print("  Found receipt number label: \(line)")
+                debugLog("  Found receipt number label: \(line)")
                 
                 // Try to extract after colon
                 let components = line.components(separatedBy: ":")
                 if components.count > 1 {
                     let number = components[1].trimmingCharacters(in: .whitespaces)
                     if !number.isEmpty {
-                        print("  Extracted receipt number: \(number)")
+                        debugLog("  Extracted receipt number: \(number)")
                         return number
                     }
                 }
@@ -1145,7 +1145,7 @@ struct ReceiptOCRParser {
                        let match = regex.firstMatch(in: nextLine, range: NSRange(nextLine.startIndex..., in: nextLine)),
                        let range = Range(match.range, in: nextLine) {
                         let number = String(nextLine[range])
-                        print("  Extracted receipt number from next line: \(number)")
+                        debugLog("  Extracted receipt number from next line: \(number)")
                         return number
                     }
                 }
@@ -1156,7 +1156,7 @@ struct ReceiptOCRParser {
                    let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
                    let range = Range(match.range, in: line) {
                     let number = String(line[range])
-                    print("  Extracted receipt number (regex): \(number)")
+                    debugLog("  Extracted receipt number (regex): \(number)")
                     return number
                 }
             }

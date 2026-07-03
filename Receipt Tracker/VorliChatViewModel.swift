@@ -91,12 +91,13 @@ final class VorliChatViewModel {
 
     private let service = VorliService()
     private let allReceipts: [Receipt]
-    private let budget: Budget?
+    /// Derived balance (cumulative savings) injected into the AI context.
+    private let stanje: Decimal?
     private var sessionID = UUID()
 
-    init(allReceipts: [Receipt], budget: Budget? = nil) {
+    init(allReceipts: [Receipt], stanje: Decimal? = nil) {
         self.allReceipts = allReceipts
-        self.budget = budget
+        self.stanje = stanje
     }
 
     // MARK: - New Chat
@@ -183,15 +184,15 @@ final class VorliChatViewModel {
                     let finalText = self.messages[assistantIndex].textContent
                     Task { @MainActor [weak self] in
                         guard let self else { return }
-                        print("[VorliCard] checking card intent, response length: \(finalText.count)")
+                        debugLog("[VorliCard] checking card intent, response length: \(finalText.count)")
                         if let card = await self.service.classifyCardIntent(
                             userMessage: text,
                             assistantResponse: finalText
                         ) {
-                            print("[VorliCard] emitting card: \(card)")
+                            debugLog("[VorliCard] emitting card: \(card)")
                             self.emitCard(card)
                         } else {
-                            print("[VorliCard] no card warranted")
+                            debugLog("[VorliCard] no card warranted")
                         }
                     }
                 },
@@ -238,25 +239,25 @@ final class VorliChatViewModel {
         case .thisMonth:
             let current = VorliContextBuilder.receiptsForCurrentMonth(from: allReceipts)
             let previous = VorliContextBuilder.receiptsForPreviousMonth(from: allReceipts)
-            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", budget: budget, userProfile: profile, wishes: wishes)
+            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", stanje: stanje, userProfile: profile, wishes: wishes)
 
         case .lastMonth:
             let lastMonth = VorliContextBuilder.receiptsForPreviousMonth(from: allReceipts)
-            return VorliContextBuilder.build(currentReceipts: lastMonth, requestType: "PRETRAGA", budget: budget, userProfile: profile, wishes: wishes)
+            return VorliContextBuilder.build(currentReceipts: lastMonth, requestType: "PRETRAGA", stanje: stanje, userProfile: profile, wishes: wishes)
 
         case .thisWeek:
             let current = VorliContextBuilder.receiptsForCurrentWeek(from: allReceipts)
             let previous = VorliContextBuilder.receiptsForPreviousWeek(from: allReceipts)
-            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", budget: budget, userProfile: profile, wishes: wishes)
+            return VorliContextBuilder.build(currentReceipts: current, previousReceipts: previous, requestType: "REPORT", stanje: stanje, userProfile: profile, wishes: wishes)
 
         case .lastWeek:
             let lastWeek = VorliContextBuilder.receiptsForPreviousWeek(from: allReceipts)
-            return VorliContextBuilder.build(currentReceipts: lastWeek, requestType: "PRETRAGA", budget: budget, userProfile: profile, wishes: wishes)
+            return VorliContextBuilder.build(currentReceipts: lastWeek, requestType: "PRETRAGA", stanje: stanje, userProfile: profile, wishes: wishes)
 
         case .recent:
             let cutoff = Calendar.current.date(byAdding: .month, value: -6, to: Date()) ?? Date()
             let recent = allReceipts.filter { $0.timestamp >= cutoff }
-            return VorliContextBuilder.build(currentReceipts: recent, requestType: "PRETRAGA", budget: budget, userProfile: profile, wishes: wishes)
+            return VorliContextBuilder.build(currentReceipts: recent, requestType: "PRETRAGA", stanje: stanje, userProfile: profile, wishes: wishes)
         }
     }
 }

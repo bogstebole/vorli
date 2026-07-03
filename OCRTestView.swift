@@ -1,3 +1,5 @@
+// Debug-only screen — compiled out of release builds.
+#if DEBUG
 //
 //  OCRTestView.swift
 //  Receipt Tracker
@@ -236,3 +238,4 @@ struct ImagePicker: UIViewControllerRepresentable {
 #Preview {
     OCRTestView()
 }
+#endif

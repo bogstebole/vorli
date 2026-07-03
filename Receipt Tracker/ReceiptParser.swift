@@ -264,17 +264,17 @@ struct ReceiptParser {
         
         // Find the start of items section (after "Артикли")
         guard let itemsStartIndex = lines.firstIndex(where: { $0.contains("Артикли") }) else {
-            print("Debug: Could not find 'Артикли' marker")
+            debugLog("Debug: Could not find 'Артикли' marker")
             throw ParserError.parsingError("Could not find items section")
         }
         
         // Find the end of items section (before "Укупан износ:")
         guard let itemsEndIndex = lines.firstIndex(where: { $0.contains("Укупан износ:") }) else {
-            print("Debug: Could not find 'Укупан износ:' marker")
+            debugLog("Debug: Could not find 'Укупан износ:' marker")
             throw ParserError.parsingError("Could not find end of items section")
         }
         
-        print("Debug: Items section from line \(itemsStartIndex) to \(itemsEndIndex)")
+        debugLog("Debug: Items section from line \(itemsStartIndex) to \(itemsEndIndex)")
         
         var i = itemsStartIndex + 1
         
@@ -296,7 +296,7 @@ struct ReceiptParser {
         // ADAPTIVE: Analyze indentation patterns in the items section
         // to determine what constitutes a "price line" vs "name line"
         let indentationThreshold = determineIndentationThreshold(lines: lines, start: i, end: itemsEndIndex)
-        print("Debug: Adaptive indentation threshold: \(indentationThreshold) spaces")
+        debugLog("Debug: Adaptive indentation threshold: \(indentationThreshold) spaces")
         
         // Parse items: Each item consists of 2+ lines:
         // Line 1+: Item name (minimal/no indentation, mostly text)
@@ -324,11 +324,11 @@ struct ReceiptParser {
             let hasPricePattern = lineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
             let isPriceLine = leadingSpaces >= indentationThreshold && hasPricePattern
             
-            print("Debug: Line \(i) has \(leadingSpaces) spaces, isPriceLine=\(isPriceLine): '\(lineTrimmed)'")
+            debugLog("Debug: Line \(i) has \(leadingSpaces) spaces, isPriceLine=\(isPriceLine): '\(lineTrimmed)'")
             
             // If this is a price line without a preceding item name, skip it
             if isPriceLine {
-                print("Debug: Skipping orphaned price line at \(i)")
+                debugLog("Debug: Skipping orphaned price line at \(i)")
                 i += 1
                 continue
             }
@@ -344,7 +344,7 @@ struct ReceiptParser {
             
             if isOnlySKU {
                 // SKU is on its own line - the actual name is on the NEXT line
-                print("Debug: Line \(i) is SKU-only, name should be on next line")
+                debugLog("Debug: Line \(i) is SKU-only, name should be on next line")
                 i += 1
                 
                 // Now collect the actual item name from subsequent lines
@@ -364,7 +364,7 @@ struct ReceiptParser {
                     
                     if nextIsPriceLine {
                         // This is the price line - we're done collecting name
-                        print("Debug: Found price line at \(i)")
+                        debugLog("Debug: Found price line at \(i)")
                         break
                     }
                     
@@ -375,13 +375,13 @@ struct ReceiptParser {
                     
                     if startsWithSKU && nextLeadingSpaces < indentationThreshold {
                         // This is a new item - stop collecting name parts
-                        print("Debug: Found new item with SKU at \(i)")
+                        debugLog("Debug: Found new item with SKU at \(i)")
                         break
                     }
                     
                     // This is part of the item name
                     nameParts.append(nextLineTrimmed)
-                    print("Debug: Added name part: '\(nextLineTrimmed)'")
+                    debugLog("Debug: Added name part: '\(nextLineTrimmed)'")
                     i += 1
                 }
             } else {
@@ -398,7 +398,7 @@ struct ReceiptParser {
                     // Remove SKU from name (but keep the rest)
                     let sku = String(lineTrimmed[range])
                     itemName = String(lineTrimmed[fullMatchRange.upperBound...]).trimmingCharacters(in: .whitespaces)
-                    print("Debug: Found bracketed SKU: \(sku), Name after SKU: '\(itemName)'")
+                    debugLog("Debug: Found bracketed SKU: \(sku), Name after SKU: '\(itemName)'")
                 } else {
                     // Try numeric SKU pattern (7-digit number at start)
                     let numericSkuPattern = "^([0-9]{7})\\s+"
@@ -409,7 +409,7 @@ struct ReceiptParser {
                         // Remove SKU from name (but keep the rest)
                         let sku = String(lineTrimmed[range])
                         itemName = String(lineTrimmed[fullMatchRange.upperBound...]).trimmingCharacters(in: .whitespaces)
-                        print("Debug: Found numeric SKU: \(sku), Name after SKU: '\(itemName)'")
+                        debugLog("Debug: Found numeric SKU: \(sku), Name after SKU: '\(itemName)'")
                     }
                 }
                 
@@ -438,7 +438,7 @@ struct ReceiptParser {
                     
                     if nextIsPriceLine {
                         // This is the price line - stop collecting name parts
-                        print("Debug: Found price line at \(i)")
+                        debugLog("Debug: Found price line at \(i)")
                         break
                     }
                     
@@ -449,7 +449,7 @@ struct ReceiptParser {
                     
                     if startsWithSKU && nextLeadingSpaces < indentationThreshold {
                         // This is a new item - stop collecting name parts
-                        print("Debug: Found new item with SKU at \(i)")
+                        debugLog("Debug: Found new item with SKU at \(i)")
                         break
                     }
                     
@@ -463,18 +463,18 @@ struct ReceiptParser {
                     
                     if looksLikeNamePart {
                         nameParts.append(nextLineTrimmed)
-                        print("Debug: Added name continuation: '\(nextLineTrimmed)'")
+                        debugLog("Debug: Added name continuation: '\(nextLineTrimmed)'")
                         i += 1
                     } else {
                         // Unknown line type, stop
-                        print("Debug: Stopping name collection at line \(i): '\(nextLineTrimmed)'")
+                        debugLog("Debug: Stopping name collection at line \(i): '\(nextLineTrimmed)'")
                         break
                     }
                 }
             }
             
             let fullName = nameParts.joined(separator: " ")
-            print("Debug: Full name assembled: '\(fullName)'")
+            debugLog("Debug: Full name assembled: '\(fullName)'")
             
             // Now parse the price line
             if i < itemsEndIndex {
@@ -486,11 +486,11 @@ struct ReceiptParser {
                 let hasPricePattern = priceLineTrimmed.range(of: "[0-9]+(?:\\.[0-9]{3})*,[0-9]{2}", options: .regularExpression) != nil
                 
                 if priceLeadingSpaces >= indentationThreshold && hasPricePattern && !priceLineTrimmed.isEmpty {
-                    print("Debug: Processing price line: '\(priceLineTrimmed)'")
+                    debugLog("Debug: Processing price line: '\(priceLineTrimmed)'")
                     
                     // Extract prices and quantity using regex
                     guard let unitPrice = extractDecimal(from: priceLineTrimmed) else {
-                        print("Debug: Failed to extract unit price from: '\(priceLineTrimmed)'")
+                        debugLog("Debug: Failed to extract unit price from: '\(priceLineTrimmed)'")
                         i += 1
                         continue
                     }
@@ -506,17 +506,17 @@ struct ReceiptParser {
                     )
                     
                     items.append(item)
-                    print("Debug: ✅ Parsed item #\(items.count): '\(fullName)', Qty=\(quantity), Price=\(unitPrice), Total=\(lineTotal)")
+                    debugLog("Debug: ✅ Parsed item #\(items.count): '\(fullName)', Qty=\(quantity), Price=\(unitPrice), Total=\(lineTotal)")
                     
                     i += 1
                 } else if !fullName.isEmpty {
-                    print("Debug: Warning - Item name found but no valid price line: '\(priceLineTrimmed)'")
+                    debugLog("Debug: Warning - Item name found but no valid price line: '\(priceLineTrimmed)'")
                     // Don't increment i - let the outer loop handle this line
                 }
             }
         }
         
-        print("Debug: Total items parsed: \(items.count)")
+        debugLog("Debug: Total items parsed: \(items.count)")
         return items
     }
     

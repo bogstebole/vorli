@@ -207,8 +207,8 @@ struct QRScannerView: View {
     /// May be called from the photo-capture delegate's background thread, so
     /// all state mutation is funneled onto the main actor.
     private func handleReceiptCapture(_ image: UIImage) {
-        print("📷 QRScannerView.handleReceiptCapture called")
-        print("📐 Image size: \(image.size)")
+        debugLog("📷 QRScannerView.handleReceiptCapture called")
+        debugLog("📐 Image size: \(image.size)")
 
         Task { @MainActor in
             isProcessing = true
@@ -221,7 +221,7 @@ struct QRScannerView: View {
                 onReceiptParsed?(parsedReceipt)
                 dismiss()
             } catch {
-                print("❌ Error in handleReceiptCapture: \(error)")
+                debugLog("❌ Error in handleReceiptCapture: \(error)")
                 isProcessing = false
                 errorMessage = "Neuspešna obrada računa: \(error.localizedDescription)"
                 showError = true
@@ -230,29 +230,29 @@ struct QRScannerView: View {
     }
     
     private func loadAndProcessReceipt(from photoItem: PhotosPickerItem?) async {
-        print("🖼️ QRScannerView.loadAndProcessReceipt called")
+        debugLog("🖼️ QRScannerView.loadAndProcessReceipt called")
         guard let photoItem = photoItem else { 
-            print("⚠️ No photo item provided")
+            debugLog("⚠️ No photo item provided")
             return 
         }
         
         isProcessing = true
         
         do {
-            print("📦 Loading image data from PhotosPickerItem")
+            debugLog("📦 Loading image data from PhotosPickerItem")
             guard let imageData = try await photoItem.loadTransferable(type: Data.self),
                   let uiImage = UIImage(data: imageData) else {
-                print("❌ Failed to load image data")
+                debugLog("❌ Failed to load image data")
                 errorMessage = "Neuspešno učitavanje slike"
                 showError = true
                 isProcessing = false
                 return
             }
             
-            print("✅ Image loaded successfully, size: \(uiImage.size)")
+            debugLog("✅ Image loaded successfully, size: \(uiImage.size)")
             handleReceiptCapture(uiImage)
         } catch {
-            print("❌ Error loading image: \(error)")
+            debugLog("❌ Error loading image: \(error)")
             errorMessage = "Neuspešna obrada slike: \(error.localizedDescription)"
             showError = true
             isProcessing = false
@@ -583,7 +583,7 @@ class ReceiptScannerViewController: UIViewController {
 
             guard let videoCaptureDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
                   let videoInput = try? AVCaptureDeviceInput(device: videoCaptureDevice) else {
-                print("Error setting up receipt camera: no device/input")
+                debugLog("Error setting up receipt camera: no device/input")
                 return
             }
 
@@ -736,20 +736,20 @@ class ReceiptScannerViewController: UIViewController {
 
 extension ReceiptScannerViewController: AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        print("📸 Photo captured in ReceiptScannerViewController")
+        debugLog("📸 Photo captured in ReceiptScannerViewController")
         
         if let error = error {
-            print("❌ Photo capture error: \(error)")
+            debugLog("❌ Photo capture error: \(error)")
             return
         }
         
         guard let imageData = photo.fileDataRepresentation(),
               let image = UIImage(data: imageData) else {
-            print("❌ Failed to get image data from photo")
+            debugLog("❌ Failed to get image data from photo")
             return
         }
         
-        print("✅ Photo converted to UIImage, size: \(image.size)")
+        debugLog("✅ Photo converted to UIImage, size: \(image.size)")
 
         // Stop the camera off the main thread.
         sessionQueue.async { [weak self] in
@@ -767,8 +767,8 @@ extension ReceiptScannerViewController: AVCapturePhotoCaptureDelegate {
 
 #Preview {
     QRScannerView { url in
-        print("Scanned URL: \(url)")
+        debugLog("Scanned URL: \(url)")
     } onReceiptParsed: { parsed in
-        print("Parsed receipt: \(parsed.merchantName)")
+        debugLog("Parsed receipt: \(parsed.merchantName)")
     }
 }

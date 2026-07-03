@@ -57,25 +57,22 @@ class ReceiptService {
             items: items
         )
         
-        // Update budget
-        try await deductFromBudget(amount: parsed.totalAmount)
-        
         // Save to SwiftData
         modelContext.insert(receipt)
         try modelContext.save()
-        
+
         return receipt
     }
-    
+
     /// Scans and saves a receipt from an image using OCR
     func processReceiptImage(_ image: UIImage) async throws -> Receipt {
-        print("🚀 ReceiptService.processReceiptImage called")
-        print("📐 Image size: \(image.size)")
+        debugLog("🚀 ReceiptService.processReceiptImage called")
+        debugLog("📐 Image size: \(image.size)")
         
         // Parse the receipt using OCR
-        print("🔄 About to call ReceiptOCRParser.parseReceipt")
+        debugLog("🔄 About to call ReceiptOCRParser.parseReceipt")
         let parsed = try await ReceiptOCRParser.parseReceipt(from: image)
-        print("✅ ReceiptOCRParser returned successfully")
+        debugLog("✅ ReceiptOCRParser returned successfully")
 
         return try await save(parsed: parsed)
     }
@@ -120,51 +117,11 @@ class ReceiptService {
             items: items
         )
 
-        // Update budget
-        try await deductFromBudget(amount: parsed.totalAmount)
-
         // Save to SwiftData
         modelContext.insert(receipt)
         try modelContext.save()
 
         return receipt
-    }
-    
-    /// Gets or creates the user's budget
-    func getBudget() throws -> Budget {
-        let descriptor = FetchDescriptor<Budget>()
-        let budgets = try modelContext.fetch(descriptor)
-        
-        if let budget = budgets.first {
-            return budget
-        }
-        
-        // Create initial budget
-        let newBudget = Budget(currentBalance: 0)
-        modelContext.insert(newBudget)
-        try modelContext.save()
-        return newBudget
-    }
-    
-    /// Updates the budget balance
-    func updateBudget(newBalance: Decimal) throws {
-        let budget = try getBudget()
-        budget.currentBalance = newBalance
-        budget.lastUpdated = Date()
-        try modelContext.save()
-    }
-    
-    /// Adds balance and creates a budget entry for tracking
-    func addBalanceEntry(amount: Decimal) throws {
-        let budget = try getBudget()
-        budget.currentBalance += amount
-        budget.lastUpdated = Date()
-        
-        // Create a budget entry to track this addition
-        let entry = BudgetEntry(amount: amount, timestamp: Date())
-        modelContext.insert(entry)
-        
-        try modelContext.save()
     }
     
     /// Fetches all budget entries sorted by date
@@ -174,15 +131,7 @@ class ReceiptService {
         )
         return try modelContext.fetch(descriptor)
     }
-    
-    /// Deducts an amount from the budget
-    private func deductFromBudget(amount: Decimal) async throws {
-        let budget = try getBudget()
-        budget.currentBalance -= amount
-        budget.lastUpdated = Date()
-        try modelContext.save()
-    }
-    
+
     /// Fetches all receipts sorted by date
     func fetchAllReceipts() throws -> [Receipt] {
         let descriptor = FetchDescriptor<Receipt>(
@@ -191,14 +140,9 @@ class ReceiptService {
         return try modelContext.fetch(descriptor)
     }
     
-    /// Deletes a receipt and refunds to budget
+    /// Deletes a receipt. Balances are derived from receipts and budget
+    /// entries, so no bookkeeping is needed beyond the delete itself.
     func deleteReceipt(_ receipt: Receipt) throws {
-        // Refund to budget
-        let budget = try getBudget()
-        budget.currentBalance += receipt.totalAmount
-        budget.lastUpdated = Date()
-        
-        // Delete receipt
         modelContext.delete(receipt)
         try modelContext.save()
     }
