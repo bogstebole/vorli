@@ -7,27 +7,9 @@
 
 import SwiftUI
 import SwiftData
-import FirebaseCore
-
-class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION, NOTHING USES FIREBASE.
-        // Not initializing it means the app genuinely sends nothing off-device,
-        // which keeps the App Store privacy label at "Data Not Collected".
-        // FirebaseApp.configure()
-        return true
-    }
-}
 
 @main
 struct Receipt_TrackerApp: App {
-    // Register app delegate for Firebase setup
-    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
-    
-    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-    // @State private var authManager: AuthenticationManager?
-    
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Receipt.self,
@@ -48,35 +30,8 @@ struct Receipt_TrackerApp: App {
         }
     }()
     
-    init() {
-        // Firebase is configured by AppDelegate first, then we can safely initialize AuthenticationManager
-    }
-
     var body: some Scene {
         WindowGroup {
-            // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-            // Group {
-            //     if let authManager = authManager {
-            //         if authManager.isAuthenticated {
-            //             ContentView()
-            //                 .modelContainer(sharedModelContainer)
-            //                 .environment(authManager)
-            //         } else {
-            //             LoginView()
-            //                 .environment(authManager)
-            //         }
-            //     } else {
-            //         // Show loading while initializing
-            //         ProgressView()
-            //     }
-            // }
-            // .onAppear {
-            //     if authManager == nil {
-            //         authManager = AuthenticationManager()
-            //     }
-            // }
-            
-            // FIRST RELEASE - Direct to ContentView without authentication
             ContentView()
                 .modelContainer(sharedModelContainer)
         }

@@ -10,8 +10,6 @@ import SwiftData
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
-    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-    // @Environment(AuthenticationManager.self) private var authManager
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
     @Query(sort: \BudgetEntry.timestamp, order: .reverse) private var budgetEntries: [BudgetEntry]
     @Query private var fixedCosts: [FixedCost]
@@ -140,8 +138,6 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsSheet()
-                    // COMMENTED OUT FOR FIRST RELEASE - NO AUTHENTICATION
-                    // .environment(authManager)
             }
             // COMMENTED OUT FOR FIRST RELEASE - VORLI AI NOT SHIPPING YET
             // .fullScreenCover(isPresented: $showVorli) {

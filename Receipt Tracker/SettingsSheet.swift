@@ -45,6 +45,7 @@ struct SettingsSheet: View {
                         HStack {
                             Text("Politika privatnosti")
                                 .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.primary)
                             Spacer()
                             Image(systemName: "arrow.up.right")
                                 .font(.system(.caption, weight: .medium))
@@ -87,6 +88,7 @@ struct SettingsSheet: View {
                         HStack {
                             Text("Kontakt i podrška")
                                 .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.primary)
                             Spacer()
                             Text(AppInfo.supportEmail)
                                 .font(.system(.caption, design: .monospaced))
@@ -130,8 +132,10 @@ struct SettingsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Gotovo") {
-                        dismiss()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(.body, weight: .medium))
+                            .foregroundStyle(.primary)
                     }
                 }
             }

@@ -12,22 +12,8 @@
 		E82F3CBA2EF0656800ABCF0D /* SectionDivider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CB92EF0656800ABCF0D /* SectionDivider.swift */; };
 		E82F3CBC2EF0657700ABCF0D /* AddBalanceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */; };
 		E82F3CBE2EF0658C00ABCF0D /* DashboardSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */; };
-		E82F3CC02EF0662000ABCF0D /* UI_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = E82F3CBF2EF0662000ABCF0D /* UI_IMPLEMENTATION.md */; };
-		E82F3CCF2EF9C91A00ABCF0D /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = E82F3CCE2EF9C91A00ABCF0D /* FirebaseAuth */; };
-		E82F3CD12EF9C91A00ABCF0D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = E82F3CD02EF9C91A00ABCF0D /* FirebaseFirestore */; };
-		E82F3CD32EF9CBC700ABCF0D /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = E82F3CD22EF9CBC700ABCF0D /* GoogleService-Info.plist */; };
-		E82F3CD52EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md in Resources */ = {isa = PBXBuildFile; fileRef = E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */; };
 		E83903A52F1AC7A00065378F /* ReceiptOCRParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = E83903A42F1AC7A00065378F /* ReceiptOCRParser.swift */; };
-		E83903A72F1AC8040065378F /* RECEIPT_SCANNING_IMPLEMENTATION.md in Resources */ = {isa = PBXBuildFile; fileRef = E83903A62F1AC8040065378F /* RECEIPT_SCANNING_IMPLEMENTATION.md */; };
-		E83903A92F1AC81C0065378F /* RECEIPT_SCANNING_USER_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = E83903A82F1AC81C0065378F /* RECEIPT_SCANNING_USER_GUIDE.md */; };
-		E83903AB2F1AC84F0065378F /* IMPLEMENTATION_NOTES.md in Resources */ = {isa = PBXBuildFile; fileRef = E83903AA2F1AC84F0065378F /* IMPLEMENTATION_NOTES.md */; };
 		E83903D82F1ACE7B0065378F /* OCRTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E83903D72F1ACE7B0065378F /* OCRTestView.swift */; };
-		E83904052F1ADA820065378F /* OCR_IMPROVEMENTS.md in Resources */ = {isa = PBXBuildFile; fileRef = E83904042F1ADA820065378F /* OCR_IMPROVEMENTS.md */; };
-		E86DF8262F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md in Resources */ = {isa = PBXBuildFile; fileRef = E86DF8252F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md */; };
-		E86DF8282F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md in Resources */ = {isa = PBXBuildFile; fileRef = E86DF8272F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md */; };
-		E86DF89D2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md in Resources */ = {isa = PBXBuildFile; fileRef = E86DF89C2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md */; };
-		E89FC8932F323E62005CF898 /* HTML_ENTITY_DECODING_FIX.md in Resources */ = {isa = PBXBuildFile; fileRef = E89FC8922F323E62005CF898 /* HTML_ENTITY_DECODING_FIX.md */; };
-		E8ECE1802F620EB3002B990C /* guidelines.md in Resources */ = {isa = PBXBuildFile; fileRef = E8ECE17F2F620EB3002B990C /* guidelines.md */; };
 		E8ECE1822F6218B8002B990C /* AddNewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8ECE1812F6218B8002B990C /* AddNewSheet.swift */; };
 /* End PBXBuildFile section */
 
@@ -49,7 +35,6 @@
 		E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBalanceSheet.swift; sourceTree = "<group>"; };
 		E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSheet.swift; sourceTree = "<group>"; };
 		E82F3CBF2EF0662000ABCF0D /* UI_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UI_IMPLEMENTATION.md; sourceTree = "<group>"; };
-		E82F3CD22EF9CBC700ABCF0D /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = FIREBASE_AUTH_SETUP.md; sourceTree = "<group>"; };
 		E83903A42F1AC7A00065378F /* ReceiptOCRParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptOCRParser.swift; sourceTree = "<group>"; };
 		E83903A62F1AC8040065378F /* RECEIPT_SCANNING_IMPLEMENTATION.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = RECEIPT_SCANNING_IMPLEMENTATION.md; sourceTree = "<group>"; };
@@ -89,8 +74,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E82F3CCF2EF9C91A00ABCF0D /* FirebaseAuth in Frameworks */,
-				E82F3CD12EF9C91A00ABCF0D /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,7 +100,6 @@
 				E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */,
 				E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */,
 				E82F3CBF2EF0662000ABCF0D /* UI_IMPLEMENTATION.md */,
-				E82F3CD22EF9CBC700ABCF0D /* GoogleService-Info.plist */,
 				E82F3CD42EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md */,
 				E86DF8252F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md */,
 				E86DF8272F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md */,
@@ -163,8 +145,6 @@
 			);
 			name = "Receipt Tracker";
 			packageProductDependencies = (
-				E82F3CCE2EF9C91A00ABCF0D /* FirebaseAuth */,
-				E82F3CD02EF9C91A00ABCF0D /* FirebaseFirestore */,
 			);
 			productName = "Receipt Tracker";
 			productReference = E82F3C8D2EF048AA00ABCF0D /* Receipt Tracker.app */;
@@ -222,7 +202,6 @@
 			mainGroup = E82F3C842EF048AA00ABCF0D;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				E82F3CCD2EF9C91A00ABCF0D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E82F3C8E2EF048AA00ABCF0D /* Products */;
@@ -240,18 +219,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E86DF8262F15A81100D9B94D /* MONTHLY_BALANCE_FIX.md in Resources */,
-				E83903AB2F1AC84F0065378F /* IMPLEMENTATION_NOTES.md in Resources */,
-				E83903A72F1AC8040065378F /* RECEIPT_SCANNING_IMPLEMENTATION.md in Resources */,
-				E83903A92F1AC81C0065378F /* RECEIPT_SCANNING_USER_GUIDE.md in Resources */,
-				E83904052F1ADA820065378F /* OCR_IMPROVEMENTS.md in Resources */,
-				E86DF8282F15A84700D9B94D /* DASHBOARD_FIX_SUMMARY.md in Resources */,
-				E86DF89D2F161A5600D9B94D /* AUTHENTICATION_DISABLED.md in Resources */,
-				E8ECE1802F620EB3002B990C /* guidelines.md in Resources */,
-				E82F3CD32EF9CBC700ABCF0D /* GoogleService-Info.plist in Resources */,
-				E89FC8932F323E62005CF898 /* HTML_ENTITY_DECODING_FIX.md in Resources */,
-				E82F3CC02EF0662000ABCF0D /* UI_IMPLEMENTATION.md in Resources */,
-				E82F3CD52EF9CE4F00ABCF0D /* FIREBASE_AUTH_SETUP.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -566,27 +533,9 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		E82F3CCD2EF9C91A00ABCF0D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 12.7.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		E82F3CCE2EF9C91A00ABCF0D /* FirebaseAuth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E82F3CCD2EF9C91A00ABCF0D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAuth;
-		};
-		E82F3CD02EF9C91A00ABCF0D /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = E82F3CCD2EF9C91A00ABCF0D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestore;
-		};
 /* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E82F3C852EF048AA00ABCF0D /* Project object */;
