@@ -8,6 +8,7 @@ import SwiftUI
 struct SearchItemCardView: View {
     let itemName: String
     let merchantName: String
+    let date: Date
     let lineTotal: Decimal
 
     var body: some View {
@@ -26,10 +27,16 @@ struct SearchItemCardView: View {
             }
             .frame(maxWidth: .infinity, alignment: .topLeading)
 
-            Text(merchantName)
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            HStack {
+                Text(merchantName)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer()
+                Text(date.formatted(.dateTime.day().month(.abbreviated)))
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -20,10 +20,13 @@ private struct SearchResultEntry: Identifiable {
     let item: ReceiptItem
 }
 
+/// One month of search results: receipts whose merchant matched the query
+/// plus individual items that matched. `total` covers both.
 private struct SearchResultGroup: Identifiable {
     var id: Date { month }
     let month: Date
     let total: Decimal
+    let receipts: [Receipt]
     let entries: [SearchResultEntry]
 }
 
@@ -39,9 +42,11 @@ private struct ReceiptGroup: Identifiable {
 struct SearchView: View {
     @Environment(PremiumStore.self) private var premiumStore
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
+    @Query private var merchantCategories: [MerchantCategory]
 
     @State private var searchText = ""
     @State private var searchScope: SearchScope = .all
+    @State private var categoryFilter: String?
     @FocusState private var isSearchFocused: Bool
     @State private var showPaywall = false
 
@@ -90,55 +95,105 @@ struct SearchView: View {
         .scrollDismissesKeyboard(.immediately)
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Picker("Mesec", selection: $searchScope) {
-                        Text("Svi meseci").tag(SearchScope.all)
-                        Text("Ovaj mesec").tag(SearchScope.current)
-                        ForEach(availableMonths, id: \.self) { month in
-                            Text(month.monthYearString.capitalized)
-                                .tag(SearchScope.month(month))
-                        }
-                    }
-                } label: {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 16, weight: .medium))
-                }
-            }
-        }
         .safeAreaInset(edge: .top, spacing: 0) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                    .font(.system(size: 14))
-
-                TextField("Pretraži račune...", text: $searchText)
-                    .font(.system(.subheadline, design: .monospaced))
-                    .focused($isSearchFocused)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-
-                if !searchText.isEmpty {
-                    Button {
-                        searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.primary)
-                    }
-                    .tint(.primary)
-                    .transition(.scale.combined(with: .opacity))
-                }
+            VStack(spacing: 8) {
+                searchField
+                filterChips
             }
-            .animation(.easeInOut(duration: 0.15), value: searchText.isEmpty)
-            .padding(.horizontal, 14)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .glassEffect(.regular.interactive(), in: .capsule)
-            .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
         .onAppear {
             isSearchFocused = true
+        }
+    }
+
+    // MARK: - Search Field
+
+    private var searchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+                .font(.system(size: 14))
+
+            TextField("Pretraži račune...", text: $searchText)
+                .font(.system(.subheadline, design: .monospaced))
+                .focused($isSearchFocused)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.primary)
+                }
+                .tint(.primary)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.15), value: searchText.isEmpty)
+        .padding(.horizontal, 14)
+        .frame(maxWidth: .infinity, minHeight: 44)
+        .glassEffect(.regular.interactive(), in: .capsule)
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - Filter Chips
+
+    private var filterChips: some View {
+        VStack(spacing: 8) {
+            // Months
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    chip("Svi meseci", isSelected: searchScope == .all) { searchScope = .all }
+                    chip("Ovaj mesec", isSelected: searchScope == .current) { searchScope = .current }
+                    ForEach(availableMonths, id: \.self) { month in
+                        chip(month.monthYearString.capitalized, isSelected: searchScope == .month(month)) {
+                            searchScope = .month(month)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+
+            // Categories (only when the user has assigned some)
+            if !availableCategories.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        chip("Sve kategorije", isSelected: categoryFilter == nil) { categoryFilter = nil }
+                        ForEach(availableCategories, id: \.self) { category in
+                            chip(category, isSelected: categoryFilter == category) {
+                                categoryFilter = (categoryFilter == category) ? nil : category
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+            }
+        }
+    }
+
+    private func chip(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Group {
+            if isSelected {
+                Button(action: action) {
+                    Text(title)
+                        .font(.system(.caption, design: .monospaced, weight: .semibold))
+                        .foregroundStyle(Color(uiColor: .systemBackground))
+                        .padding(.horizontal, 4)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(.primary)
+            } else {
+                Button(action: action) {
+                    Text(title)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 4)
+                }
+                .buttonStyle(.glass)
+            }
         }
     }
 
@@ -151,16 +206,19 @@ struct SearchView: View {
             EmptyReceiptsView()
                 .padding(.top, 40)
         } else {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 12, pinnedViews: [.sectionHeaders]) {
                 ForEach(groups) { group in
-                    monthHeader(month: group.month, total: group.total)
-                    ForEach(group.receipts) { receipt in
-                        NavigationLink {
-                            ReceiptDetailView(receipt: receipt)
-                        } label: {
-                            ReceiptCardView(receipt: receipt)
+                    Section {
+                        ForEach(group.receipts) { receipt in
+                            NavigationLink {
+                                ReceiptDetailView(receipt: receipt)
+                            } label: {
+                                ReceiptCardView(receipt: receipt)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                    } header: {
+                        monthHeader(month: group.month, total: group.total)
                     }
                 }
             }
@@ -185,20 +243,34 @@ struct SearchView: View {
             }
             .padding(.top, 60)
         } else {
-            LazyVStack(spacing: 12) {
+            LazyVStack(spacing: 12, pinnedViews: [.sectionHeaders]) {
+                summaryRow(for: groups)
+
                 ForEach(groups) { group in
-                    monthHeader(month: group.month, total: group.total)
-                    ForEach(group.entries) { entry in
-                        NavigationLink {
-                            ReceiptDetailView(receipt: entry.receipt)
-                        } label: {
-                            SearchItemCardView(
-                                itemName: entry.item.name,
-                                merchantName: entry.receipt.merchantName,
-                                lineTotal: entry.item.lineTotal
-                            )
+                    Section {
+                        ForEach(group.receipts) { receipt in
+                            NavigationLink {
+                                ReceiptDetailView(receipt: receipt)
+                            } label: {
+                                ReceiptCardView(receipt: receipt)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                        ForEach(group.entries) { entry in
+                            NavigationLink {
+                                ReceiptDetailView(receipt: entry.receipt)
+                            } label: {
+                                SearchItemCardView(
+                                    itemName: entry.item.name,
+                                    merchantName: entry.receipt.merchantName,
+                                    date: entry.receipt.timestamp,
+                                    lineTotal: entry.item.lineTotal
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    } header: {
+                        monthHeader(month: group.month, total: group.total)
                     }
                 }
             }
@@ -207,27 +279,52 @@ struct SearchView: View {
         }
     }
 
+    /// The answer to "why am I searching": total spent on the query across
+    /// the current scope.
+    private func summaryRow(for groups: [SearchResultGroup]) -> some View {
+        let total = groups.reduce(Decimal(0)) { $0 + $1.total }
+        let count = groups.reduce(0) { $0 + $1.receipts.count + $1.entries.count }
+        return HStack(alignment: .firstTextBaseline) {
+            Text("\"\(searchText)\"")
+                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                .lineLimit(1)
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(total.asRSD)
+                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                Text("\(count) \(count == 1 ? "rezultat" : "rezultata")")
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
     @ViewBuilder
     private func monthHeader(month: Date, total: Decimal) -> some View {
         HStack {
             Text(month.monthYearString.capitalized)
-                .font(.system(.caption, design: .monospaced, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
             Spacer()
             Text(total.asRSD)
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.secondary)
+                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
         }
-        .padding(.top, 4)
+        .padding(.vertical, 8)
+        .background(Color(uiColor: .systemBackground))
     }
 
     // MARK: - Computed Properties
 
     private var availableMonths: [Date] {
+        let calendar = Calendar.current
         var seen = Set<Date>()
         var months: [Date] = []
         for receipt in accessibleReceipts {
             let start = receipt.timestamp.startOfMonth
+            // "Ovaj mesec" chip already covers the current month.
+            if calendar.isDate(start, equalTo: Date(), toGranularity: .month) { continue }
             if seen.insert(start).inserted {
                 months.append(start)
             }
@@ -235,16 +332,31 @@ struct SearchView: View {
         return months.sorted(by: >)
     }
 
+    private var availableCategories: [String] {
+        Array(Set(merchantCategories.map(\.name))).sorted()
+    }
+
+    /// Merchant keys covered by the active category filter, nil = no filter.
+    private var categoryMerchantKeys: Set<String>? {
+        guard let categoryFilter else { return nil }
+        return Set(merchantCategories.filter { $0.name == categoryFilter }.map(\.merchantKey))
+    }
+
     private var scopedReceipts: [Receipt] {
         let calendar = Calendar.current
+        var receipts: [Receipt]
         switch searchScope {
         case .all:
-            return accessibleReceipts
+            receipts = accessibleReceipts
         case .current:
-            return accessibleReceipts.filter { calendar.isDate($0.timestamp, equalTo: Date(), toGranularity: .month) }
+            receipts = accessibleReceipts.filter { calendar.isDate($0.timestamp, equalTo: Date(), toGranularity: .month) }
         case .month(let date):
-            return accessibleReceipts.filter { calendar.isDate($0.timestamp, equalTo: date, toGranularity: .month) }
+            receipts = accessibleReceipts.filter { calendar.isDate($0.timestamp, equalTo: date, toGranularity: .month) }
         }
+        if let keys = categoryMerchantKeys {
+            receipts = receipts.filter { keys.contains(PriceHistory.merchantKey($0.merchantName)) }
+        }
+        return receipts
     }
 
     private var groupedReceiptsForSearch: [ReceiptGroup] {
@@ -262,24 +374,38 @@ struct SearchView: View {
         }.sorted { $0.month > $1.month }
     }
 
+    /// Normalized (case-, diacritic- and script-insensitive) matching via the
+    /// same keys price history uses. A merchant hit shows the whole receipt;
+    /// item hits show individual items — so "lidl" gives receipts instead of
+    /// flooding the list with every item Lidl ever sold.
     private var searchResultGroups: [SearchResultGroup] {
-        guard !searchText.isEmpty else { return [] }
-        let query = searchText.lowercased()
-        var groups: [Date: [SearchResultEntry]] = [:]
+        let query = PriceHistory.normalize(searchText)
+        guard !query.isEmpty else { return [] }
+
+        var receiptHits: [Date: [Receipt]] = [:]
+        var itemHits: [Date: [SearchResultEntry]] = [:]
+
         for receipt in scopedReceipts {
+            let start = receipt.timestamp.startOfMonth
+            if PriceHistory.merchantKey(receipt.merchantName).contains(query) {
+                receiptHits[start, default: []].append(receipt)
+                continue
+            }
             for item in receipt.items {
-                if item.name.lowercased().contains(query) || receipt.merchantName.lowercased().contains(query) {
-                    let start = receipt.timestamp.startOfMonth
-                    groups[start, default: []].append(SearchResultEntry(receipt: receipt, item: item))
+                let key = item.normalizedName.isEmpty ? PriceHistory.normalize(item.name) : item.normalizedName
+                if key.contains(query) {
+                    itemHits[start, default: []].append(SearchResultEntry(receipt: receipt, item: item))
                 }
             }
         }
-        return groups.map { month, entries in
-            SearchResultGroup(
-                month: month,
-                total: entries.reduce(Decimal(0)) { $0 + $1.item.lineTotal },
-                entries: entries.sorted { $0.receipt.timestamp > $1.receipt.timestamp }
-            )
+
+        let months = Set(receiptHits.keys).union(itemHits.keys)
+        return months.map { month in
+            let receipts = (receiptHits[month] ?? []).sorted { $0.timestamp > $1.timestamp }
+            let entries = (itemHits[month] ?? []).sorted { $0.receipt.timestamp > $1.receipt.timestamp }
+            let total = receipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
+                + entries.reduce(Decimal(0)) { $0 + $1.item.lineTotal }
+            return SearchResultGroup(month: month, total: total, receipts: receipts, entries: entries)
         }.sorted { $0.month > $1.month }
     }
 }
