@@ -64,11 +64,11 @@ struct PaywallSheet: View {
             Text("PREMIUM")
                 .font(.system(.body, design: .monospaced, weight: .medium))
 
-            Text("Tvoji podaci kroz vreme")
+            Text("Otključaj celu istoriju")
                 .font(.system(.subheadline, design: .monospaced))
                 .foregroundStyle(.secondary)
 
-            Text("Skeniranje i poslednja dva meseca su besplatni zauvek.")
+            Text("Tekući i prošli mesec su uvek besplatni. Premium otključava sve starije od toga.")
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)

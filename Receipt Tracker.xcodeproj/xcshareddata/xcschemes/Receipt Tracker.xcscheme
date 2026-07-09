@@ -64,7 +64,7 @@
          </BuildableReference>
       </BuildableProductRunnable>
       <StoreKitConfigurationFileReference
-         identifier = "../../../Premium.storekit">
+         identifier = "../../Premium.storekit">
       </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
