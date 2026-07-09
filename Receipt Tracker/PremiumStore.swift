@@ -23,7 +23,25 @@ final class PremiumStore {
         static let all: Set<String> = [monthly, yearly, lifetime]
     }
 
-    private(set) var isPremium = false
+    /// True when a verified StoreKit entitlement exists.
+    private(set) var hasEntitlement = false
+
+    #if DEBUG
+    /// Dev-only override so daily development use isn't gated — the developer
+    /// runs debug builds from the home screen where local StoreKit test
+    /// purchases are not visible. Compiled out of release builds entirely.
+    var debugPremiumOverride: Bool = UserDefaults.standard.bool(forKey: "debugPremiumOverride") {
+        didSet { UserDefaults.standard.set(debugPremiumOverride, forKey: "debugPremiumOverride") }
+    }
+    #endif
+
+    var isPremium: Bool {
+        #if DEBUG
+        if debugPremiumOverride { return true }
+        #endif
+        return hasEntitlement
+    }
+
     /// Sorted by price ascending (monthly, yearly, lifetime).
     private(set) var products: [Product] = []
     private(set) var isLoadingProducts = false
@@ -107,7 +125,7 @@ final class PremiumStore {
                   transaction.revocationDate == nil else { continue }
             premium = true
         }
-        isPremium = premium
+        hasEntitlement = premium
     }
 
     private func listenForTransactionUpdates() async {

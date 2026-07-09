@@ -67,6 +67,15 @@ struct SettingsSheet: View {
                                 .foregroundStyle(.primary)
                         }
                     }
+                    #if DEBUG
+                    Toggle(isOn: Binding(
+                        get: { premiumStore.debugPremiumOverride },
+                        set: { premiumStore.debugPremiumOverride = $0 }
+                    )) {
+                        Text("Simuliraj Premium (dev)")
+                            .font(.system(.subheadline, design: .monospaced))
+                    }
+                    #endif
                 } header: {
                     Text("Premium")
                         .font(.system(.caption, design: .monospaced))
