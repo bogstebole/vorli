@@ -72,8 +72,6 @@ struct PaywallSheet: View {
                 .font(.system(.caption, design: .monospaced))
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
-
-            Divider()
         }
         .frame(maxWidth: .infinity)
     }
@@ -180,19 +178,15 @@ struct PaywallSheet: View {
                     Group {
                         if store.purchaseInFlight {
                             ProgressView()
-                                .tint(Color(uiColor: .systemBackground))
                         } else {
                             Text(ctaTitle(for: product))
                                 .font(.system(.body, design: .monospaced, weight: .semibold))
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.primary)
-                    .foregroundStyle(Color(uiColor: .systemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .padding(.vertical, 6)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glassProminent)
                 .disabled(store.purchaseInFlight)
 
                 Text(ctaFootnote(for: product))
@@ -209,7 +203,15 @@ struct PaywallSheet: View {
             .padding(.horizontal)
             .padding(.top, 10)
             .padding(.bottom, 6)
-            .background(.bar)
+            .background(
+                // Default iOS bottom fade instead of a solid bar.
+                LinearGradient(
+                    colors: [Color(uiColor: .systemBackground).opacity(0),
+                             Color(uiColor: .systemBackground)],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .ignoresSafeArea(edges: .bottom)
+            )
         }
     }
 
