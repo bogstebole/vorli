@@ -11,10 +11,12 @@ import SwiftData
 struct ReceiptDetailView: View {
     let receipt: Receipt
     @Environment(\.dismiss) private var dismiss
+    @Environment(PremiumStore.self) private var premiumStore
     @Query private var allReceipts: [Receipt]
     @Query private var merchantCategories: [MerchantCategory]
     @State private var historyItem: ReceiptItem?
     @State private var showCategoryPicker = false
+    @State private var showPaywall = false
 
     var body: some View {
         ScrollView {
@@ -119,7 +121,13 @@ struct ReceiptDetailView: View {
                                 change: PriceHistory.change(for: item, in: allReceipts),
                                 hasHistory: history.count >= 2
                             ) {
-                                historyItem = item
+                                // Change badge is the free teaser; the full
+                                // price history is premium.
+                                if premiumStore.isPremium {
+                                    historyItem = item
+                                } else {
+                                    showPaywall = true
+                                }
                             }
                         }
                     }
@@ -153,6 +161,9 @@ struct ReceiptDetailView: View {
         }
         .sheet(isPresented: $showCategoryPicker) {
             CategoryPickerSheet(merchantName: receipt.merchantName)
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallSheet()
         }
         // Share button removed until sharing is actually implemented —
         // non-functional controls are an App Review rejection risk.

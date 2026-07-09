@@ -11,12 +11,14 @@ import SwiftData
 struct DashboardSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(PremiumStore.self) private var premiumStore
     let receipts: [Receipt]
     let onMonthSelected: (Date) -> Void
 
     @Query private var merchantCategories: [MerchantCategory]
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var budgetEntries: [BudgetEntry] = []
+    @State private var showPaywall = false
     
     var body: some View {
         NavigationStack {
@@ -71,22 +73,60 @@ struct DashboardSheet: View {
                         GridItem(.flexible(), spacing: 12)
                     ], spacing: 12) {
                         ForEach(monthlyDataForYear, id: \.monthIndex) { data in
+                            let unlocked = PremiumStore.isMonthUnlocked(data.month, isPremium: premiumStore.isPremium)
                             MonthTileView(
                                 month: data.monthName,
                                 receiptCount: data.receiptCount,
                                 leftOverBalance: data.leftOverBalance,
                                 spent: data.spent
                             )
+                            .overlay(alignment: .topTrailing) {
+                                if !unlocked {
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+                                        .padding(8)
+                                }
+                            }
                             .onTapGesture {
-                                onMonthSelected(data.month)
-                                dismiss()
+                                if unlocked {
+                                    onMonthSelected(data.month)
+                                    dismiss()
+                                } else {
+                                    showPaywall = true
+                                }
                             }
                         }
                     }
                     .padding(.horizontal)
 
-                    // Spending by category for the selected year
-                    if !categoryBreakdown.isEmpty {
+                    // Spending by category for the selected year (premium)
+                    if !categoryBreakdown.isEmpty && !premiumStore.isPremium {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionDivider(title: "Po kategorijama")
+                            Button {
+                                showPaywall = true
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "lock.fill")
+                                        .foregroundStyle(.secondary)
+                                    Text("Raščlamba po kategorijama je deo Premium-a")
+                                        .font(.system(.caption, design: .monospaced))
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundStyle(.tertiary)
+                                }
+                                .padding(14)
+                                .background(Color(uiColor: .secondarySystemBackground))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal)
+                    } else if !categoryBreakdown.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             SectionDivider(title: "Po kategorijama")
 
@@ -139,6 +179,9 @@ struct DashboardSheet: View {
             )
             .task {
                 loadBudgetEntries()
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallSheet()
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

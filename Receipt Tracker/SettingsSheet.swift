@@ -26,13 +26,52 @@ struct SettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
+    @Environment(PremiumStore.self) private var premiumStore
 
     @State private var showDeleteConfirmation = false
     @State private var showDeleteDone = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
             List {
+                // Premium
+                Section {
+                    HStack {
+                        Text("Status")
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text(premiumStore.isPremium ? "Premium aktivan" : "Besplatna verzija")
+                            .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    }
+                    if !premiumStore.isPremium {
+                        Button {
+                            showPaywall = true
+                        } label: {
+                            HStack {
+                                Text("Pogledaj Premium")
+                                    .font(.system(.subheadline, design: .monospaced))
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        Button {
+                            Task { await premiumStore.restorePurchases() }
+                        } label: {
+                            Text("Vrati kupovine")
+                                .font(.system(.subheadline, design: .monospaced))
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                } header: {
+                    Text("Premium")
+                        .font(.system(.caption, design: .monospaced))
+                }
+
                 // Data & privacy
                 Section {
                     HStack(spacing: 8) {
@@ -161,6 +200,9 @@ struct SettingsSheet: View {
             }
             .alert("Podaci obrisani", isPresented: $showDeleteDone) {
                 Button("OK", role: .cancel) { dismiss() }
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaywallSheet()
             }
         }
     }

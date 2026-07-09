@@ -10,6 +10,8 @@ import SwiftData
 
 @main
 struct Receipt_TrackerApp: App {
+    @State private var premiumStore = PremiumStore()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Receipt.self,
@@ -34,6 +36,7 @@ struct Receipt_TrackerApp: App {
         WindowGroup {
             ContentView()
                 .modelContainer(sharedModelContainer)
+                .environment(premiumStore)
         }
     }
 }

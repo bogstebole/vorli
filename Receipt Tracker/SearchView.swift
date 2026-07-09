@@ -37,11 +37,25 @@ private struct ReceiptGroup: Identifiable {
 // MARK: - SearchView
 
 struct SearchView: View {
+    @Environment(PremiumStore.self) private var premiumStore
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
 
     @State private var searchText = ""
     @State private var searchScope: SearchScope = .all
     @FocusState private var isSearchFocused: Bool
+    @State private var showPaywall = false
+
+    /// Receipts the current tier may browse — non-premium sees only the
+    /// free window (current + previous month).
+    private var accessibleReceipts: [Receipt] {
+        allReceipts.filter {
+            PremiumStore.isMonthUnlocked($0.timestamp, isPremium: premiumStore.isPremium)
+        }
+    }
+
+    private var hasLockedReceipts: Bool {
+        accessibleReceipts.count < allReceipts.count
+    }
 
     var body: some View {
         ScrollView {
@@ -51,8 +65,27 @@ struct SearchView: View {
                 } else {
                     itemResultsView
                 }
+
+                if hasLockedReceipts {
+                    Button {
+                        showPaywall = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 11))
+                            Text("Stariji računi su deo Premium-a")
+                                .font(.system(.caption, design: .monospaced))
+                        }
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .padding(.top, 4)
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallSheet()
         }
         .scrollDismissesKeyboard(.immediately)
         .navigationTitle("")
@@ -193,7 +226,7 @@ struct SearchView: View {
     private var availableMonths: [Date] {
         var seen = Set<Date>()
         var months: [Date] = []
-        for receipt in allReceipts {
+        for receipt in accessibleReceipts {
             let start = receipt.timestamp.startOfMonth
             if seen.insert(start).inserted {
                 months.append(start)
@@ -206,11 +239,11 @@ struct SearchView: View {
         let calendar = Calendar.current
         switch searchScope {
         case .all:
-            return allReceipts
+            return accessibleReceipts
         case .current:
-            return allReceipts.filter { calendar.isDate($0.timestamp, equalTo: Date(), toGranularity: .month) }
+            return accessibleReceipts.filter { calendar.isDate($0.timestamp, equalTo: Date(), toGranularity: .month) }
         case .month(let date):
-            return allReceipts.filter { calendar.isDate($0.timestamp, equalTo: date, toGranularity: .month) }
+            return accessibleReceipts.filter { calendar.isDate($0.timestamp, equalTo: date, toGranularity: .month) }
         }
     }
 
