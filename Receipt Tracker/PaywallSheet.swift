@@ -38,7 +38,7 @@ struct PaywallSheet: View {
                 }
                 .padding()
             }
-            .safeAreaInset(edge: .bottom) { ctaBar }
+            .safeAreaBar(edge: .bottom) { ctaBar }
             .navigationTitle("Premium")
             .navigationBarTitleDisplayMode(.inline)
             .tint(.primary)
@@ -178,9 +178,14 @@ struct PaywallSheet: View {
                     Group {
                         if store.purchaseInFlight {
                             ProgressView()
+                                .tint(Color(uiColor: .systemBackground))
                         } else {
                             Text(ctaTitle(for: product))
                                 .font(.system(.body, design: .monospaced, weight: .semibold))
+                                // The screen-level .tint(.primary) also fills
+                                // the prominent glass, so the label must be
+                                // the opposite color explicitly.
+                                .foregroundStyle(Color(uiColor: .systemBackground))
                         }
                     }
                     .frame(maxWidth: .infinity)
@@ -203,15 +208,6 @@ struct PaywallSheet: View {
             .padding(.horizontal)
             .padding(.top, 10)
             .padding(.bottom, 6)
-            .background(
-                // Default iOS bottom fade instead of a solid bar.
-                LinearGradient(
-                    colors: [Color(uiColor: .systemBackground).opacity(0),
-                             Color(uiColor: .systemBackground)],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .ignoresSafeArea(edges: .bottom)
-            )
         }
     }
 
