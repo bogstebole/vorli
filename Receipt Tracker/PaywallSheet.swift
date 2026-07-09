@@ -214,21 +214,37 @@ struct PaywallSheet: View {
     // MARK: - Restore & legal
 
     private var restoreAndLinks: some View {
-        VStack(spacing: 12) {
-            Button("Već si platio? Povrati kupovinu") {
+        VStack(spacing: 16) {
+            // A real capsule button — plain text didn't read as tappable.
+            Button {
                 Task { await store.restorePurchases() }
+            } label: {
+                Text("Već si platio? Povrati kupovinu")
+                    .font(.system(.caption, design: .monospaced, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
             }
-            .font(.system(.caption, design: .monospaced, weight: .semibold))
-            .foregroundStyle(.primary)
+            .buttonStyle(.glass)
 
-            HStack(spacing: 16) {
-                Button("Politika privatnosti") { openURL(AppInfo.privacyPolicyURL) }
-                Button("Uslovi korišćenja") { openURL(Self.termsURL) }
+            HStack(spacing: 8) {
+                Button {
+                    openURL(AppInfo.privacyPolicyURL)
+                } label: {
+                    Text("Politika privatnosti").underline()
+                }
+                Text("·")
+                Button {
+                    openURL(Self.termsURL)
+                } label: {
+                    Text("Uslovi korišćenja").underline()
+                }
             }
             .font(.system(.caption2, design: .monospaced))
             .foregroundStyle(.secondary)
         }
-        .padding(.top, 8)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 12)
     }
 
     // MARK: - Product display helpers
