@@ -28,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		E8AA00012F70000000000001 /* Premium.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Premium.storekit; sourceTree = "<group>"; };
 		E82F3C8D2EF048AA00ABCF0D /* Receipt Tracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Receipt Tracker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E82F3CB52EF0655500ABCF0D /* ReceiptCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptCardView.swift; sourceTree = "<group>"; };
 		E82F3CB72EF0656000ABCF0D /* MonthBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthBalanceCard.swift; sourceTree = "<group>"; };
@@ -94,6 +95,7 @@
 				E8ECE1902F63E16D002B990C /* Receipt Tracker Tests */,
 				E8ECE19D2F63E291002B990C /* Receipt Tracker Tests */,
 				E82F3C8E2EF048AA00ABCF0D /* Products */,
+				E8AA00012F70000000000001 /* Premium.storekit */,
 				E82F3CB52EF0655500ABCF0D /* ReceiptCardView.swift */,
 				E82F3CB72EF0656000ABCF0D /* MonthBalanceCard.swift */,
 				E82F3CB92EF0656800ABCF0D /* SectionDivider.swift */,
