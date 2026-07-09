@@ -215,7 +215,7 @@ struct PaywallSheet: View {
 
     private var restoreAndLinks: some View {
         VStack(spacing: 12) {
-            Button("Vrati kupovine") {
+            Button("Već si platio? Povrati kupovinu") {
                 Task { await store.restorePurchases() }
             }
             .font(.system(.caption, design: .monospaced, weight: .semibold))

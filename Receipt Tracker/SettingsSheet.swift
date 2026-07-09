@@ -62,7 +62,7 @@ struct SettingsSheet: View {
                         Button {
                             Task { await premiumStore.restorePurchases() }
                         } label: {
-                            Text("Vrati kupovine")
+                            Text("Povrati raniju kupovinu")
                                 .font(.system(.subheadline, design: .monospaced))
                                 .foregroundStyle(.primary)
                         }
