@@ -1,106 +1,88 @@
 {
-  "identifier" : "F1E2D3C4-0000-4000-8000-PREMIUMSTORE",
-  "nonRenewingSubscriptions" : [
-
-  ],
-  "products" : [
+  "identifier": "01D39853-246A-443E-98C1-1BA4E9136B0A",
+  "nonRenewingSubscriptions": [],
+  "products": [
     {
-      "displayPrice" : "24.99",
-      "familyShareable" : false,
-      "internalID" : "A1000001-0000-4000-8000-000000000001",
-      "localizations" : [
+      "displayPrice": "24.99",
+      "familyShareable": false,
+      "internalID": "2489DBA7-F498-4C37-847F-4BE3362FEE27",
+      "localizations": [
         {
-          "description" : "Sve Premium funkcije, jednokratna kupovina.",
-          "displayName" : "Premium — zauvek",
-          "locale" : "en_US"
+          "description": "Sve Premium funkcije, jednokratna kupovina.",
+          "displayName": "Premium — zauvek",
+          "locale": "en_US"
         }
       ],
-      "productID" : "bogste.ReceiptTracker.premium.lifetime",
-      "referenceName" : "Premium Lifetime",
-      "type" : "NonConsumable"
+      "productID": "bogste.ReceiptTracker.premium.lifetime",
+      "referenceName": "Premium Lifetime",
+      "type": "NonConsumable"
     }
   ],
-  "settings" : {
-    "_failTransactionsEnabled" : false,
-    "_locale" : "en_US",
-    "_storefront" : "USA",
-    "_storeKitErrors" : [
-
-    ]
+  "settings": {
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": []
   },
-  "subscriptionGroups" : [
+  "subscriptionGroups": [
     {
-      "id" : "B2000001-0000-4000-8000-000000000001",
-      "localizations" : [
-
-      ],
-      "name" : "Premium",
-      "subscriptions" : [
+      "id": "0CBACCC0-EAC3-4BFC-90A2-6A429A19DD9B",
+      "localizations": [],
+      "name": "Premium",
+      "subscriptions": [
         {
-          "adHocOffers" : [
-
-          ],
-          "codeOffers" : [
-
-          ],
-          "displayPrice" : "1.99",
-          "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "C3000001-0000-4000-8000-000000000001",
-          "introductoryOffer" : null,
-          "localizations" : [
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "1.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "968EB8E0-7B25-44F6-BB5F-56CDE71C03C6",
+          "introductoryOffer": null,
+          "localizations": [
             {
-              "description" : "Sve Premium funkcije, mesečna pretplata.",
-              "displayName" : "Premium — mesečno",
-              "locale" : "en_US"
+              "description": "Sve Premium funkcije, mesečna pretplata.",
+              "displayName": "Premium — mesečno",
+              "locale": "en_US"
             }
           ],
-          "productID" : "bogste.ReceiptTracker.premium.monthly",
-          "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Premium Monthly",
-          "subscriptionGroupID" : "B2000001-0000-4000-8000-000000000001",
-          "type" : "RecurringSubscription",
-          "winbackOffers" : [
-
-          ]
+          "productID": "bogste.ReceiptTracker.premium.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Premium Monthly",
+          "subscriptionGroupID": "0CBACCC0-EAC3-4BFC-90A2-6A429A19DD9B",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
         },
         {
-          "adHocOffers" : [
-
-          ],
-          "codeOffers" : [
-
-          ],
-          "displayPrice" : "9.99",
-          "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "C3000002-0000-4000-8000-000000000002",
-          "introductoryOffer" : {
-            "internalID" : "D4000001-0000-4000-8000-000000000001",
-            "paymentMode" : "free",
-            "subscriptionPeriod" : "P1W"
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "9.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "538720E3-9660-4966-9107-48B08F089963",
+          "introductoryOffer": {
+            "internalID": "0BC9B2D5-9854-47DC-A50D-E72626884FD7",
+            "paymentMode": "free",
+            "subscriptionPeriod": "P1W"
           },
-          "localizations" : [
+          "localizations": [
             {
-              "description" : "Sve Premium funkcije, godišnja pretplata.",
-              "displayName" : "Premium — godišnje",
-              "locale" : "en_US"
+              "description": "Sve Premium funkcije, godišnja pretplata.",
+              "displayName": "Premium — godišnje",
+              "locale": "en_US"
             }
           ],
-          "productID" : "bogste.ReceiptTracker.premium.yearly",
-          "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "Premium Yearly",
-          "subscriptionGroupID" : "B2000001-0000-4000-8000-000000000001",
-          "type" : "RecurringSubscription",
-          "winbackOffers" : [
-
-          ]
+          "productID": "bogste.ReceiptTracker.premium.yearly",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Premium Yearly",
+          "subscriptionGroupID": "0CBACCC0-EAC3-4BFC-90A2-6A429A19DD9B",
+          "type": "RecurringSubscription",
+          "winbackOffers": []
         }
       ]
     }
   ],
-  "version" : {
-    "major" : 3,
-    "minor" : 0
+  "version": {
+    "major": 3,
+    "minor": 0
   }
 }
