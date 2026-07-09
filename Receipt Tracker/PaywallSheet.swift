@@ -2,9 +2,12 @@
 //  PaywallSheet.swift
 //  Receipt Tracker
 //
-//  Premium upsell. App Review requirements live here: visible price and
-//  period, auto-renewal disclosure, Restore button, and links to the
-//  privacy policy and terms of use.
+//  Premium upsell, styled like the receipt detail page: monospaced,
+//  centered header, section dividers, article-like rows. One selected
+//  plan + one primary CTA pinned to the bottom.
+//
+//  App Review requirements live here: visible price and period,
+//  auto-renewal disclosure, Restore button, privacy + terms links.
 //
 
 import SwiftUI
@@ -15,19 +18,27 @@ struct PaywallSheet: View {
     @Environment(\.openURL) private var openURL
     @Environment(PremiumStore.self) private var store
 
+    @State private var selectedProductID: String = PremiumStore.ProductID.yearly
+
     private static let termsURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 16) {
                     header
-                    features
-                    productButtons
+
+                    SectionDivider(title: "Šta dobijaš")
+                    featureRows
+
+                    SectionDivider(title: "Izaberi plan")
+                    planRows
+
                     restoreAndLinks
                 }
-                .padding(20)
+                .padding()
             }
+            .safeAreaInset(edge: .bottom) { ctaBar }
             .navigationTitle("Premium")
             .navigationBarTitleDisplayMode(.inline)
             .tint(.primary)
@@ -46,54 +57,60 @@ struct PaywallSheet: View {
         }
     }
 
-    // MARK: - Sections
+    // MARK: - Header (receipt-detail style)
 
     private var header: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "clock.arrow.circlepath")
-                .font(.system(size: 44))
-                .foregroundStyle(.primary)
+        VStack(spacing: 12) {
+            Text("PREMIUM")
+                .font(.system(.body, design: .monospaced, weight: .medium))
+
             Text("Tvoji podaci kroz vreme")
-                .font(.system(.title3, design: .monospaced, weight: .semibold))
-            Text("Skeniranje i tekući mesec su besplatni zauvek. Premium otključava sve što raste sa upotrebom.")
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(.subheadline, design: .monospaced))
                 .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(.top, 8)
-    }
 
-    private var features: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            featureRow("calendar", "Istorija svih meseci — ne samo poslednja dva")
-            featureRow("chart.line.uptrend.xyaxis", "Istorija cena artikala — vidi šta ti poskupljuje")
-            featureRow("square.grid.2x2", "Potrošnja po kategorijama na kontrolnoj tabli")
-            featureRow("magnifyingglass", "Pretraga kroz sve račune")
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color(uiColor: .secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    private func featureRow(_ icon: String, _ text: String) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .frame(width: 22)
-                .foregroundStyle(.primary)
-            Text(text)
+            Text("Skeniranje i poslednja dva meseca su besplatni zauvek.")
                 .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.tertiary)
+                .multilineTextAlignment(.center)
+
+            Divider()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Features (article-row style)
+
+    private var featureRows: some View {
+        VStack(spacing: 0) {
+            featureRow("Istorija svih meseci")
+            featureRow("Istorija cena artikala")
+            featureRow("Potrošnja po kategorijama")
+            featureRow("Pretraga kroz sve račune")
         }
     }
+
+    private func featureRow(_ text: String) -> some View {
+        HStack {
+            Text(text)
+                .font(.system(.subheadline, design: .monospaced, weight: .medium))
+            Spacer()
+            Image(systemName: "checkmark")
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundStyle(.primary)
+        }
+        .padding()
+    }
+
+    // MARK: - Plans
 
     @ViewBuilder
-    private var productButtons: some View {
+    private var planRows: some View {
         if store.products.isEmpty {
             if store.isLoadingProducts {
                 ProgressView()
-                    .padding(.vertical, 20)
+                    .padding(.vertical, 24)
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
                     Text(store.lastError ?? "Proizvodi trenutno nisu dostupni.")
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
@@ -101,62 +118,102 @@ struct PaywallSheet: View {
                         Task { await store.loadProducts() }
                     }
                     .font(.system(.caption, design: .monospaced, weight: .semibold))
+                    .foregroundStyle(.primary)
                 }
-                .padding(.vertical, 12)
+                .padding(.vertical, 16)
             }
         } else {
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 ForEach(store.products, id: \.id) { product in
-                    productButton(product)
-                }
-                if let error = store.lastError {
-                    Text(error)
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundStyle(.orange)
-                }
-                if store.products.contains(where: { $0.type == .autoRenewable }) {
-                    Text("Pretplata se automatski obnavlja dok je ne otkažeš u podešavanjima App Store naloga, najkasnije 24h pre isteka perioda.")
-                        .font(.system(.caption2, design: .monospaced))
-                        .foregroundStyle(.tertiary)
-                        .multilineTextAlignment(.center)
+                    planRow(product)
                 }
             }
         }
     }
 
-    private func productButton(_ product: Product) -> some View {
-        let highlighted = product.id == PremiumStore.ProductID.yearly
+    private func planRow(_ product: Product) -> some View {
+        let selected = product.id == selectedProductID
         return Button {
-            Task { await store.purchase(product) }
+            selectedProductID = product.id
         } label: {
-            VStack(spacing: 2) {
-                HStack {
+            HStack(spacing: 12) {
+                Image(systemName: selected ? "circle.inset.filled" : "circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(selected ? .primary : .tertiary)
+
+                VStack(alignment: .leading, spacing: 2) {
                     Text(title(for: product))
                         .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                    Spacer()
-                    Text(price(for: product))
-                        .font(.system(.subheadline, design: .monospaced))
-                }
-                if let note = note(for: product) {
-                    HStack {
+                    if let note = note(for: product) {
                         Text(note)
                             .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(highlighted ? .primary : .secondary)
-                        Spacer()
+                            .foregroundStyle(.secondary)
                     }
                 }
+
+                Spacer()
+
+                Text(price(for: product))
+                    .font(.system(.subheadline, design: .monospaced))
             }
             .padding(14)
             .background(Color(uiColor: .secondarySystemBackground))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(highlighted ? Color.primary : Color.clear, lineWidth: 1.5)
+                    .strokeBorder(selected ? Color.primary : Color.clear, lineWidth: 1.5)
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(store.purchaseInFlight)
     }
+
+    // MARK: - CTA (pinned, single primary action)
+
+    @ViewBuilder
+    private var ctaBar: some View {
+        if let product = selectedProduct {
+            VStack(spacing: 8) {
+                Button {
+                    Task { await store.purchase(product) }
+                } label: {
+                    Group {
+                        if store.purchaseInFlight {
+                            ProgressView()
+                                .tint(Color(uiColor: .systemBackground))
+                        } else {
+                            Text(ctaTitle(for: product))
+                                .font(.system(.body, design: .monospaced, weight: .semibold))
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color.primary)
+                    .foregroundStyle(Color(uiColor: .systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+                .buttonStyle(.plain)
+                .disabled(store.purchaseInFlight)
+
+                Text(ctaFootnote(for: product))
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.tertiary)
+                    .multilineTextAlignment(.center)
+
+                if let error = store.lastError, !store.products.isEmpty {
+                    Text(error)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(.orange)
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, 10)
+            .padding(.bottom, 6)
+            .background(.bar)
+        }
+    }
+
+    // MARK: - Restore & legal
 
     private var restoreAndLinks: some View {
         VStack(spacing: 12) {
@@ -173,10 +230,14 @@ struct PaywallSheet: View {
             .font(.system(.caption2, design: .monospaced))
             .foregroundStyle(.secondary)
         }
-        .padding(.bottom, 8)
+        .padding(.top, 8)
     }
 
     // MARK: - Product display helpers
+
+    private var selectedProduct: Product? {
+        store.products.first { $0.id == selectedProductID } ?? store.products.first
+    }
 
     private func title(for product: Product) -> String {
         switch product.id {
@@ -198,14 +259,38 @@ struct PaywallSheet: View {
     private func note(for product: Product) -> String? {
         switch product.id {
         case PremiumStore.ProductID.yearly:
-            if product.subscription?.introductoryOffer?.paymentMode == .freeTrial {
-                return "7 dana besplatno, pa se naplaćuje godišnje"
-            }
-            return "Naplaćuje se jednom godišnje"
+            return hasFreeTrial(product) ? "7 dana besplatno" : "Naplaćuje se jednom godišnje"
         case PremiumStore.ProductID.lifetime:
-            return "Jednokratna kupovina, bez pretplate"
+            return "Jednokratno, bez pretplate"
         default:
             return nil
         }
+    }
+
+    private func ctaTitle(for product: Product) -> String {
+        switch product.id {
+        case PremiumStore.ProductID.yearly where hasFreeTrial(product):
+            return "Probaj 7 dana besplatno"
+        case PremiumStore.ProductID.lifetime:
+            return "Kupi zauvek — \(product.displayPrice)"
+        default:
+            return "Nastavi — \(price(for: product))"
+        }
+    }
+
+    private func ctaFootnote(for product: Product) -> String {
+        switch product.id {
+        case PremiumStore.ProductID.monthly:
+            return "Obnavlja se automatski \(product.displayPrice) mesečno dok ne otkažeš u App Store podešavanjima."
+        case PremiumStore.ProductID.yearly:
+            let trial = hasFreeTrial(product) ? "Posle probnog perioda obnavlja" : "Obnavlja"
+            return "\(trial) se automatski \(product.displayPrice) godišnje dok ne otkažeš u App Store podešavanjima."
+        default:
+            return "Jednokratna kupovina. Bez pretplate, bez obnavljanja."
+        }
+    }
+
+    private func hasFreeTrial(_ product: Product) -> Bool {
+        product.subscription?.introductoryOffer?.paymentMode == .freeTrial
     }
 }
