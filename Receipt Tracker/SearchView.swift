@@ -96,11 +96,12 @@ struct SearchView: View {
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 8) {
+            VStack(spacing: 10) {
                 searchField
-                filterChips
+                filterBar
             }
             .padding(.vertical, 10)
+            .background(Color(uiColor: .systemBackground))
         }
         .onAppear {
             isSearchFocused = true
@@ -139,39 +140,54 @@ struct SearchView: View {
         .padding(.horizontal, 16)
     }
 
-    // MARK: - Filter Chips
+    // MARK: - Filter Bar (month dropdown + category chips, single row)
 
-    private var filterChips: some View {
-        VStack(spacing: 8) {
-            // Months
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    chip("Svi meseci", isSelected: searchScope == .all) { searchScope = .all }
-                    chip("Ovaj mesec", isSelected: searchScope == .current) { searchScope = .current }
+    private var scopeTitle: String {
+        switch searchScope {
+        case .all: return "Svi meseci"
+        case .current: return "Ovaj mesec"
+        case .month(let date): return date.monthYearString.capitalized
+        }
+    }
+
+    private var filterBar: some View {
+        HStack(spacing: 8) {
+            Menu {
+                Picker("Mesec", selection: $searchScope) {
+                    Text("Svi meseci").tag(SearchScope.all)
+                    Text("Ovaj mesec").tag(SearchScope.current)
                     ForEach(availableMonths, id: \.self) { month in
-                        chip(month.monthYearString.capitalized, isSelected: searchScope == .month(month)) {
-                            searchScope = .month(month)
-                        }
+                        Text(month.monthYearString.capitalized)
+                            .tag(SearchScope.month(month))
                     }
                 }
-                .padding(.horizontal, 16)
+            } label: {
+                HStack(spacing: 6) {
+                    Text(scopeTitle)
+                        .font(.system(.caption, design: .monospaced, weight: .semibold))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                }
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 4)
             }
+            .buttonStyle(.glass)
 
-            // Categories (only when the user has assigned some)
             if !availableCategories.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        chip("Sve kategorije", isSelected: categoryFilter == nil) { categoryFilter = nil }
                         ForEach(availableCategories, id: \.self) { category in
                             chip(category, isSelected: categoryFilter == category) {
                                 categoryFilter = (categoryFilter == category) ? nil : category
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
                 }
+            } else {
+                Spacer()
             }
         }
+        .padding(.horizontal, 16)
     }
 
     private func chip(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -311,6 +327,8 @@ struct SearchView: View {
             Text(total.asRSD)
                 .font(.system(.subheadline, design: .monospaced, weight: .semibold))
         }
+        // Match the cards' inner padding so header text aligns with card text.
+        .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .background(Color(uiColor: .systemBackground))
     }
