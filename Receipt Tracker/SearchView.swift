@@ -234,6 +234,9 @@ struct SearchView: View {
                 .padding(.top, 40)
         } else {
             LazyVStack(spacing: 12, pinnedViews: [.sectionHeaders]) {
+                if let categoryFilter {
+                    categorySummaryRow(name: categoryFilter, groups: groups)
+                }
                 ForEach(groups) { group in
                     Section {
                         ForEach(group.receipts) { receipt in
@@ -252,6 +255,33 @@ struct SearchView: View {
             .padding(.horizontal)
             .padding(.bottom, 20)
         }
+    }
+
+    /// Total for the selected category across the active scope — the number
+    /// the user is actually after when they tap a category chip.
+    private func categorySummaryRow(name: String, groups: [ReceiptGroup]) -> some View {
+        let total = groups.reduce(Decimal(0)) { $0 + $1.total }
+        let count = groups.reduce(0) { $0 + $1.receipts.count }
+        return HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name)
+                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                Text(scopeTitle)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(total.asRSD)
+                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                Text("\(count) \(count % 10 == 1 && count % 100 != 11 ? "račun" : "računa")")
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .background(Color(uiColor: .secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     @ViewBuilder
