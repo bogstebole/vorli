@@ -93,8 +93,15 @@ struct SearchView: View {
             PaywallSheet()
         }
         .scrollDismissesKeyboard(.immediately)
-        .navigationTitle("")
+        .navigationTitle("Pretraga")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Styled principal title — default nav title isn't monospaced.
+            ToolbarItem(placement: .principal) {
+                Text("Pretraga")
+                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+            }
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: 10) {
                 HStack(spacing: 8) {
