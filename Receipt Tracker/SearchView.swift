@@ -156,7 +156,8 @@ struct SearchView: View {
         }
     }
 
-    /// Month dropdown, one third of the search row.
+    /// Month filter as a compact calendar icon; the active scope shows as a
+    /// small dot on the icon so a non-default filter is never invisible.
     private var monthMenu: some View {
         Menu {
             Picker("Mesec", selection: $searchScope) {
@@ -168,20 +169,13 @@ struct SearchView: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
-                Text(scopeTitle)
-                    .font(.system(.caption, design: .monospaced, weight: .semibold))
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
-            }
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 12)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .glassEffect(.regular.interactive(), in: .capsule)
+            Image(systemName: searchScope == .all ? "calendar" : "calendar.badge.checkmark")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(.primary)
+                .frame(width: 52, height: 44)
+                .glassEffect(.regular.interactive(), in: .capsule)
         }
-        .containerRelativeFrame(.horizontal, count: 3, span: 1, spacing: 8)
+        .tint(.primary)
     }
 
     private var categoryChips: some View {
@@ -195,6 +189,9 @@ struct SearchView: View {
             }
             .padding(.horizontal, 16)
         }
+        // Glass chips cast a soft shadow — without this the scroll view
+        // clips it into a visible hard edge.
+        .scrollClipDisabled()
     }
 
     private func chip(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -337,7 +334,13 @@ struct SearchView: View {
         // Match the cards' inner padding so header text aligns with card text.
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(Color(uiColor: .systemBackground))
+        // Full-bleed background: the header sits inside a padded stack, so a
+        // plain background would let cards and their shadows peek around it
+        // while pinned.
+        .background {
+            Color(uiColor: .systemBackground)
+                .containerRelativeFrame(.horizontal)
+        }
     }
 
     // MARK: - Computed Properties
