@@ -97,8 +97,15 @@ struct SearchView: View {
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .top, spacing: 0) {
             VStack(spacing: 10) {
-                searchField
-                filterBar
+                HStack(spacing: 8) {
+                    searchField
+                    monthMenu
+                }
+                .padding(.horizontal, 16)
+
+                if !availableCategories.isEmpty {
+                    categoryChips
+                }
             }
             .padding(.vertical, 10)
             .background(Color(uiColor: .systemBackground))
@@ -137,10 +144,9 @@ struct SearchView: View {
         .padding(.horizontal, 14)
         .frame(maxWidth: .infinity, minHeight: 44)
         .glassEffect(.regular.interactive(), in: .capsule)
-        .padding(.horizontal, 16)
     }
 
-    // MARK: - Filter Bar (month dropdown + category chips, single row)
+    // MARK: - Filters (month dropdown inline with search, categories below)
 
     private var scopeTitle: String {
         switch searchScope {
@@ -150,44 +156,45 @@ struct SearchView: View {
         }
     }
 
-    private var filterBar: some View {
-        HStack(spacing: 8) {
-            Menu {
-                Picker("Mesec", selection: $searchScope) {
-                    Text("Svi meseci").tag(SearchScope.all)
-                    Text("Ovaj mesec").tag(SearchScope.current)
-                    ForEach(availableMonths, id: \.self) { month in
-                        Text(month.monthYearString.capitalized)
-                            .tag(SearchScope.month(month))
-                    }
+    /// Month dropdown, one third of the search row.
+    private var monthMenu: some View {
+        Menu {
+            Picker("Mesec", selection: $searchScope) {
+                Text("Svi meseci").tag(SearchScope.all)
+                Text("Ovaj mesec").tag(SearchScope.current)
+                ForEach(availableMonths, id: \.self) { month in
+                    Text(month.monthYearString.capitalized)
+                        .tag(SearchScope.month(month))
                 }
-            } label: {
-                HStack(spacing: 6) {
-                    Text(scopeTitle)
-                        .font(.system(.caption, design: .monospaced, weight: .semibold))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                }
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 4)
             }
-            .buttonStyle(.glass)
-
-            if !availableCategories.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(availableCategories, id: \.self) { category in
-                            chip(category, isSelected: categoryFilter == category) {
-                                categoryFilter = (categoryFilter == category) ? nil : category
-                            }
-                        }
-                    }
-                }
-            } else {
-                Spacer()
+        } label: {
+            HStack(spacing: 4) {
+                Text(scopeTitle)
+                    .font(.system(.caption, design: .monospaced, weight: .semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
             }
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .glassEffect(.regular.interactive(), in: .capsule)
         }
-        .padding(.horizontal, 16)
+        .containerRelativeFrame(.horizontal, count: 3, span: 1, spacing: 8)
+    }
+
+    private var categoryChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(availableCategories, id: \.self) { category in
+                    chip(category, isSelected: categoryFilter == category) {
+                        categoryFilter = (categoryFilter == category) ? nil : category
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+        }
     }
 
     private func chip(_ title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
