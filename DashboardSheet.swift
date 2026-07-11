@@ -27,18 +27,34 @@ struct DashboardSheet: View {
                     // Year Header with swipe indicators
                     VStack(spacing: 12) {
                         HStack(spacing: 16) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(.title3, weight: .semibold))
-                                .foregroundStyle(.secondary)
-                            
+                            Button {
+                                changeYear(by: -1)
+                            } label: {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(.title3, weight: .semibold))
+                                    .foregroundStyle(canGoBack ? .secondary : .quaternary)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!canGoBack)
+
                             Text(String(format: "%d", selectedYear))
                                 .font(.system(.largeTitle, design: .default, weight: .bold))
                                 .foregroundStyle(.primary)
                                 .contentTransition(.numericText())
-                            
-                            Image(systemName: "chevron.right")
-                                .font(.system(.title3, weight: .semibold))
-                                .foregroundStyle(.secondary)
+
+                            Button {
+                                changeYear(by: 1)
+                            } label: {
+                                Image(systemName: "chevron.right")
+                                    .font(.system(.title3, weight: .semibold))
+                                    .foregroundStyle(canGoForward ? .secondary : .quaternary)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(!canGoForward)
                         }
                         
                         // Legend
@@ -163,18 +179,17 @@ struct DashboardSheet: View {
             }
             .navigationTitle("Kontrolna tabla")
             .navigationBarTitleDisplayMode(.inline)
-            .gesture(
-                DragGesture(minimumDistance: 50)
+            // simultaneousGesture so the vertical ScrollView doesn't swallow
+            // the swipe; the dominance check keeps diagonal scrolls from
+            // accidentally flipping the year.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 30)
                     .onEnded { value in
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                            if value.translation.width > 0 {
-                                // Swipe right - go to previous year
-                                selectedYear -= 1
-                            } else {
-                                // Swipe left - go to next year
-                                selectedYear += 1
-                            }
-                        }
+                        let horizontal = value.translation.width
+                        let vertical = value.translation.height
+                        guard abs(horizontal) > 60, abs(horizontal) > abs(vertical) * 1.5 else { return }
+                        // Swipe right = previous year, swipe left = next.
+                        changeYear(by: horizontal > 0 ? -1 : 1)
                     }
             )
             .task {
@@ -197,8 +212,30 @@ struct DashboardSheet: View {
         }
     }
     
+    // MARK: - Year navigation
+
+    /// Navigable range: from the oldest year with a receipt up to the current
+    /// year — no wandering into empty future or pre-data years.
+    private var yearRange: ClosedRange<Int> {
+        let calendar = Calendar.current
+        let current = calendar.component(.year, from: Date())
+        let oldest = receipts.map { calendar.component(.year, from: $0.timestamp) }.min() ?? current
+        return min(oldest, current)...current
+    }
+
+    private var canGoBack: Bool { selectedYear > yearRange.lowerBound }
+    private var canGoForward: Bool { selectedYear < yearRange.upperBound }
+
+    private func changeYear(by delta: Int) {
+        let target = selectedYear + delta
+        guard yearRange.contains(target) else { return }
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            selectedYear = target
+        }
+    }
+
     // MARK: - Computed Properties
-    
+
     // Calculate monthly data for all 12 months of the selected year
     private var monthlyDataForYear: [MonthData] {
         let calendar = Calendar.current
