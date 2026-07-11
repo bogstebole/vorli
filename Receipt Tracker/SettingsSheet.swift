@@ -75,6 +75,14 @@ struct SettingsSheet: View {
                         Text("Simuliraj Premium (dev)")
                             .font(.system(.subheadline, design: .monospaced))
                     }
+                    Button {
+                        UserDefaults.standard.set(false, forKey: "onboardingCompleted")
+                        dismiss()
+                    } label: {
+                        Text("Prikaži onboarding ponovo (dev)")
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(.primary)
+                    }
                     #endif
                 } header: {
                     Text("Premium")

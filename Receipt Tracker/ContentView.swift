@@ -167,6 +167,13 @@ struct ContentView: View {
                 showOnboarding = true
             }
         }
+        // Also react while running — lets the dev "show onboarding again"
+        // button work without an app restart.
+        .onChange(of: onboardingCompleted) { _, completed in
+            if !completed {
+                showOnboarding = true
+            }
+        }
     }
 
     // MARK: - Computed Properties
