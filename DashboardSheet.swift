@@ -56,7 +56,17 @@ struct DashboardSheet: View {
                             .buttonStyle(.plain)
                             .disabled(!canGoForward)
                         }
-                        
+
+                        // Total spent in the selected year
+                        VStack(spacing: 2) {
+                            Text(MoneyFormat.grouped(yearTotalSpent) + " RSD")
+                                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                                .contentTransition(.numericText())
+                            Text("ukupno potrošeno")
+                                .font(.system(.caption2, design: .monospaced))
+                                .foregroundStyle(.tertiary)
+                        }
+
                         // Legend
                         HStack(spacing: 20) {
                             HStack(spacing: 6) {
@@ -225,6 +235,14 @@ struct DashboardSheet: View {
 
     private var canGoBack: Bool { selectedYear > yearRange.lowerBound }
     private var canGoForward: Bool { selectedYear < yearRange.upperBound }
+
+    /// Receipts total for the selected year — same basis as the month tiles.
+    private var yearTotalSpent: Decimal {
+        let calendar = Calendar.current
+        return receipts
+            .filter { calendar.component(.year, from: $0.timestamp) == selectedYear }
+            .reduce(Decimal(0)) { $0 + $1.totalAmount }
+    }
 
     private func changeYear(by delta: Int) {
         let target = selectedYear + delta
