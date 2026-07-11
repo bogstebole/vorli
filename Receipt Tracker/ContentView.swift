@@ -14,6 +14,9 @@ struct ContentView: View {
     @Query(sort: \BudgetEntry.timestamp, order: .reverse) private var budgetEntries: [BudgetEntry]
     @Query private var fixedCosts: [FixedCost]
 
+    @AppStorage("onboardingCompleted") private var onboardingCompleted = false
+    @State private var showOnboarding = false
+
     @State private var selectedMonth: Date = Date()
     @State private var errorMessage: String?
     @State private var showError = false
@@ -146,11 +149,23 @@ struct ContentView: View {
             .navigationDestination(item: $scannedReceipt) { receipt in
                 ReceiptDetailView(receipt: receipt)
             }
+            .fullScreenCover(isPresented: $showOnboarding) {
+                OnboardingView { startScanning in
+                    onboardingCompleted = true
+                    showOnboarding = false
+                    if startScanning {
+                        showScanner = true
+                    }
+                }
+            }
         }
         .task {
             migrateSavingsGoalsIfNeeded()
             backfillNormalizedItemNamesIfNeeded()
             autoAddMonthlyIncomeIfNeeded()
+            if !onboardingCompleted {
+                showOnboarding = true
+            }
         }
     }
 
