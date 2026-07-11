@@ -22,7 +22,7 @@ struct MonthTileView: View {
                 .lineLimit(1)
             
             // Receipt Count
-            Text("\(receiptCount) receipts")
+            Text("\(receiptCount) \(receiptCount % 10 == 1 && receiptCount % 100 != 11 ? "račun" : "računa")")
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(.secondary)
             
@@ -88,14 +88,8 @@ struct MonthTileView: View {
     }
     
     private func formatCurrency(_ amount: Decimal) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 0
-        formatter.groupingSeparator = ","
-        
-        let formattedNumber = formatter.string(from: amount as NSDecimalNumber) ?? "0"
-        return "\(formattedNumber) rsd"
+        // Serbian grouping (45.000), consistent with the rest of the app.
+        MoneyFormat.grouped(amount) + " RSD"
     }
 }
 
