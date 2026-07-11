@@ -33,7 +33,7 @@ struct OnboardingView: View {
         "Svaki artikal. Svaka cena.\nMesec za mesecom.",
         "I znaš kad možeš da priuštiš\nono što želiš."
     ]
-    private static let ctaLine = "Prvi račun te čeka u novčaniku."
+    private static let ctaLine = "Sledeći račun nemoj da baciš."
 
     var body: some View {
         ZStack {
