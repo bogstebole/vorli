@@ -129,7 +129,7 @@ struct QRScannerView: View {
     /// control language as the system document scanner. QR is the live
     /// default, so its button is the prominent one.
     private var actionBar: some View {
-        HStack(spacing: 40) {
+        HStack(spacing: 24) {
             circleAction(icon: "qrcode.viewfinder", title: "QR kod", isActive: true) {
                 // Already the default surface — nothing to switch.
             }
