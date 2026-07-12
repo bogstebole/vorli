@@ -140,7 +140,7 @@ struct QRScannerView: View {
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     circleIcon("photo", isActive: false)
                 }
-                .buttonStyle(.glass)
+                .buttonStyle(.plain)
                 actionCaption("Galerija")
             }
         }
@@ -149,29 +149,25 @@ struct QRScannerView: View {
 
     private func circleAction(icon: String, title: String, isActive: Bool, action: @escaping () -> Void) -> some View {
         VStack(spacing: 6) {
-            Group {
-                if isActive {
-                    Button(action: action) {
-                        circleIcon(icon, isActive: true)
-                    }
-                    .buttonStyle(.glassProminent)
-                    .tint(.primary)
-                } else {
-                    Button(action: action) {
-                        circleIcon(icon, isActive: false)
-                    }
-                    .buttonStyle(.glass)
-                }
+            Button(action: action) {
+                circleIcon(icon, isActive: isActive)
             }
+            .buttonStyle(.plain)
             actionCaption(title)
         }
     }
 
+    /// True circle: glassEffect applied directly (the glass button style adds
+    /// its own horizontal padding and turns everything into a pill).
     private func circleIcon(_ icon: String, isActive: Bool) -> some View {
         Image(systemName: icon)
-            .font(.system(size: 20, weight: .medium))
+            .font(.system(size: 17, weight: .medium))
             .foregroundStyle(isActive ? Color(uiColor: .systemBackground) : .primary)
-            .frame(width: 40, height: 40)
+            .frame(width: 48, height: 48)
+            .glassEffect(
+                isActive ? .regular.tint(.primary).interactive() : .regular.interactive(),
+                in: .circle
+            )
     }
 
     private func actionCaption(_ title: String) -> some View {
