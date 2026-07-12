@@ -125,49 +125,60 @@ struct QRScannerView: View {
 
     // MARK: - Bottom action bar
 
-    /// QR is the live default; the other two are one tap away, together.
+    /// Compact circular icon buttons with labels underneath — the same
+    /// control language as the system document scanner. QR is the live
+    /// default, so its button is the prominent one.
     private var actionBar: some View {
-        HStack(spacing: 10) {
-            actionButton(icon: "qrcode.viewfinder", title: "QR kod", isActive: true) {
+        HStack(spacing: 40) {
+            circleAction(icon: "qrcode.viewfinder", title: "QR kod", isActive: true) {
                 // Already the default surface — nothing to switch.
             }
-            actionButton(icon: "doc.viewfinder", title: "Račun", isActive: false) {
+            circleAction(icon: "doc.viewfinder", title: "Račun", isActive: false) {
                 openDocScanner()
             }
-            PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                actionLabel(icon: "photo", title: "Galerija", isActive: false)
-            }
-            .buttonStyle(.glass)
-        }
-    }
-
-    private func actionButton(icon: String, title: String, isActive: Bool, action: @escaping () -> Void) -> some View {
-        Group {
-            if isActive {
-                Button(action: action) {
-                    actionLabel(icon: icon, title: title, isActive: true)
-                }
-                .buttonStyle(.glassProminent)
-                .tint(.primary)
-            } else {
-                Button(action: action) {
-                    actionLabel(icon: icon, title: title, isActive: false)
+            VStack(spacing: 6) {
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    circleIcon("photo", isActive: false)
                 }
                 .buttonStyle(.glass)
+                actionCaption("Galerija")
             }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func circleAction(icon: String, title: String, isActive: Bool, action: @escaping () -> Void) -> some View {
+        VStack(spacing: 6) {
+            Group {
+                if isActive {
+                    Button(action: action) {
+                        circleIcon(icon, isActive: true)
+                    }
+                    .buttonStyle(.glassProminent)
+                    .tint(.primary)
+                } else {
+                    Button(action: action) {
+                        circleIcon(icon, isActive: false)
+                    }
+                    .buttonStyle(.glass)
+                }
+            }
+            actionCaption(title)
         }
     }
 
-    private func actionLabel(icon: String, title: String, isActive: Bool) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
-            Text(title)
-                .font(.system(size: 11, weight: .medium, design: .monospaced))
-        }
-        .foregroundStyle(isActive ? Color(uiColor: .systemBackground) : .primary)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
+    private func circleIcon(_ icon: String, isActive: Bool) -> some View {
+        Image(systemName: icon)
+            .font(.system(size: 20, weight: .medium))
+            .foregroundStyle(isActive ? Color(uiColor: .systemBackground) : .primary)
+            .frame(width: 40, height: 40)
+    }
+
+    private func actionCaption(_ title: String) -> some View {
+        Text(title)
+            .font(.system(size: 12, weight: .medium, design: .monospaced))
+            .foregroundStyle(.white)
+            .shadow(color: .black.opacity(0.5), radius: 3)
     }
 
     // MARK: - Document scanner handoff
