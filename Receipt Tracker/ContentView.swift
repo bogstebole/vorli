@@ -121,7 +121,10 @@ struct ContentView: View {
                     Text(errorMessage)
                 }
             }
-            .sheet(isPresented: $showScanner) {
+            // Full screen, not a sheet: the document scanner is always full
+            // screen, so QR ↔ Račun stays frame-to-frame without the sheet
+            // chrome jumping in between.
+            .fullScreenCover(isPresented: $showScanner) {
                 QRScannerView { url in
                     Task { await processReceipt(from: url) }
                 } onReceiptParsed: { parsed in
