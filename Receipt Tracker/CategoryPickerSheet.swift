@@ -23,16 +23,19 @@ struct CategoryPickerSheet: View {
     private var existing: MerchantCategory? {
         categories.first { $0.merchantKey == merchantKey }
     }
-    private var existingIsCustom: Bool {
-        guard let existing else { return false }
-        return !MerchantCategory.presets.contains(existing.name)
+
+    /// Presets plus every custom category the user has ever assigned —
+    /// type "Pekara" once and it becomes a first-class option everywhere.
+    private var allOptions: [String] {
+        let custom = Set(categories.map(\.name)).subtracting(MerchantCategory.presets)
+        return MerchantCategory.presets + custom.sorted()
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    ForEach(MerchantCategory.presets, id: \.self) { preset in
+                    ForEach(allOptions, id: \.self) { preset in
                         Button {
                             assign(preset)
                         } label: {
@@ -96,11 +99,6 @@ struct CategoryPickerSheet: View {
                             .font(.system(.body, weight: .medium))
                             .foregroundStyle(.primary)
                     }
-                }
-            }
-            .onAppear {
-                if existingIsCustom, let existing {
-                    customName = existing.name
                 }
             }
         }
