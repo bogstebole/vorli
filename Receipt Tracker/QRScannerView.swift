@@ -51,7 +51,7 @@ struct QRScannerView: View {
                             onScan(url)
                             dismiss()
                         })
-                        .ignoresSafeArea(edges: .bottom)
+                        .ignoresSafeArea()
                     }
                 } else {
                     permissionView
@@ -80,13 +80,24 @@ struct QRScannerView: View {
             }
             .navigationTitle("Skeniraj")
             .navigationBarTitleDisplayMode(.inline)
+            // Camera runs edge-to-edge; the bar is just floating chrome.
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Skeniraj")
+                        .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.5), radius: 3)
+                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
+                            .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(.primary)
+                            .frame(width: 36, height: 36)
+                            .glassEffect(.regular.interactive(), in: .circle)
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .alert("Greška", isPresented: $showError) {
