@@ -19,6 +19,7 @@ struct ContentView: View {
 
     @State private var selectedMonth: Date = Date()
     @State private var groupByDay = false
+    @State private var topSafeInset: CGFloat = 0
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var showScanner = false
@@ -108,6 +109,21 @@ struct ContentView: View {
                         }
                     }
                 }
+            }
+            // Opaque cover over the status bar / Dynamic Island zone, above
+            // the scrolling content — otherwise cards scroll visibly under
+            // the transparent top area past the pinned day header.
+            .background {
+                GeometryReader { proxy in
+                    Color.clear.onAppear { topSafeInset = proxy.safeAreaInsets.top }
+                }
+                .ignoresSafeArea()
+            }
+            .overlay(alignment: .top) {
+                Color(uiColor: .systemBackground)
+                    .frame(height: topSafeInset)
+                    .ignoresSafeArea(edges: .top)
+                    .allowsHitTesting(false)
             }
             .navigationBarHidden(true)
             .toolbar {
