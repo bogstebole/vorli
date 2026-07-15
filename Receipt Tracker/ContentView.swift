@@ -84,12 +84,14 @@ struct ContentView: View {
                             EmptyReceiptsView()
                                 .padding(.top, 40)
                         } else if groupByDay {
-                            LazyVStack(spacing: 12) {
+                            LazyVStack(spacing: 12, pinnedViews: [.sectionHeaders]) {
                                 ForEach(receiptsByDay, id: \.day) { group in
-                                    dayHeader(day: group.day, total: group.total)
-                                        .padding(.top, 4)
-                                    ForEach(group.receipts) { receipt in
-                                        receiptRow(receipt)
+                                    Section {
+                                        ForEach(group.receipts) { receipt in
+                                            receiptRow(receipt)
+                                        }
+                                    } header: {
+                                        dayHeader(day: group.day, total: group.total)
                                     }
                                 }
                             }
@@ -230,6 +232,14 @@ struct ContentView: View {
         // Match ReceiptCardView's inner padding (16) so header text aligns
         // vertically with the card's name and time.
         .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        // Full-bleed opaque band so cards scrolling under the pinned header
+        // are fully hidden — the LazyVStack is inset, so the background must
+        // reach past that padding to the screen edges.
+        .background {
+            Color(uiColor: .systemBackground)
+                .containerRelativeFrame(.horizontal)
+        }
     }
 
     // MARK: - Computed Properties
