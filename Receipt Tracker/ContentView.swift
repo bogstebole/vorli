@@ -84,14 +84,12 @@ struct ContentView: View {
                             EmptyReceiptsView()
                                 .padding(.top, 40)
                         } else if groupByDay {
-                            LazyVStack(spacing: 12, pinnedViews: [.sectionHeaders]) {
+                            LazyVStack(spacing: 12) {
                                 ForEach(receiptsByDay, id: \.day) { group in
-                                    Section {
-                                        ForEach(group.receipts) { receipt in
-                                            receiptRow(receipt)
-                                        }
-                                    } header: {
-                                        dayHeader(day: group.day, total: group.total)
+                                    dayHeader(day: group.day, total: group.total)
+                                        .padding(.top, 4)
+                                    ForEach(group.receipts) { receipt in
+                                        receiptRow(receipt)
                                     }
                                 }
                             }
@@ -212,9 +210,16 @@ struct ContentView: View {
         }
     }
 
+    private static let dayHeaderFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "sr_Latn_RS")
+        f.dateFormat = "EEEE, d. MMM"
+        return f
+    }()
+
     private func dayHeader(day: Date, total: Decimal) -> some View {
         HStack {
-            Text(day.formatted(.dateTime.weekday(.wide).day().month(.abbreviated)))
+            Text(Self.dayHeaderFormatter.string(from: day).capitalized)
                 .font(.system(.caption, design: .monospaced, weight: .semibold))
                 .foregroundStyle(.primary)
             Spacer()
@@ -225,8 +230,6 @@ struct ContentView: View {
         // Match ReceiptCardView's inner padding (16) so header text aligns
         // vertically with the card's name and time.
         .padding(.horizontal, 16)
-        .padding(.vertical, 6)
-        .background(Color(uiColor: .systemBackground))
     }
 
     // MARK: - Computed Properties
