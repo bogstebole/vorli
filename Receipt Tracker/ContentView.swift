@@ -19,7 +19,6 @@ struct ContentView: View {
 
     @State private var selectedMonth: Date = Date()
     @State private var groupByDay = false
-    @State private var topSafeInset: CGFloat = 0
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var showScanner = false
@@ -85,14 +84,12 @@ struct ContentView: View {
                             EmptyReceiptsView()
                                 .padding(.top, 40)
                         } else if groupByDay {
-                            LazyVStack(spacing: 12, pinnedViews: [.sectionHeaders]) {
+                            LazyVStack(spacing: 12) {
                                 ForEach(receiptsByDay, id: \.day) { group in
-                                    Section {
-                                        ForEach(group.receipts) { receipt in
-                                            receiptRow(receipt)
-                                        }
-                                    } header: {
-                                        dayHeader(day: group.day, total: group.total)
+                                    dayHeader(day: group.day, total: group.total)
+                                        .padding(.top, 4)
+                                    ForEach(group.receipts) { receipt in
+                                        receiptRow(receipt)
                                     }
                                 }
                             }
@@ -109,21 +106,6 @@ struct ContentView: View {
                         }
                     }
                 }
-            }
-            // Opaque cover over the status bar / Dynamic Island zone, above
-            // the scrolling content — otherwise cards scroll visibly under
-            // the transparent top area past the pinned day header.
-            .background {
-                GeometryReader { proxy in
-                    Color.clear.onAppear { topSafeInset = proxy.safeAreaInsets.top }
-                }
-                .ignoresSafeArea()
-            }
-            .overlay(alignment: .top) {
-                Color(uiColor: .systemBackground)
-                    .frame(height: topSafeInset)
-                    .ignoresSafeArea(edges: .top)
-                    .allowsHitTesting(false)
             }
             .navigationBarHidden(true)
             .toolbar {
@@ -248,14 +230,6 @@ struct ContentView: View {
         // Match ReceiptCardView's inner padding (16) so header text aligns
         // vertically with the card's name and time.
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        // Full-bleed opaque band so cards scrolling under the pinned header
-        // are fully hidden — the LazyVStack is inset, so the background must
-        // reach past that padding to the screen edges.
-        .background {
-            Color(uiColor: .systemBackground)
-                .containerRelativeFrame(.horizontal)
-        }
     }
 
     // MARK: - Computed Properties
