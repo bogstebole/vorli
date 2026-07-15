@@ -18,7 +18,6 @@ struct ContentView: View {
     @State private var showOnboarding = false
 
     @State private var selectedMonth: Date = Date()
-    @State private var groupByDay = false
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var showScanner = false
@@ -47,43 +46,32 @@ struct ContentView: View {
                         SectionDivider(title: "Računi")
                             .padding(.horizontal)
 
-                        // Search bar + view mode toggle, inline
-                        HStack(spacing: 8) {
-                            NavigationLink {
-                                SearchView()
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "magnifyingglass")
-                                        .foregroundStyle(.secondary)
-                                        .font(.system(size: 14))
-                                    Text("Pretraži...")
-                                        .font(.system(.subheadline, design: .monospaced))
-                                        .foregroundStyle(.tertiary)
-                                    Spacer()
-                                }
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
-                                .background(.ultraThinMaterial)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        // Search bar — tapping pushes SearchView
+                        NavigationLink {
+                            SearchView()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundStyle(.secondary)
+                                    .font(.system(size: 14))
+                                Text("Pretraži račune...")
+                                    .font(.system(.subheadline, design: .monospaced))
+                                    .foregroundStyle(.tertiary)
+                                Spacer()
                             }
-                            .buttonStyle(.plain)
-
-                            if !filteredReceipts.isEmpty {
-                                Picker("Prikaz", selection: $groupByDay) {
-                                    Text("Sve").tag(false)
-                                    Text("Po danu").tag(true)
-                                }
-                                .pickerStyle(.segmented)
-                                .fixedSize()
-                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
+                        .buttonStyle(.plain)
                         .padding(.horizontal)
 
-                        // Receipt list for current month
+                        // Receipt list for current month, grouped by day
                         if filteredReceipts.isEmpty {
                             EmptyReceiptsView()
                                 .padding(.top, 40)
-                        } else if groupByDay {
+                        } else {
                             LazyVStack(spacing: 12) {
                                 ForEach(receiptsByDay, id: \.day) { group in
                                     dayHeader(day: group.day, total: group.total)
@@ -91,14 +79,6 @@ struct ContentView: View {
                                     ForEach(group.receipts) { receipt in
                                         receiptRow(receipt)
                                     }
-                                }
-                            }
-                            .padding(.horizontal)
-                            .padding(.bottom, 20)
-                        } else {
-                            LazyVStack(spacing: 12) {
-                                ForEach(filteredReceipts) { receipt in
-                                    receiptRow(receipt)
                                 }
                             }
                             .padding(.horizontal)
