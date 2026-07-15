@@ -47,36 +47,37 @@ struct ContentView: View {
                         SectionDivider(title: "Računi")
                             .padding(.horizontal)
 
-                        // Search bar — tapping pushes SearchView
-                        NavigationLink {
-                            SearchView()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundStyle(.secondary)
-                                    .font(.system(size: 14))
-                                Text("Pretraži račune...")
-                                    .font(.system(.subheadline, design: .monospaced))
-                                    .foregroundStyle(.tertiary)
-                                Spacer()
+                        // Search bar + view mode toggle, inline
+                        HStack(spacing: 8) {
+                            NavigationLink {
+                                SearchView()
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "magnifyingglass")
+                                        .foregroundStyle(.secondary)
+                                        .font(.system(size: 14))
+                                    Text("Pretraži...")
+                                        .font(.system(.subheadline, design: .monospaced))
+                                        .foregroundStyle(.tertiary)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 8)
+                                .background(.ultraThinMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal)
+                            .buttonStyle(.plain)
 
-                        // View toggle: flat list vs. grouped by day
-                        if !filteredReceipts.isEmpty {
-                            HStack(spacing: 8) {
-                                Spacer()
-                                viewModeButton(title: "Sve", active: !groupByDay) { groupByDay = false }
-                                viewModeButton(title: "Po danu", active: groupByDay) { groupByDay = true }
+                            if !filteredReceipts.isEmpty {
+                                Picker("Prikaz", selection: $groupByDay) {
+                                    Text("Sve").tag(false)
+                                    Text("Po danu").tag(true)
+                                }
+                                .pickerStyle(.segmented)
+                                .fixedSize()
                             }
-                            .padding(.horizontal)
                         }
+                        .padding(.horizontal)
 
                         // Receipt list for current month
                         if filteredReceipts.isEmpty {
@@ -211,19 +212,6 @@ struct ContentView: View {
         }
     }
 
-    private func viewModeButton(title: String, active: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(.caption, design: .monospaced, weight: active ? .semibold : .regular))
-                .foregroundStyle(active ? .primary : .secondary)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(active ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.clear))
-                .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
-    }
-
     private func dayHeader(day: Date, total: Decimal) -> some View {
         HStack {
             Text(day.formatted(.dateTime.weekday(.wide).day().month(.abbreviated)))
@@ -234,6 +222,9 @@ struct ContentView: View {
                 .font(.system(.caption, design: .monospaced, weight: .semibold))
                 .foregroundStyle(.secondary)
         }
+        // Match ReceiptCardView's inner padding (16) so header text aligns
+        // vertically with the card's name and time.
+        .padding(.horizontal, 16)
         .padding(.vertical, 6)
         .background(Color(uiColor: .systemBackground))
     }
