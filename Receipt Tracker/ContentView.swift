@@ -18,6 +18,7 @@ struct ContentView: View {
     @State private var showOnboarding = false
 
     @State private var selectedMonth: Date = Date()
+    @State private var groupByDay = false
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var showScanner = false
@@ -67,26 +68,38 @@ struct ContentView: View {
                         .buttonStyle(.plain)
                         .padding(.horizontal)
 
+                        // View toggle: flat list vs. grouped by day
+                        if !filteredReceipts.isEmpty {
+                            HStack(spacing: 8) {
+                                Spacer()
+                                viewModeButton(title: "Sve", active: !groupByDay) { groupByDay = false }
+                                viewModeButton(title: "Po danu", active: groupByDay) { groupByDay = true }
+                            }
+                            .padding(.horizontal)
+                        }
+
                         // Receipt list for current month
                         if filteredReceipts.isEmpty {
                             EmptyReceiptsView()
                                 .padding(.top, 40)
+                        } else if groupByDay {
+                            LazyVStack(spacing: 12, pinnedViews: [.sectionHeaders]) {
+                                ForEach(receiptsByDay, id: \.day) { group in
+                                    Section {
+                                        ForEach(group.receipts) { receipt in
+                                            receiptRow(receipt)
+                                        }
+                                    } header: {
+                                        dayHeader(day: group.day, total: group.total)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
+                            .padding(.bottom, 20)
                         } else {
                             LazyVStack(spacing: 12) {
                                 ForEach(filteredReceipts) { receipt in
-                                    NavigationLink {
-                                        ReceiptDetailView(receipt: receipt)
-                                    } label: {
-                                        ReceiptCardView(receipt: receipt)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .contextMenu {
-                                        Button(role: .destructive) {
-                                            deleteReceipt(receipt)
-                                        } label: {
-                                            Label("Obriši", systemImage: "trash")
-                                        }
-                                    }
+                                    receiptRow(receipt)
                                 }
                             }
                             .padding(.horizontal)
@@ -179,7 +192,66 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Row / header builders
+
+    @ViewBuilder
+    private func receiptRow(_ receipt: Receipt) -> some View {
+        NavigationLink {
+            ReceiptDetailView(receipt: receipt)
+        } label: {
+            ReceiptCardView(receipt: receipt)
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) {
+                deleteReceipt(receipt)
+            } label: {
+                Label("Obriši", systemImage: "trash")
+            }
+        }
+    }
+
+    private func viewModeButton(title: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(.caption, design: .monospaced, weight: active ? .semibold : .regular))
+                .foregroundStyle(active ? .primary : .secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(active ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(.clear))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func dayHeader(day: Date, total: Decimal) -> some View {
+        HStack {
+            Text(day.formatted(.dateTime.weekday(.wide).day().month(.abbreviated)))
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .foregroundStyle(.primary)
+            Spacer()
+            Text(MoneyFormat.grouped(total) + " RSD")
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 6)
+        .background(Color(uiColor: .systemBackground))
+    }
+
     // MARK: - Computed Properties
+
+    /// Current month's receipts grouped by calendar day, newest day first.
+    private var receiptsByDay: [(day: Date, total: Decimal, receipts: [Receipt])] {
+        let calendar = Calendar.current
+        let groups = Dictionary(grouping: filteredReceipts) {
+            calendar.startOfDay(for: $0.timestamp)
+        }
+        return groups.keys.sorted(by: >).map { day in
+            let dayReceipts = (groups[day] ?? []).sorted { $0.timestamp > $1.timestamp }
+            let total = dayReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
+            return (day: day, total: total, receipts: dayReceipts)
+        }
+    }
 
     private var currentMonthName: String {
         let formatter = DateFormatter()
