@@ -45,8 +45,7 @@ struct PaywallSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
+                        TablerIcon("x", size: 18)
                             .foregroundStyle(.primary)
                     }
                 }
@@ -92,8 +91,7 @@ struct PaywallSheet: View {
             Text(text)
                 .font(.system(.subheadline, design: .monospaced, weight: .medium))
             Spacer()
-            Image(systemName: "checkmark")
-                .font(.system(.subheadline, weight: .semibold))
+            TablerIcon("check", size: 16)
                 .foregroundStyle(.primary)
         }
         .padding()
@@ -135,8 +133,7 @@ struct PaywallSheet: View {
             selectedProductID = product.id
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: selected ? "circle.inset.filled" : "circle")
-                    .font(.system(size: 18))
+                TablerIcon(selected ? "circle-dot" : "circle", size: 20)
                     .foregroundStyle(selected ? .primary : .tertiary)
 
                 VStack(alignment: .leading, spacing: 2) {

@@ -54,8 +54,7 @@ struct SettingsSheet: View {
                                     .font(.system(.subheadline, design: .monospaced))
                                     .foregroundStyle(.primary)
                                 Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 11, weight: .medium))
+                                TablerIcon("chevron-right", size: 12)
                                     .foregroundStyle(.tertiary)
                             }
                         }
@@ -92,7 +91,7 @@ struct SettingsSheet: View {
                 // Data & privacy
                 Section {
                     HStack(spacing: 8) {
-                        Image(systemName: "iphone.and.arrow.forward.inward")
+                        TablerIcon("device-mobile", size: 16)
                             .foregroundStyle(.secondary)
                         Text("Svi podaci ostaju na ovom uređaju")
                             .font(.system(.subheadline, design: .monospaced))
@@ -105,8 +104,7 @@ struct SettingsSheet: View {
                                 .font(.system(.subheadline, design: .monospaced))
                                 .foregroundStyle(.primary)
                             Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(.caption, weight: .medium))
+                            TablerIcon("arrow-up-right", size: 13)
                                 .foregroundStyle(.tertiary)
                         }
                     }
@@ -130,8 +128,7 @@ struct SettingsSheet: View {
                                 .font(.system(.subheadline, design: .monospaced))
                                 .foregroundStyle(.primary)
                             Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .font(.system(.caption, weight: .medium))
+                            TablerIcon("arrow-up-right", size: 13)
                                 .foregroundStyle(.tertiary)
                         }
                     }
@@ -167,8 +164,12 @@ struct SettingsSheet: View {
                     Button(role: .destructive) {
                         showDeleteConfirmation = true
                     } label: {
-                        Label("Obriši sve podatke", systemImage: "trash")
-                            .font(.system(.subheadline, design: .monospaced))
+                        Label {
+                            Text("Obriši sve podatke")
+                        } icon: {
+                            TablerIcon("trash", size: 16)
+                        }
+                        .font(.system(.subheadline, design: .monospaced))
                     }
                 } footer: {
                     Text("Trajno briše sve račune, zaradu, fiksne troškove, želje i kategorije sa uređaja.")
@@ -199,8 +200,7 @@ struct SettingsSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
+                        TablerIcon("x", size: 18)
                             .foregroundStyle(.primary)
                     }
                 }

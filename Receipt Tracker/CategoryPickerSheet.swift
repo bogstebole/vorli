@@ -45,8 +45,7 @@ struct CategoryPickerSheet: View {
                                     .foregroundStyle(.primary)
                                 Spacer()
                                 if existing?.name == preset {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(.subheadline, weight: .semibold))
+                                    TablerIcon("check", size: 16)
                                         .foregroundStyle(.primary)
                                 }
                             }
@@ -84,8 +83,12 @@ struct CategoryPickerSheet: View {
                         Button(role: .destructive) {
                             remove()
                         } label: {
-                            Label("Ukloni kategoriju", systemImage: "trash")
-                                .font(.system(.subheadline, design: .monospaced))
+                            Label {
+                                Text("Ukloni kategoriju")
+                            } icon: {
+                                TablerIcon("trash", size: 16)
+                            }
+                            .font(.system(.subheadline, design: .monospaced))
                         }
                     }
                 }
@@ -95,8 +98,7 @@ struct CategoryPickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
+                        TablerIcon("x", size: 18)
                             .foregroundStyle(.primary)
                     }
                 }

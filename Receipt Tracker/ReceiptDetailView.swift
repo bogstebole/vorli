@@ -36,7 +36,11 @@ struct ReceiptDetailView: View {
                                 .background(.quaternary.opacity(0.5))
                                 .clipShape(Capsule())
                         } else {
-                            Label("Kategorija", systemImage: "plus")
+                            Label {
+                                Text("Kategorija")
+                            } icon: {
+                                TablerIcon("plus", size: 12)
+                            }
                                 .font(.system(.caption, design: .monospaced))
                                 .foregroundStyle(.tertiary)
                                 .padding(.horizontal, 10)
@@ -231,8 +235,7 @@ struct ArticleRowView: View {
                         .foregroundStyle(.primary)
 
                     if hasHistory {
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .medium))
+                        TablerIcon("chevron-right", size: 12)
                             .foregroundStyle(.tertiary)
                     }
                 }

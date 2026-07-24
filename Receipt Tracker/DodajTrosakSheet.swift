@@ -53,15 +53,14 @@ struct DodajTrosakSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
+                        TablerIcon("x", size: 18)
                             .foregroundStyle(.primary)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { save() } label: {
-                        Image(systemName: "checkmark")
-                            .font(.system(.body, weight: .semibold))
+                        TablerIcon("check", size: 18)
+                            .foregroundStyle(.primary)
                     }
                     .disabled(!isValid)
                 }

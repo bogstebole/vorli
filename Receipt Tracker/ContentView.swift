@@ -137,7 +137,11 @@ struct ContentView: View {
             Button(role: .destructive) {
                 deleteReceipt(receipt)
             } label: {
-                Label("Obriši", systemImage: "trash")
+                Label {
+                    Text("Obriši")
+                } icon: {
+                    TablerIcon("trash", size: 16)
+                }
             }
         }
     }
@@ -314,8 +318,7 @@ struct CustomHeader: View {
 struct EmptyReceiptsView: View {
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "receipt")
-                .font(.system(size: 60))
+            TablerIcon("receipt", size: 60)
                 .foregroundStyle(.tertiary)
 
             Text("Nema računa ovog meseca")

@@ -29,8 +29,7 @@ struct DashboardView: View {
                             Button {
                                 changeYear(by: -1)
                             } label: {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(.title3, weight: .semibold))
+                                TablerIcon("chevron-left", size: 22)
                                     .foregroundStyle(canGoBack ? .secondary : .quaternary)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
@@ -46,8 +45,7 @@ struct DashboardView: View {
                             Button {
                                 changeYear(by: 1)
                             } label: {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(.title3, weight: .semibold))
+                                TablerIcon("chevron-right", size: 22)
                                     .foregroundStyle(canGoForward ? .secondary : .quaternary)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
@@ -107,8 +105,7 @@ struct DashboardView: View {
                             )
                             .overlay(alignment: .topTrailing) {
                                 if !unlocked {
-                                    Image(systemName: "lock.fill")
-                                        .font(.system(size: 11))
+                                    TablerIcon("lock", size: 13)
                                         .foregroundStyle(.secondary)
                                         .padding(8)
                                 }
@@ -133,14 +130,13 @@ struct DashboardView: View {
                                 showPaywall = true
                             } label: {
                                 HStack(spacing: 10) {
-                                    Image(systemName: "lock.fill")
+                                    TablerIcon("lock", size: 15)
                                         .foregroundStyle(.secondary)
                                     Text("Raščlamba po kategorijama je deo Premium-a")
                                         .font(.system(.caption, design: .monospaced))
                                         .foregroundStyle(.secondary)
                                     Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 11, weight: .medium))
+                                    TablerIcon("chevron-right", size: 12)
                                         .foregroundStyle(.tertiary)
                                 }
                                 .padding(14)

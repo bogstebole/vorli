@@ -76,8 +76,7 @@ struct SearchView: View {
                         showPaywall = true
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "lock.fill")
-                                .font(.system(size: 11))
+                            TablerIcon("lock", size: 13)
                             Text("Stariji računi su deo Premium-a")
                                 .font(.system(.caption, design: .monospaced))
                         }
@@ -123,9 +122,8 @@ struct SearchView: View {
 
     private var searchField: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
+            TablerIcon("search", size: 15)
                 .foregroundStyle(.secondary)
-                .font(.system(size: 14))
 
             TextField("Pretraži račune...", text: $searchText)
                 .font(.system(.subheadline, design: .monospaced))
@@ -137,7 +135,7 @@ struct SearchView: View {
                 Button {
                     searchText = ""
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
+                    TablerIcon("circle-x", size: 18)
                         .foregroundStyle(.primary)
                 }
                 .tint(.primary)
@@ -173,8 +171,7 @@ struct SearchView: View {
                 }
             }
         } label: {
-            Image(systemName: searchScope == .all ? "calendar" : "calendar.badge.checkmark")
-                .font(.system(size: 17, weight: .medium))
+            TablerIcon(searchScope == .all ? "calendar" : "calendar-check", size: 19)
                 .foregroundStyle(.primary)
                 .frame(width: 52, height: 44)
                 .glassEffect(.regular.interactive(), in: .capsule)
@@ -286,8 +283,7 @@ struct SearchView: View {
         let groups = searchResultGroups
         if groups.isEmpty {
             VStack(spacing: 16) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 40))
+                TablerIcon("search", size: 44)
                     .foregroundStyle(.tertiary)
                 Text("Nema rezultata za \"\(searchText)\"")
                     .font(.system(.subheadline, design: .monospaced))

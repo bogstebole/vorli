@@ -32,8 +32,7 @@ struct FiksniTroskoviSheet: View {
                     Button {
                         dismiss()
                     } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
+                        TablerIcon("x", size: 18)
                             .foregroundStyle(.primary)
                     }
                 }
@@ -41,8 +40,8 @@ struct FiksniTroskoviSheet: View {
                     Button {
                         showAdd = true
                     } label: {
-                        Image(systemName: "plus")
-                            .font(.system(.body, weight: .semibold))
+                        TablerIcon("plus", size: 18)
+                            .foregroundStyle(.primary)
                     }
                 }
             }
@@ -102,7 +101,11 @@ struct FiksniTroskoviSheet: View {
                     Button(role: .destructive) {
                         delete(cost)
                     } label: {
-                        Label("Obriši", systemImage: "trash")
+                        Label {
+                            Text("Obriši")
+                        } icon: {
+                            TablerIcon("trash", size: 16)
+                        }
                     }
                 }
             }
@@ -259,15 +262,14 @@ struct FixedCostEditSheet: View {
                     Button {
                         dismiss()
                     } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
+                        TablerIcon("x", size: 18)
                             .foregroundStyle(.primary)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { save() } label: {
-                        Image(systemName: "checkmark")
-                            .font(.system(.body, weight: .semibold))
+                        TablerIcon("check", size: 18)
+                            .foregroundStyle(.primary)
                     }
                     .disabled(!isValid)
                 }

@@ -60,8 +60,7 @@ struct AddBalanceSheet: View {
                             }
                         }
                     } label: {
-                        Image(systemName: (mode == .display || !hasIncome) ? "xmark" : "chevron.left")
-                            .font(.system(.body, weight: .medium))
+                        TablerIcon((mode == .display || !hasIncome) ? "x" : "chevron-left", size: 18)
                             .foregroundStyle(.primary)
                     }
                 }
@@ -69,8 +68,8 @@ struct AddBalanceSheet: View {
                 if !hasIncome || mode != .display {
                     ToolbarItem(placement: .confirmationAction) {
                         Button { save() } label: {
-                            Image(systemName: "checkmark")
-                                .font(.system(.body, weight: .semibold))
+                            TablerIcon("check", size: 18)
+                                .foregroundStyle(.primary)
                         }
                         .disabled(!isValidAmount)
                     }
@@ -111,8 +110,12 @@ struct AddBalanceSheet: View {
                     isInputFocused = true
                 }
             } label: {
-                Label("Dodaj iznos", systemImage: "plus")
-                    .font(.system(.subheadline, design: .monospaced))
+                Label {
+                    Text("Dodaj iznos")
+                } icon: {
+                    TablerIcon("plus", size: 16)
+                }
+                .font(.system(.subheadline, design: .monospaced))
             }
 
             Button {
@@ -123,15 +126,23 @@ struct AddBalanceSheet: View {
                     isInputFocused = true
                 }
             } label: {
-                Label("Izmeni iznos", systemImage: "pencil")
-                    .font(.system(.subheadline, design: .monospaced))
+                Label {
+                    Text("Izmeni iznos")
+                } icon: {
+                    TablerIcon("pencil", size: 16)
+                }
+                .font(.system(.subheadline, design: .monospaced))
             }
 
             Button(role: .destructive) {
                 removeIncome()
             } label: {
-                Label("Ukloni", systemImage: "trash")
-                    .font(.system(.subheadline, design: .monospaced))
+                Label {
+                    Text("Ukloni")
+                } icon: {
+                    TablerIcon("trash", size: 16)
+                }
+                .font(.system(.subheadline, design: .monospaced))
             }
         }
     }
