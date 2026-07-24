@@ -50,6 +50,8 @@ struct RootView: View {
                 Color.clear
             }
         }
+        // Icons only, no labels.
+        .labelStyle(.iconOnly)
         // Monochrome selection — no Apple blue on the active tab.
         .tint(.primary)
         .environment(nav)
