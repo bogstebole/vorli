@@ -14,7 +14,7 @@ import SwiftUI
 import SwiftData
 
 enum RootTab: Hashable {
-    case home, dashboard, planiranje, scan
+    case home, dashboard, planiranje, pretraga, scan
 }
 
 /// Shared navigation state so the Dashboard tab can jump Home to a chosen
@@ -42,6 +42,12 @@ struct RootView: View {
 
             Tab("Planiranje", systemImage: "list.bullet.clipboard", value: RootTab.planiranje) {
                 PlaniranjeView()
+            }
+
+            // Global search — its own stack since SearchView relies on a
+            // navigation title/toolbar (it used to be a pushed destination).
+            Tab("Pretraga", systemImage: "magnifyingglass", value: RootTab.pretraga) {
+                NavigationStack { SearchView() }
             }
 
             // Detached trailing action. `.search` role gives the native

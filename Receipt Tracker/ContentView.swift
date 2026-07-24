@@ -43,27 +43,6 @@ struct ContentView: View {
                         SectionDivider(title: "Računi")
                             .padding(.horizontal)
 
-                        // Search bar — tapping pushes SearchView
-                        NavigationLink {
-                            SearchView()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundStyle(.secondary)
-                                    .font(.system(size: 14))
-                                Text("Pretraži račune...")
-                                    .font(.system(.subheadline, design: .monospaced))
-                                    .foregroundStyle(.tertiary)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.horizontal)
-
                         // Receipt list for current month, grouped by day
                         if filteredReceipts.isEmpty {
                             EmptyReceiptsView()
