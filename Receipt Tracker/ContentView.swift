@@ -21,7 +21,6 @@ struct ContentView: View {
 
     @State private var errorMessage: String?
     @State private var showError = false
-    @State private var showAddNew = false
     @State private var showSettings = false
     @State private var showVorli = false
     @State private var scannedReceipt: Receipt?
@@ -38,7 +37,6 @@ struct ContentView: View {
                             currentBalance: currentMonthLeftoverBalance,
                             spent: currentMonthSpent,
                             spentToday: currentDaySpent,
-                            onAddNew: { showAddNew = true },
                             onSettings: { showSettings = true }
                         )
 
@@ -108,9 +106,6 @@ struct ContentView: View {
                 ReceiptConfirmView(parsed: parsed) { receipt in
                     scannedReceipt = receipt
                 }
-            }
-            .sheet(isPresented: $showAddNew) {
-                AddNewSheet()
             }
             .sheet(isPresented: $showSettings) {
                 SettingsSheet()

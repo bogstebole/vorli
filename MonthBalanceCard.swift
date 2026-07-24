@@ -14,7 +14,6 @@ struct MonthBalanceCard: View {
     let spentToday: Decimal
     
     // Action closures
-    var onAddNew: () -> Void = {}
     var onSettings: () -> Void = {}
     
     var body: some View {
@@ -31,34 +30,19 @@ struct MonthBalanceCard: View {
                 
                 Spacer()
 
-                // Add + Settings as separate Liquid Glass circles. Apply
-                // glassEffect directly to the framed label (not .buttonStyle)
-                // so they render as circles, not padded pills.
-                HStack(spacing: 8) {
-                    Button {
-                        onAddNew()
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 17, weight: .medium))
-                            .foregroundStyle(.primary)
-                            .frame(width: 36, height: 36)
-                            .glassEffect(.regular.interactive(), in: .circle)
-                    }
-                    .tint(.primary)
-                    .accessibilityLabel("Dodaj novo")
-
-                    Button {
-                        onSettings()
-                    } label: {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 17, weight: .medium))
-                            .foregroundStyle(.primary)
-                            .frame(width: 36, height: 36)
-                            .glassEffect(.regular.interactive(), in: .circle)
-                    }
-                    .tint(.primary)
-                    .accessibilityLabel("Podešavanja")
+                // Settings as a Liquid Glass circle. glassEffect on the
+                // framed label (not .buttonStyle) keeps it a circle, not a pill.
+                Button {
+                    onSettings()
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .frame(width: 36, height: 36)
+                        .glassEffect(.regular.interactive(), in: .circle)
                 }
+                .tint(.primary)
+                .accessibilityLabel("Podešavanja")
             }
             .padding(.bottom, 6)
             
