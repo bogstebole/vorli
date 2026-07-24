@@ -32,27 +32,27 @@ struct RootView: View {
     var body: some View {
         @Bindable var nav = nav
         TabView(selection: $nav.selectedTab) {
-            Tab("Početna", systemImage: "house", value: RootTab.home) {
+            Tab("Početna", image: "tab-home", value: RootTab.home) {
                 ContentView()
             }
 
-            Tab("Pregled", systemImage: "square.grid.2x2", value: RootTab.dashboard) {
+            Tab("Pregled", image: "tab-pregled", value: RootTab.dashboard) {
                 DashboardView()
             }
 
-            Tab("Planiranje", systemImage: "list.bullet.clipboard", value: RootTab.planiranje) {
+            Tab("Planiranje", image: "tab-planiranje", value: RootTab.planiranje) {
                 PlaniranjeView()
             }
 
             // Global search — its own stack since SearchView relies on a
             // navigation title/toolbar (it used to be a pushed destination).
-            Tab("Pretraga", systemImage: "magnifyingglass", value: RootTab.pretraga) {
+            Tab("Pretraga", image: "tab-pretraga", value: RootTab.pretraga) {
                 NavigationStack { SearchView() }
             }
 
             // Detached trailing action. `.search` role gives the native
             // separated circle; we never actually stay on it.
-            Tab("Skeniraj", systemImage: "qrcode.viewfinder", value: RootTab.scan, role: .search) {
+            Tab("Skeniraj", image: "tab-scan", value: RootTab.scan, role: .search) {
                 Color.clear
             }
         }
