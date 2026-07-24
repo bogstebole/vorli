@@ -34,7 +34,7 @@ struct Receipt_TrackerApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
                 .modelContainer(sharedModelContainer)
                 .environment(premiumStore)
         }

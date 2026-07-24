@@ -15,7 +15,6 @@ struct MonthBalanceCard: View {
     
     // Action closures
     var onAddNew: () -> Void = {}
-    var onDashboard: () -> Void = {}
     var onSettings: () -> Void = {}
     
     var body: some View {
@@ -31,36 +30,35 @@ struct MonthBalanceCard: View {
                     .foregroundStyle(.secondary)
                 
                 Spacer()
-                
-                // Menu button with Liquid Glass effect
-                Menu {
+
+                // Add + Settings as separate Liquid Glass circles. Apply
+                // glassEffect directly to the framed label (not .buttonStyle)
+                // so they render as circles, not padded pills.
+                HStack(spacing: 8) {
                     Button {
                         onAddNew()
                     } label: {
-                        Label("Dodaj novo", systemImage: "plus.app.fill")
+                        Image(systemName: "plus")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(.primary)
+                            .frame(width: 36, height: 36)
+                            .glassEffect(.regular.interactive(), in: .circle)
                     }
-                    
-                    Button {
-                        onDashboard()
-                    } label: {
-                        Label("Kontrolna tabla", systemImage: "square.grid.2x2.fill")
-                    }
-                    
+                    .tint(.primary)
+                    .accessibilityLabel("Dodaj novo")
+
                     Button {
                         onSettings()
                     } label: {
-                        Label("Podešavanja", systemImage: "gearshape.fill")
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(.primary)
+                            .frame(width: 36, height: 36)
+                            .glassEffect(.regular.interactive(), in: .circle)
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundStyle(.primary)
-                        .tint (.primary)
-                        .frame(width: 36, height: 36)
-                        .glassEffect(.regular.interactive(), in: .circle)
+                    .tint(.primary)
+                    .accessibilityLabel("Podešavanja")
                 }
-                .tint(.primary)
-                .accessibilityLabel("Opcije meseca")
             }
             .padding(.bottom, 6)
             

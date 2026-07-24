@@ -14,22 +14,22 @@ struct ContentView: View {
     @Query(sort: \BudgetEntry.timestamp, order: .reverse) private var budgetEntries: [BudgetEntry]
     @Query private var fixedCosts: [FixedCost]
 
+    @Environment(AppNavigation.self) private var nav
+
     @AppStorage("onboardingCompleted") private var onboardingCompleted = false
     @State private var showOnboarding = false
 
-    @State private var selectedMonth: Date = Date()
     @State private var errorMessage: String?
     @State private var showError = false
-    @State private var showScanner = false
     @State private var showAddNew = false
-    @State private var showDashboard = false
     @State private var showSettings = false
     @State private var showVorli = false
     @State private var scannedReceipt: Receipt?
     @State private var pendingReceipt: ParsedReceipt?
 
     var body: some View {
-        NavigationStack {
+        @Bindable var nav = nav
+        return NavigationStack {
             VStack(spacing: 0) {
                 ScrollView {
                     VStack(spacing: 12) {
@@ -39,7 +39,6 @@ struct ContentView: View {
                             spent: currentMonthSpent,
                             spentToday: currentDaySpent,
                             onAddNew: { showAddNew = true },
-                            onDashboard: { showDashboard = true },
                             onSettings: { showSettings = true }
                         )
 
@@ -88,24 +87,6 @@ struct ContentView: View {
                 }
             }
             .navigationBarHidden(true)
-            .toolbar {
-                ToolbarItemGroup(placement: .bottomBar) {
-                    // COMMENTED OUT FOR FIRST RELEASE - VORLI AI NOT SHIPPING YET
-                    // Button {
-                    //     showVorli = true
-                    // } label: {
-                    //     Image(systemName: "sparkles")
-                    // }
-
-                    Spacer()
-
-                    Button {
-                        showScanner = true
-                    } label: {
-                        Image(systemName: "qrcode.viewfinder")
-                    }
-                }
-            }
             .alert("Greška", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -116,7 +97,7 @@ struct ContentView: View {
             // Full screen, not a sheet: the document scanner is always full
             // screen, so QR ↔ Račun stays frame-to-frame without the sheet
             // chrome jumping in between.
-            .fullScreenCover(isPresented: $showScanner) {
+            .fullScreenCover(isPresented: $nav.showScanner) {
                 QRScannerView { url in
                     Task { await processReceipt(from: url) }
                 } onReceiptParsed: { parsed in
@@ -130,9 +111,6 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showAddNew) {
                 AddNewSheet()
-            }
-            .sheet(isPresented: $showDashboard) {
-                DashboardSheet(receipts: allReceipts) { month in selectedMonth = month }
             }
             .sheet(isPresented: $showSettings) {
                 SettingsSheet()
@@ -149,7 +127,7 @@ struct ContentView: View {
                     onboardingCompleted = true
                     showOnboarding = false
                     if startScanning {
-                        showScanner = true
+                        nav.showScanner = true
                     }
                 }
             }
@@ -231,13 +209,13 @@ struct ContentView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
         formatter.locale = Locale(identifier: "sr_Latn_RS")
-        return formatter.string(from: selectedMonth)
+        return formatter.string(from: nav.selectedMonth)
     }
 
     private var filteredReceipts: [Receipt] {
         let calendar = Calendar.current
         return allReceipts.filter { receipt in
-            calendar.isDate(receipt.timestamp, equalTo: selectedMonth, toGranularity: .month)
+            calendar.isDate(receipt.timestamp, equalTo: nav.selectedMonth, toGranularity: .month)
         }
     }
 
@@ -261,7 +239,7 @@ struct ContentView: View {
     private var currentMonthLeftoverBalance: Decimal {
         let calendar = Calendar.current
         let monthBudgetEntries = budgetEntries.filter { entry in
-            calendar.isDate(entry.timestamp, equalTo: selectedMonth, toGranularity: .month)
+            calendar.isDate(entry.timestamp, equalTo: nav.selectedMonth, toGranularity: .month)
         }
         let totalBudgetAdded = monthBudgetEntries.reduce(Decimal(0)) { $0 + $1.amount }
         return totalBudgetAdded - currentMonthSpent
@@ -382,5 +360,7 @@ struct EmptyReceiptsView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self, FixedCost.self, Wish.self], inMemory: true)
+        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self, FixedCost.self, Wish.self, MerchantCategory.self], inMemory: true)
+        .environment(AppNavigation())
+        .environment(PremiumStore())
 }

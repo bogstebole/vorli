@@ -13,6 +13,7 @@ struct MainTabView: View {
     var body: some View {
         TabView {
             ContentView()
+                .environment(AppNavigation())
                 .tabItem {
                     Label("Receipts", systemImage: "receipt")
                 }
