@@ -8,13 +8,12 @@
 import SwiftUI
 import SwiftData
 
-struct DashboardSheet: View {
-    @Environment(\.dismiss) private var dismiss
+struct DashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(PremiumStore.self) private var premiumStore
-    let receipts: [Receipt]
-    let onMonthSelected: (Date) -> Void
+    @Environment(AppNavigation.self) private var nav
 
+    @Query(sort: \Receipt.timestamp, order: .reverse) private var receipts: [Receipt]
     @Query private var merchantCategories: [MerchantCategory]
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var budgetEntries: [BudgetEntry] = []
@@ -116,8 +115,8 @@ struct DashboardSheet: View {
                             }
                             .onTapGesture {
                                 if unlocked {
-                                    onMonthSelected(data.month)
-                                    dismiss()
+                                    nav.selectedMonth = data.month
+                                    nav.selectedTab = .home
                                 } else {
                                     showPaywall = true
                                 }
@@ -207,17 +206,6 @@ struct DashboardSheet: View {
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallSheet()
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
-                            .foregroundStyle(.primary)
-                    }
-                }
             }
         }
     }
@@ -404,33 +392,8 @@ extension Calendar {
 }
 
 #Preview {
-    DashboardSheet(
-        receipts: [
-            Receipt(
-                url: "https://example.com",
-                merchantName: "Store 1",
-                merchantAddress: "Address",
-                merchantCity: "City",
-                timestamp: Date(),
-                totalAmount: 63250,
-                totalTax: 10000,
-                paymentMethod: "Card",
-                receiptNumber: "123",
-                cashRegisterNumber: "456"
-            ),
-            Receipt(
-                url: "https://example.com",
-                merchantName: "Store 2",
-                merchantAddress: "Address",
-                merchantCity: "City",
-                timestamp: Calendar.current.date(byAdding: .month, value: -1, to: Date())!,
-                totalAmount: 56500,
-                totalTax: 9000,
-                paymentMethod: "Card",
-                receiptNumber: "124",
-                cashRegisterNumber: "456"
-            )
-        ],
-        onMonthSelected: { _ in }
-    )
+    DashboardView()
+        .modelContainer(for: [Receipt.self, Budget.self, BudgetEntry.self, FixedCost.self, Wish.self, MerchantCategory.self], inMemory: true)
+        .environment(AppNavigation())
+        .environment(PremiumStore())
 }

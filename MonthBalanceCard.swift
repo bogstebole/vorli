@@ -14,8 +14,6 @@ struct MonthBalanceCard: View {
     let spentToday: Decimal
     
     // Action closures
-    var onAddNew: () -> Void = {}
-    var onDashboard: () -> Void = {}
     var onSettings: () -> Void = {}
     
     var body: some View {
@@ -31,36 +29,20 @@ struct MonthBalanceCard: View {
                     .foregroundStyle(.secondary)
                 
                 Spacer()
-                
-                // Menu button with Liquid Glass effect
-                Menu {
-                    Button {
-                        onAddNew()
-                    } label: {
-                        Label("Dodaj novo", systemImage: "plus.app.fill")
-                    }
-                    
-                    Button {
-                        onDashboard()
-                    } label: {
-                        Label("Kontrolna tabla", systemImage: "square.grid.2x2.fill")
-                    }
-                    
-                    Button {
-                        onSettings()
-                    } label: {
-                        Label("Podešavanja", systemImage: "gearshape.fill")
-                    }
+
+                // Settings as a Liquid Glass circle. glassEffect on the
+                // framed label (not .buttonStyle) keeps it a circle, not a pill.
+                Button {
+                    onSettings()
                 } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 18, weight: .medium))
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 17, weight: .medium))
                         .foregroundStyle(.primary)
-                        .tint (.primary)
                         .frame(width: 36, height: 36)
                         .glassEffect(.regular.interactive(), in: .circle)
                 }
                 .tint(.primary)
-                .accessibilityLabel("Opcije meseca")
+                .accessibilityLabel("Podešavanja")
             }
             .padding(.bottom, 6)
             

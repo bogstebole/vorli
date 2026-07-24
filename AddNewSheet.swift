@@ -4,12 +4,14 @@
 //
 //  Created by Bogdan Stefanovic on 11. 3. 2026.
 //
+//  Hosts the "Planiranje" tab: the manual side of money — income, fixed
+//  costs, manual expense entry, and the wishlist. (File name kept for the
+//  Xcode project reference; the view is PlaniranjeView.)
+//
 
 import SwiftUI
 
-struct AddNewSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
+struct PlaniranjeView: View {
     @State private var showMesecnaZarada = false
     @State private var showFiksniTroskovi = false
     @State private var showDodajTrosak = false
@@ -37,19 +39,8 @@ struct AddNewSheet: View {
 
                 Spacer()
             }
-            .navigationTitle("Dodaj")
+            .navigationTitle("Planiranje")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
-                            .foregroundStyle(.primary)
-                    }
-                }
-            }
             .sheet(isPresented: $showMesecnaZarada) {
                 AddBalanceSheet()
             }
@@ -63,7 +54,6 @@ struct AddNewSheet: View {
                 ListaZeljaSheet()
             }
         }
-        .presentationDetents([.medium])
     }
 }
 
@@ -110,5 +100,5 @@ struct AddNewRowButtonStyle: ButtonStyle {
 }
 
 #Preview {
-    AddNewSheet()
+    PlaniranjeView()
 }
