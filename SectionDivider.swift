@@ -15,10 +15,12 @@ struct SectionDivider: View {
             // Left line with equals pattern
             EqualsPattern()
             
-            // Title
+            // Title — never wraps; the dashed rules give up width instead.
             Text(title)
                 .font(.system(.subheadline, design: .monospaced, weight: .semibold))
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .fixedSize()
             
             // Right line with equals pattern
             EqualsPattern()
@@ -43,6 +45,21 @@ struct EqualsPattern: View {
             .foregroundStyle(.tertiary)
         }
         .frame(height: 4)
+    }
+}
+
+/// Single dashed rule — the line a paper receipt prints above its total.
+struct DashedRule: View {
+    var body: some View {
+        GeometryReader { geometry in
+            Path { path in
+                path.move(to: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: geometry.size.width, y: 0))
+            }
+            .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            .foregroundStyle(.tertiary)
+        }
+        .frame(height: 1)
     }
 }
 

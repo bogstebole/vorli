@@ -13,6 +13,7 @@ struct ContentView: View {
     @Query(sort: \Receipt.timestamp, order: .reverse) private var allReceipts: [Receipt]
     @Query(sort: \BudgetEntry.timestamp, order: .reverse) private var budgetEntries: [BudgetEntry]
     @Query private var fixedCosts: [FixedCost]
+    @Query private var merchantCategories: [MerchantCategory]
 
     @Environment(AppNavigation.self) private var nav
 
@@ -32,35 +33,23 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 ScrollView {
                     VStack(spacing: 12) {
-                        MonthBalanceCard(
-                            month: currentMonthName,
-                            currentBalance: currentMonthLeftoverBalance,
+                        SummaryHeaderCard(
+                            month: nav.selectedMonth,
+                            balance: currentMonthLeftoverBalance,
                             spent: currentMonthSpent,
                             spentToday: currentDaySpent,
                             onSettings: { showSettings = true }
                         )
 
-                        SectionDivider(title: "Računi")
-                            .padding(.horizontal)
-
-                        // Receipt list for current month, grouped by day
                         if filteredReceipts.isEmpty {
                             EmptyReceiptsView()
                                 .padding(.top, 40)
                         } else {
-                            LazyVStack(spacing: 12) {
-                                ForEach(receiptsByDay, id: \.day) { group in
-                                    dayHeader(day: group.day, total: group.total)
-                                        .padding(.top, 4)
-                                    ForEach(group.receipts) { receipt in
-                                        receiptRow(receipt)
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                            .padding(.bottom, 20)
+                            categoriesSection
+                            recentReceiptsSection
                         }
                     }
+                    .padding(.bottom, 20)
                 }
             }
             .navigationBarHidden(true)
@@ -123,7 +112,97 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Row / header builders
+    // MARK: - Sections
+
+    /// Where the month's money went, laid out like a receipt: name on the
+    /// left, amount on the right, thin rules between, total at the bottom.
+    private var categoriesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionDivider(title: "Po kategorijama")
+                .padding(.horizontal)
+
+            VStack(spacing: 0) {
+                ForEach(displayCategoryRows) { row in
+                    HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        Text(row.name)
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(row.isUncategorized ? .secondary : .primary)
+                            .lineLimit(1)
+
+                        Text(percentText(row.fraction))
+                            .font(.system(.caption2, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+
+                        Spacer(minLength: 8)
+
+                        Text(MoneyFormat.grouped(row.total) + " RSD")
+                            .font(.system(.subheadline, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 10)
+
+                    if row.id != displayCategoryRows.last?.id {
+                        Divider().opacity(0.4)
+                    }
+                }
+
+                // Receipt-style total line.
+                DashedRule()
+                    .padding(.vertical, 8)
+
+                HStack {
+                    Text("UKUPNO")
+                        .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    Spacer()
+                    Text(MoneyFormat.grouped(currentMonthSpent) + " RSD")
+                        .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    /// The last few receipts, with a way through to the whole month.
+    private var recentReceiptsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            SectionDivider(title: "Poslednji računi")
+                .padding(.horizontal)
+
+            LazyVStack(spacing: 12) {
+                ForEach(filteredReceipts.prefix(3)) { receipt in
+                    receiptRow(receipt)
+                }
+
+                NavigationLink {
+                    MonthReceiptsView(month: nav.selectedMonth)
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("Prikaži sve račune")
+                            .font(.system(.subheadline, design: .monospaced, weight: .medium))
+                            .foregroundStyle(.primary)
+                        Text(receiptCountLabel)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.tertiary)
+                        Spacer()
+                        TablerIcon("chevron-right", size: 13)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal)
+        }
+    }
+
+    private func percentText(_ fraction: Double) -> String {
+        "\(Int((fraction * 100).rounded()))%"
+    }
+
+    // MARK: - Row builders
 
     @ViewBuilder
     private func receiptRow(_ receipt: Receipt) -> some View {
@@ -146,48 +225,41 @@ struct ContentView: View {
         }
     }
 
-    private static let dayHeaderFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "sr_Latn_RS")
-        f.dateFormat = "EEEE, d. MMM"
-        return f
-    }()
-
-    private func dayHeader(day: Date, total: Decimal) -> some View {
-        HStack {
-            Text(Self.dayHeaderFormatter.string(from: day).capitalized)
-                .font(.system(.caption, design: .monospaced, weight: .semibold))
-                .foregroundStyle(.primary)
-            Spacer()
-            Text(MoneyFormat.grouped(total) + " RSD")
-                .font(.system(.caption, design: .monospaced, weight: .semibold))
-                .foregroundStyle(.secondary)
-        }
-        // Match ReceiptCardView's inner padding (16) so header text aligns
-        // vertically with the card's name and time.
-        .padding(.horizontal, 16)
-    }
-
     // MARK: - Computed Properties
 
-    /// Current month's receipts grouped by calendar day, newest day first.
-    private var receiptsByDay: [(day: Date, total: Decimal, receipts: [Receipt])] {
-        let calendar = Calendar.current
-        let groups = Dictionary(grouping: filteredReceipts) {
-            calendar.startOfDay(for: $0.timestamp)
-        }
-        return groups.keys.sorted(by: >).map { day in
-            let dayReceipts = (groups[day] ?? []).sorted { $0.timestamp > $1.timestamp }
-            let total = dayReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
-            return (day: day, total: total, receipts: dayReceipts)
-        }
+    /// Spending per category for the month on screen, largest first. Includes
+    /// fixed costs, so the rows add up to the header's "spent" figure.
+    private var categoryRows: [CategorySpending.Row] {
+        CategorySpending.rows(
+            for: filteredReceipts,
+            categories: merchantCategories,
+            fixedCosts: fixedCostsTotal
+        )
     }
 
-    private var currentMonthName: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        formatter.locale = Locale(identifier: "sr_Latn_RS")
-        return formatter.string(from: nav.selectedMonth)
+    /// Top categories, with anything past the cut folded into one "Ostalo"
+    /// row — so what's on screen still adds up to the UKUPNO line.
+    private var displayCategoryRows: [CategorySpending.Row] {
+        let limit = 5
+        let rows = categoryRows
+        guard rows.count > limit else { return rows }
+
+        let shown = Array(rows.prefix(limit))
+        let rest = rows.dropFirst(limit)
+        let restTotal = rest.reduce(Decimal(0)) { $0 + $1.total }
+        let restFraction = rest.reduce(0.0) { $0 + $1.fraction }
+        return shown + [CategorySpending.Row(
+            name: "Ostalo",
+            total: restTotal,
+            fraction: restFraction,
+            isUncategorized: true
+        )]
+    }
+
+    private var receiptCountLabel: String {
+        let count = filteredReceipts.count
+        let noun = (count % 10 == 1 && count % 100 != 11) ? "račun" : "računa"
+        return "\(count) \(noun)"
     }
 
     private var filteredReceipts: [Receipt] {
