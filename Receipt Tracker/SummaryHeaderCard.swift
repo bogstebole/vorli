@@ -110,7 +110,11 @@ struct SummaryHeaderCard: View {
 
             if !categories.isEmpty {
                 categoryChart
-                    .padding(.top, 4)
+                    .padding(12)
+                    // Own panel: groups the chart and keeps it from reading as
+                    // loose content hanging under the balance row.
+                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+                    .padding(.top, 10)
             }
         }
         .padding(16)
@@ -153,6 +157,15 @@ struct SummaryHeaderCard: View {
         return HStack(alignment: .bottom, spacing: 8) {
             ForEach(Array(categories.enumerated()), id: \.element.id) { index, row in
                 VStack(spacing: 6) {
+                    // Amounts sit on one line above the bars rather than
+                    // following each bar's top — a 60% and a 1% bar would put
+                    // their numbers at wildly different heights otherwise.
+                    Text(MoneyFormat.grouped(row.total))
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(row.isUncategorized ? dim : muted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+
                     ZStack(alignment: .bottom) {
                         Color.clear
                             .frame(height: Self.barAreaHeight)
