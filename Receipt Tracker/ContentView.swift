@@ -114,28 +114,20 @@ struct ContentView: View {
 
     // MARK: - Sections
 
-    /// Every receipt of the month on screen, grouped by day.
+    /// Every receipt of the month on screen, grouped by day. The day headers
+    /// carry the structure — no section title above them.
     private var receiptsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Računi (\(filteredReceipts.count))")
-                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                .foregroundStyle(.secondary)
-                // 16 (list inset) + 16 (card inner padding) so this lines up
-                // with the day headers and the merchant names.
-                .padding(.horizontal, 32)
-                .padding(.top, 8)
-
-            LazyVStack(spacing: 12) {
-                ForEach(receiptsByDay, id: \.day) { group in
-                    dayHeader(day: group.day, total: group.total)
-                        .padding(.top, 4)
-                    ForEach(group.receipts) { receipt in
-                        receiptRow(receipt)
-                    }
+        LazyVStack(spacing: 12) {
+            ForEach(receiptsByDay, id: \.day) { group in
+                dayHeader(day: group.day, total: group.total)
+                    .padding(.top, 4)
+                ForEach(group.receipts) { receipt in
+                    receiptRow(receipt)
                 }
             }
-            .padding(.horizontal)
         }
+        .padding(.horizontal)
+        .padding(.top, 4)
     }
 
     // MARK: - Row builders
