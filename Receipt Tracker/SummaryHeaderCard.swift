@@ -3,12 +3,13 @@
 //  Receipt Tracker
 //
 //  Home header, built to the Figma spec ("New dashboard", node 263:1549):
-//  a "Stanje" title row with the settings control, then a dark gradient card —
+//  a "Stanje" title row with the settings control, then a solid card —
 //  month, the month's spend as the hero figure, a hairline, today's spend and
 //  the balance, and a monochrome bar chart of spending per category.
 //
-//  The card keeps its dark gradient in both appearances (as designed); only
-//  the title above it follows the system label colour.
+//  The card inverts with the appearance: black on a white screen, white on a
+//  black one. So its fill is `.primary` and everything drawn on it derives
+//  from `.systemBackground` — never a literal black or white.
 //
 
 import SwiftUI
@@ -25,10 +26,12 @@ struct SummaryHeaderCard: View {
 
     var onSettings: () -> Void = {}
 
-    // Figma palette. Fixed values, not semantic colors: they sit on the dark
-    // card, which does not invert.
-    private let dim = Color(red: 0.447, green: 0.447, blue: 0.447)     // #727272
-    private let muted = Color(red: 0.749, green: 0.749, blue: 0.749)   // #bfbfbf
+    /// Ink for anything sitting on the card — the inverse of the card's fill,
+    /// so it stays legible whichever way the appearance flips.
+    private var onCard: Color { Color(uiColor: .systemBackground) }
+    /// Figma's #bfbfbf and #727272, expressed as fractions of the card's ink.
+    private var muted: Color { onCard.opacity(0.72) }
+    private var dim: Color { onCard.opacity(0.45) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -74,7 +77,7 @@ struct SummaryHeaderCard: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(MoneyFormat.grouped(spent))
                     .font(.system(size: 36, design: .monospaced))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(onCard)
                     .contentTransition(.numericText())
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
@@ -105,23 +108,19 @@ struct SummaryHeaderCard: View {
                 // hairline and the text above it.
                 .padding(.vertical, 12)
                 .padding(.horizontal, 10)
-                .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+                .background(onCard.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
                 .padding(.top, 10)
             }
         }
         .padding(16)
-        .background(Color.black, in: RoundedRectangle(cornerRadius: 16))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(.black, lineWidth: 1)
-        }
+        .background(Color.primary, in: RoundedRectangle(cornerRadius: 16))
         .shadow(color: Color(white: 0.35).opacity(0.10), radius: 4.5, y: 4)
         .shadow(color: Color(white: 0.35).opacity(0.09), radius: 7.5, y: 15)
     }
 
     private var hairline: some View {
         Rectangle()
-            .fill(.white.opacity(0.16))
+            .fill(onCard.opacity(0.16))
             .frame(height: 1)
     }
 
@@ -132,7 +131,7 @@ struct SummaryHeaderCard: View {
                 .foregroundStyle(muted)
             Text(value + " RSD")
                 .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(.white)
+                .foregroundStyle(onCard)
                 .contentTransition(.numericText())
         }
     }
@@ -201,7 +200,7 @@ struct SummaryHeaderCard: View {
     /// Brightness follows the bar's rank, which (since the caller sorts by
     /// amount) means the tallest bar is also the brightest.
     private func shade(index: Int, row: CategorySpending.Row) -> Color {
-        .white.opacity(CategorySpending.shadeOpacity(
+        onCard.opacity(CategorySpending.shadeOpacity(
             rank: index,
             count: categories.count,
             isUncategorized: row.isUncategorized
