@@ -46,7 +46,6 @@ struct ContentView: View {
                             EmptyReceiptsView()
                                 .padding(.top, 40)
                         } else {
-                            categoriesSection
                             recentReceiptsSection
                         }
                     }
@@ -115,54 +114,6 @@ struct ContentView: View {
 
     // MARK: - Sections
 
-    /// Where the month's money went, laid out like a receipt: name on the
-    /// left, amount on the right, thin rules between, total at the bottom.
-    private var categoriesSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionDivider(title: "Po kategorijama")
-                .padding(.horizontal)
-
-            VStack(spacing: 0) {
-                ForEach(displayCategoryRows) { row in
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text(row.name)
-                            .font(.system(.subheadline, design: .monospaced))
-                            .foregroundStyle(row.isUncategorized ? .secondary : .primary)
-                            .lineLimit(1)
-
-                        Text(percentText(row.fraction))
-                            .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(.tertiary)
-
-                        Spacer(minLength: 8)
-
-                        Text(MoneyFormat.grouped(row.total) + " RSD")
-                            .font(.system(.subheadline, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 10)
-
-                    if row.id != displayCategoryRows.last?.id {
-                        Divider().opacity(0.4)
-                    }
-                }
-
-                // Receipt-style total line.
-                DashedRule()
-                    .padding(.vertical, 8)
-
-                HStack {
-                    Text("UKUPNO")
-                        .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                    Spacer()
-                    Text(MoneyFormat.grouped(currentMonthSpent) + " RSD")
-                        .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                }
-            }
-            .padding(.horizontal, 16)
-        }
-    }
-
     /// The last few receipts, with a way through to the whole month.
     private var recentReceiptsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -197,10 +148,6 @@ struct ContentView: View {
             }
             .padding(.horizontal)
         }
-    }
-
-    private func percentText(_ fraction: Double) -> String {
-        "\(Int((fraction * 100).rounded()))%"
     }
 
     // MARK: - Row builders

@@ -109,9 +109,8 @@ struct SummaryHeaderCard: View {
             }
 
             if !categories.isEmpty {
-                hairline
-                    .padding(.top, 4)
                 categoryChart
+                    .padding(.top, 4)
             }
         }
         .padding(16)
@@ -147,11 +146,12 @@ struct SummaryHeaderCard: View {
     /// Plain vertical bar chart: one bar per category, tallest = biggest spend,
     /// scaled against the largest so the chart always fills its height.
     private var categoryChart: some View {
-        let shown = Array(categories.prefix(5))
-        let maxFraction = shown.map(\.fraction).max() ?? 1
+        // The caller decides how many rows to show (and folds the tail into
+        // "Ostalo"), so every row it hands over gets a bar.
+        let maxFraction = categories.map(\.fraction).max() ?? 1
 
         return HStack(alignment: .bottom, spacing: 8) {
-            ForEach(Array(shown.enumerated()), id: \.element.id) { index, row in
+            ForEach(Array(categories.enumerated()), id: \.element.id) { index, row in
                 VStack(spacing: 6) {
                     ZStack(alignment: .bottom) {
                         Color.clear

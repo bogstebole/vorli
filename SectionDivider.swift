@@ -48,21 +48,6 @@ struct EqualsPattern: View {
     }
 }
 
-/// Single dashed rule — the line a paper receipt prints above its total.
-struct DashedRule: View {
-    var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                path.move(to: CGPoint(x: 0, y: 0))
-                path.addLine(to: CGPoint(x: geometry.size.width, y: 0))
-            }
-            .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-            .foregroundStyle(.tertiary)
-        }
-        .frame(height: 1)
-    }
-}
-
 #Preview {
     SectionDivider(title: "Računi")
         .padding()
