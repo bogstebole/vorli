@@ -18,6 +18,8 @@ struct SummaryHeaderCard: View {
     let balance: Decimal
     let spent: Decimal
     let spentToday: Decimal
+    /// Same rows as the list below the card, so the bar doubles as its legend.
+    var categories: [CategorySpending.Row] = []
 
     var onSettings: () -> Void = {}
 
@@ -31,6 +33,9 @@ struct SummaryHeaderCard: View {
             topRow
             tearLine
             amountBlock
+            if !categories.isEmpty {
+                categoryBar
+            }
         }
         .padding(12)
         .background(Color.black, in: RoundedRectangle(cornerRadius: 12))
@@ -129,6 +134,55 @@ struct SummaryHeaderCard: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
+    }
+
+    // MARK: - Category bar
+
+    /// Monochrome breakdown of the month's spend: one segment per category,
+    /// brightest for the biggest. Widths come from the same fractions as the
+    /// list below, so segment order and sizes match it exactly.
+    private var categoryBar: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            GeometryReader { geometry in
+                let gap: CGFloat = 2
+                let usable = max(0, geometry.size.width - gap * CGFloat(max(0, categories.count - 1)))
+                HStack(spacing: gap) {
+                    ForEach(Array(categories.enumerated()), id: \.element.id) { index, row in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(shade(index: index, row: row))
+                            // Floor keeps a sliver visible for tiny categories.
+                            .frame(width: max(3, usable * row.fraction))
+                    }
+                }
+            }
+            .frame(height: 8)
+            // The 3pt floor above can round past the available width when many
+            // categories are tiny; clipping keeps the bar inside the card.
+            .clipped()
+
+            HStack(spacing: 4) {
+                Text(topCategoryLabel)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(dim)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private func shade(index: Int, row: CategorySpending.Row) -> Color {
+        // The leftover buckets ("Bez kategorije", "Ostalo") stay dimmest so
+        // they never read as the headline category.
+        if row.isUncategorized { return .white.opacity(0.16) }
+        let steps: [Double] = [0.92, 0.70, 0.54, 0.42, 0.32]
+        return .white.opacity(index < steps.count ? steps[index] : 0.24)
+    }
+
+    /// One line of context so the bar isn't abstract: the biggest category.
+    private var topCategoryLabel: String {
+        guard let top = categories.first(where: { !$0.isUncategorized }) ?? categories.first else { return "" }
+        return "\(top.name) \(Int((top.fraction * 100).rounded()))%"
     }
 
     // MARK: - Text

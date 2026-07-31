@@ -38,6 +38,7 @@ struct ContentView: View {
                             balance: currentMonthLeftoverBalance,
                             spent: currentMonthSpent,
                             spentToday: currentDaySpent,
+                            categories: displayCategoryRows,
                             onSettings: { showSettings = true }
                         )
 
