@@ -117,11 +117,14 @@ struct SummaryHeaderCard: View {
                     categoryChart
                     categoryLegend
                 }
-                // Vertical padding only: a horizontal inset here pushed the
-                // legend off the left edge shared by the month, the amount and
-                // the balance row.
                 .padding(.vertical, 12)
+                .padding(.horizontal, 10)
                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+                // Pull the panel back out by the same 10pt it just inset its
+                // content: the bars and legend keep breathing room inside the
+                // panel, while still sharing the left edge with the month, the
+                // amount and the balance row.
+                .padding(.horizontal, -10)
                 .padding(.top, 10)
             }
         }
