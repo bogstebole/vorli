@@ -27,6 +27,16 @@ struct ContentView: View {
     @State private var scannedReceipt: Receipt?
     @State private var pendingReceipt: ParsedReceipt?
 
+    /// A freshly scanned receipt waiting for the scanner (or the confirm sheet)
+    /// to finish going away before it is pushed. Pushing mid-dismissal leaves
+    /// the detail view without its navigation-bar inset — its content ends up
+    /// underneath the bar.
+    @State private var stagedReceipt: Receipt?
+    /// True from the moment the presenter appears until its dismissal
+    /// *animation* completes — the binding flips to false too early to use.
+    @State private var scannerVisible = false
+    @State private var confirmVisible = false
+
     var body: some View {
         @Bindable var nav = nav
         return NavigationStack {
@@ -63,17 +73,25 @@ struct ContentView: View {
             // Full screen, not a sheet: the document scanner is always full
             // screen, so QR ↔ Račun stays frame-to-frame without the sheet
             // chrome jumping in between.
-            .fullScreenCover(isPresented: $nav.showScanner) {
+            .fullScreenCover(isPresented: $nav.showScanner, onDismiss: {
+                scannerVisible = false
+                openStagedReceipt()
+            }) {
                 QRScannerView { url in
                     Task { await processReceipt(from: url) }
                 } onReceiptParsed: { parsed in
                     pendingReceipt = parsed
                 }
+                .onAppear { scannerVisible = true }
             }
-            .sheet(item: $pendingReceipt) { parsed in
+            .sheet(item: $pendingReceipt, onDismiss: {
+                confirmVisible = false
+                openStagedReceipt()
+            }) { parsed in
                 ReceiptConfirmView(parsed: parsed) { receipt in
-                    scannedReceipt = receipt
+                    stageReceipt(receipt)
                 }
+                .onAppear { confirmVisible = true }
             }
             .sheet(isPresented: $showSettings) {
                 SettingsSheet()
@@ -281,11 +299,25 @@ struct ContentView: View {
         MonthlyIncomeScheduler.recordAutoAdd()
     }
 
+    /// Opens a scanned receipt as soon as it is safe to: right away if nothing
+    /// is on screen over the list, otherwise once the presenter's dismissal
+    /// animation has finished (see `stagedReceipt`).
+    private func stageReceipt(_ receipt: Receipt) {
+        stagedReceipt = receipt
+        openStagedReceipt()
+    }
+
+    private func openStagedReceipt() {
+        guard !scannerVisible, !confirmVisible, let receipt = stagedReceipt else { return }
+        stagedReceipt = nil
+        scannedReceipt = receipt
+    }
+
     private func processReceipt(from urlString: String) async {
         do {
             let service = ReceiptService(modelContext: modelContext)
             let receipt = try await service.processReceipt(from: urlString)
-            scannedReceipt = receipt
+            stageReceipt(receipt)
         } catch {
             errorMessage = error.localizedDescription
             showError = true
@@ -299,7 +331,7 @@ struct ContentView: View {
             debugLog("🔧 Calling service.processReceiptImage")
             let receipt = try await service.processReceiptImage(image)
             debugLog("✅ Receipt processed successfully: \(receipt.merchantName)")
-            scannedReceipt = receipt
+            stageReceipt(receipt)
         } catch {
             debugLog("❌ Error in processReceiptImage: \(error)")
             errorMessage = error.localizedDescription
