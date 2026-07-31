@@ -46,7 +46,7 @@ struct ContentView: View {
                             EmptyReceiptsView()
                                 .padding(.top, 40)
                         } else {
-                            recentReceiptsSection
+                            receiptsSection
                         }
                     }
                     .padding(.bottom, 20)
@@ -114,37 +114,25 @@ struct ContentView: View {
 
     // MARK: - Sections
 
-    /// The last few receipts, with a way through to the whole month.
-    private var recentReceiptsSection: some View {
+    /// Every receipt of the month on screen, grouped by day.
+    private var receiptsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            SectionDivider(title: "Poslednji računi")
-                .padding(.horizontal)
+            Text("Računi (\(filteredReceipts.count))")
+                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                .foregroundStyle(.secondary)
+                // 16 (list inset) + 16 (card inner padding) so this lines up
+                // with the day headers and the merchant names.
+                .padding(.horizontal, 32)
+                .padding(.top, 8)
 
             LazyVStack(spacing: 12) {
-                ForEach(filteredReceipts.prefix(3)) { receipt in
-                    receiptRow(receipt)
-                }
-
-                NavigationLink {
-                    MonthReceiptsView(month: nav.selectedMonth)
-                } label: {
-                    HStack(spacing: 8) {
-                        Text("Prikaži sve račune")
-                            .font(.system(.subheadline, design: .monospaced, weight: .medium))
-                            .foregroundStyle(.primary)
-                        Text(receiptCountLabel)
-                            .font(.system(.caption, design: .monospaced))
-                            .foregroundStyle(.tertiary)
-                        Spacer()
-                        TablerIcon("chevron-right", size: 13)
-                            .foregroundStyle(.secondary)
+                ForEach(receiptsByDay, id: \.day) { group in
+                    dayHeader(day: group.day, total: group.total)
+                        .padding(.top, 4)
+                    ForEach(group.receipts) { receipt in
+                        receiptRow(receipt)
                     }
-                    .padding(16)
-                    .frame(maxWidth: .infinity)
-                    .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
-                .buttonStyle(.plain)
             }
             .padding(.horizontal)
         }
@@ -173,7 +161,43 @@ struct ContentView: View {
         }
     }
 
+    private static let dayHeaderFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "sr_Latn_RS")
+        f.dateFormat = "EEEE, d. MMM"
+        return f
+    }()
+
+    private func dayHeader(day: Date, total: Decimal) -> some View {
+        HStack {
+            // Only the weekday is capitalised — Serbian months are lowercase.
+            Text(Self.dayHeaderFormatter.string(from: day).sentenceCased)
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .foregroundStyle(.primary)
+            Spacer()
+            Text(MoneyFormat.grouped(total) + " RSD")
+                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .foregroundStyle(.secondary)
+        }
+        // Match ReceiptCardView's inner padding so the header lines up with
+        // the card's merchant name.
+        .padding(.horizontal, 16)
+    }
+
     // MARK: - Computed Properties
+
+    /// The month's receipts grouped by calendar day, newest day first.
+    private var receiptsByDay: [(day: Date, total: Decimal, receipts: [Receipt])] {
+        let calendar = Calendar.current
+        let groups = Dictionary(grouping: filteredReceipts) {
+            calendar.startOfDay(for: $0.timestamp)
+        }
+        return groups.keys.sorted(by: >).map { day in
+            let dayReceipts = (groups[day] ?? []).sorted { $0.timestamp > $1.timestamp }
+            let total = dayReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
+            return (day: day, total: total, receipts: dayReceipts)
+        }
+    }
 
     /// Spending per category for the month on screen, largest first. Includes
     /// fixed costs, so the rows add up to the header's "spent" figure.
@@ -185,29 +209,40 @@ struct ContentView: View {
         )
     }
 
-    /// Top categories, with anything past the cut folded into one "Ostalo"
-    /// row — so what's on screen still adds up to the UKUPNO line.
+    /// Bars for the chart: the biggest categories, then the folded remainder,
+    /// then uncategorised spending.
+    ///
+    /// "Bez kategorije" always keeps its own bar. It is appended after sorting,
+    /// so a plain top-N cut would swallow it into the remainder even when it is
+    /// the largest bucket — and "how much haven't I labelled" is exactly what
+    /// the user needs to see. The fold is named "+N drugih" rather than
+    /// "Ostalo" so it can't collide with a category the user named that (equal
+    /// x values make Swift Charts stack the bars on top of each other).
     private var displayCategoryRows: [CategorySpending.Row] {
-        let limit = 5
+        let maxBars = 5
         let rows = categoryRows
-        guard rows.count > limit else { return rows }
+        let real = rows.filter { !$0.isUncategorized }
+        let uncategorised = rows.filter(\.isUncategorized)
 
-        let shown = Array(rows.prefix(limit))
-        let rest = rows.dropFirst(limit)
-        let restTotal = rest.reduce(Decimal(0)) { $0 + $1.total }
-        let restFraction = rest.reduce(0.0) { $0 + $1.fraction }
-        return shown + [CategorySpending.Row(
-            name: "Ostalo",
-            total: restTotal,
-            fraction: restFraction,
-            isUncategorized: true
-        )]
-    }
+        let realSlots = maxBars - uncategorised.count
+        let bars: [CategorySpending.Row]
+        if real.count > realSlots {
+            let folded = real.dropFirst(realSlots - 1)
+            let foldRow = CategorySpending.Row(
+                name: "+\(folded.count) drugih",
+                total: folded.reduce(Decimal(0)) { $0 + $1.total },
+                fraction: folded.reduce(0.0) { $0 + $1.fraction },
+                isUncategorized: true
+            )
+            bars = Array(real.prefix(realSlots - 1)) + [foldRow] + uncategorised
+        } else {
+            bars = real + uncategorised
+        }
 
-    private var receiptCountLabel: String {
-        let count = filteredReceipts.count
-        let noun = (count % 10 == 1 && count % 100 != 11) ? "račun" : "računa"
-        return "\(count) \(noun)"
+        // Descending by amount so the chart is a clean staircase — the folded
+        // and uncategorised buckets can easily outweigh a named category, and
+        // parking them at the end made the bar heights jump around.
+        return bars.sorted { $0.total > $1.total }
     }
 
     private var filteredReceipts: [Receipt] {

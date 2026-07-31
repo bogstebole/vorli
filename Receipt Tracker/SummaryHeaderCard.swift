@@ -74,6 +74,9 @@ struct SummaryHeaderCard: View {
             .accessibilityLabel("Podešavanja")
         }
         .frame(height: 36)
+        // Extra inset so the title lines up with the day headers and merchant
+        // names below, which sit 16pt inside their cards.
+        .padding(.horizontal, 16)
     }
 
     // MARK: - Card
@@ -178,18 +181,23 @@ struct SummaryHeaderCard: View {
                             .font(.system(size: 9, design: .monospaced))
                             .foregroundStyle(row.isUncategorized ? dim : muted)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.75)
+                            .minimumScaleFactor(0.7)
+                            .frame(width: labelWidth)
                     }
                 }
             }
             AxisMarks(position: .bottom, values: names) { value in
                 AxisValueLabel {
                     if let name = value.as(String.self) {
+                        // Real category names are long ("Odeća i obuća",
+                        // "Fiksni troškovi"); without a width cap and a second
+                        // line the neighbouring labels run into each other.
                         Text(name)
-                            .font(.system(size: 9, design: .monospaced))
+                            .font(.system(size: 8, design: .monospaced))
                             .foregroundStyle(row(named: name)?.isUncategorized == true ? dim : muted)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.center)
+                            .frame(width: labelWidth)
                     }
                 }
             }
@@ -206,15 +214,24 @@ struct SummaryHeaderCard: View {
         categories.first { $0.name == name }
     }
 
+    /// Roughly one column's share of the plot width, so labels get a hard
+    /// bound instead of spilling into their neighbours.
+    private var labelWidth: CGFloat {
+        let plotWidth: CGFloat = 300
+        return max(40, plotWidth / CGFloat(max(categories.count, 1)) - 6)
+    }
+
     private static let barAreaHeight: CGFloat = 52
     private static let barWidth: CGFloat = 30
 
+    /// Brightness follows the bar's rank, which (since the caller sorts by
+    /// amount) means the tallest bar is also the brightest. Leftover buckets
+    /// are dimmed a step, but not flattened — one of them being large is worth
+    /// seeing, not hiding.
     private func shade(index: Int, row: CategorySpending.Row) -> Color {
-        // Leftover buckets ("Bez kategorije", "Ostalo") stay dimmest so they
-        // never read as the headline category.
-        if row.isUncategorized { return .white.opacity(0.20) }
         let steps: [Double] = [0.95, 0.72, 0.55, 0.42, 0.32]
-        return .white.opacity(index < steps.count ? steps[index] : 0.26)
+        let base = index < steps.count ? steps[index] : 0.26
+        return .white.opacity(row.isUncategorized ? base * 0.65 : base)
     }
 
     // MARK: - Text
