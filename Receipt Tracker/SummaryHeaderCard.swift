@@ -30,22 +30,6 @@ struct SummaryHeaderCard: View {
     private let dim = Color(red: 0.447, green: 0.447, blue: 0.447)     // #727272
     private let muted = Color(red: 0.749, green: 0.749, blue: 0.749)   // #bfbfbf
 
-    /// Radial highlight near the top centre falling off to black, per the
-    /// design's gradient (#575757 → #000000).
-    private let cardGradient = EllipticalGradient(
-        stops: [
-            .init(color: Color(red: 0.341, green: 0.341, blue: 0.341), location: 0.0),
-            .init(color: Color(red: 0.255, green: 0.255, blue: 0.255), location: 0.25),
-            .init(color: Color(red: 0.173, green: 0.173, blue: 0.173), location: 0.5),
-            .init(color: Color(red: 0.086, green: 0.086, blue: 0.086), location: 0.75),
-            .init(color: Color(red: 0.043, green: 0.043, blue: 0.043), location: 0.875),
-            .init(color: .black, location: 1.0)
-        ],
-        center: UnitPoint(x: 0.515, y: 0.28),
-        startRadiusFraction: 0,
-        endRadiusFraction: 0.95
-    )
-
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             titleRow
@@ -126,7 +110,7 @@ struct SummaryHeaderCard: View {
             }
         }
         .padding(16)
-        .background(cardGradient, in: RoundedRectangle(cornerRadius: 16))
+        .background(Color.black, in: RoundedRectangle(cornerRadius: 16))
         .overlay {
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(.black, lineWidth: 1)
