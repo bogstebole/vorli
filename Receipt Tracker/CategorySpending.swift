@@ -11,7 +11,9 @@ import Foundation
 
 enum CategorySpending {
     struct Row: Identifiable {
-        var id: String { name }
+        /// Prefixed so a user category named "Ostalo" can't collide with the
+        /// leftover bucket of the same name (duplicate ForEach ids misbehave).
+        var id: String { (isUncategorized ? "leftover:" : "category:") + name }
         let name: String
         let total: Decimal
         /// Share of the period's total, 0...1 — for bars or percentages.

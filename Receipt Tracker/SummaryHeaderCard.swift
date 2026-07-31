@@ -12,6 +12,7 @@
 //
 
 import SwiftUI
+import Charts
 
 struct SummaryHeaderCard: View {
     /// Month the screen is scoped to — drives the label and the totals.
@@ -147,47 +148,62 @@ struct SummaryHeaderCard: View {
 
     // MARK: - Category chart
 
-    /// Plain vertical bar chart: one bar per category, tallest = biggest spend,
-    /// scaled against the largest so the chart always fills its height.
+    /// Vertical bar chart of spending per category, via Swift Charts — so it
+    /// carries VoiceOver descriptions and Audio Graphs, and animates when the
+    /// month changes. The caller decides how many rows to show (and folds the
+    /// tail into "Ostalo"), so every row it hands over gets a bar.
     private var categoryChart: some View {
-        // The caller decides how many rows to show (and folds the tail into
-        // "Ostalo"), so every row it hands over gets a bar.
-        let maxFraction = categories.map(\.fraction).max() ?? 1
+        let names = categories.map(\.name)
 
-        return HStack(alignment: .bottom, spacing: 8) {
+        return Chart {
             ForEach(Array(categories.enumerated()), id: \.element.id) { index, row in
-                VStack(spacing: 6) {
-                    // Amounts sit on one line above the bars rather than
-                    // following each bar's top — a 60% and a 1% bar would put
-                    // their numbers at wildly different heights otherwise.
-                    Text(MoneyFormat.grouped(row.total))
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(row.isUncategorized ? dim : muted)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-
-                    ZStack(alignment: .bottom) {
-                        Color.clear
-                            .frame(height: Self.barAreaHeight)
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(shade(index: index, row: row))
-                            // Fixed width so these read as bars, not blocks;
-                            // the floor keeps a stub visible for tiny ones.
-                            .frame(
-                                width: Self.barWidth,
-                                height: max(3, Self.barAreaHeight * (row.fraction / max(maxFraction, 0.0001)))
-                            )
-                    }
-
-                    Text(row.name)
-                        .font(.system(size: 9, design: .monospaced))
-                        .foregroundStyle(row.isUncategorized ? dim : muted)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .frame(maxWidth: .infinity)
+                BarMark(
+                    x: .value("Kategorija", row.name),
+                    y: .value("Iznos", (row.total as NSDecimalNumber).doubleValue),
+                    width: .fixed(Self.barWidth)
+                )
+                .foregroundStyle(shade(index: index, row: row))
+                .cornerRadius(2)
+                .accessibilityLabel(row.name)
+                .accessibilityValue("\(MoneyFormat.grouped(row.total)) dinara, \(Int((row.fraction * 100).rounded())) odsto")
             }
         }
+        // Amounts above, names below — both as axis labels, so they stay on one
+        // line each instead of chasing the top of every bar.
+        .chartXAxis {
+            AxisMarks(position: .top, values: names) { value in
+                AxisValueLabel {
+                    if let name = value.as(String.self), let row = row(named: name) {
+                        Text(MoneyFormat.grouped(row.total))
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(row.isUncategorized ? dim : muted)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                }
+            }
+            AxisMarks(position: .bottom, values: names) { value in
+                AxisValueLabel {
+                    if let name = value.as(String.self) {
+                        Text(name)
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundStyle(row(named: name)?.isUncategorized == true ? dim : muted)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                }
+            }
+        }
+        .chartYAxis(.hidden)
+        .chartXScale(domain: names)
+        .chartPlotStyle { plot in
+            plot.frame(height: Self.barAreaHeight)
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: categories.map(\.total))
+    }
+
+    private func row(named name: String) -> CategorySpending.Row? {
+        categories.first { $0.name == name }
     }
 
     private static let barAreaHeight: CGFloat = 52
