@@ -39,8 +39,7 @@ struct PlaniranjeView: View {
 
                 Spacer()
             }
-            .navigationTitle("Planiranje")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Planiranje")
             .sheet(isPresented: $showMesecnaZarada) {
                 AddBalanceSheet()
             }

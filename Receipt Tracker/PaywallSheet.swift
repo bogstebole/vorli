@@ -39,8 +39,7 @@ struct PaywallSheet: View {
                 .padding()
             }
             .safeAreaBar(edge: .bottom) { ctaBar }
-            .navigationTitle("Premium")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Premium")
             .tint(.primary)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

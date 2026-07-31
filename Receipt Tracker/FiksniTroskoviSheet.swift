@@ -25,8 +25,7 @@ struct FiksniTroskoviSheet: View {
                     emptySection
                 }
             }
-            .navigationTitle("Fiksni troškovi")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Fiksni troškovi")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {
@@ -255,8 +254,7 @@ struct FixedCostEditSheet: View {
                     }
                 }
             }
-            .navigationTitle(cost == nil ? "Novi trošak" : "Izmeni trošak")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle(cost == nil ? "Novi trošak" : "Izmeni trošak")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {

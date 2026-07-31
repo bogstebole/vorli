@@ -38,7 +38,7 @@ struct DashboardView: View {
                             .disabled(!canGoBack)
 
                             Text(String(format: "%d", selectedYear))
-                                .font(.system(.largeTitle, design: .default, weight: .bold))
+                                .font(.system(.largeTitle, design: .monospaced, weight: .bold))
                                 .foregroundStyle(.primary)
                                 .contentTransition(.numericText())
 
@@ -72,7 +72,7 @@ struct DashboardView: View {
                                     .frame(width: 8, height: 8)
                                 
                                 Text("Preostalo stanje")
-                                    .font(.system(.caption, design: .default))
+                                    .font(.system(.caption, design: .monospaced))
                                     .foregroundStyle(.secondary)
                             }
                             
@@ -82,7 +82,7 @@ struct DashboardView: View {
                                     .frame(width: 8, height: 8)
                                 
                                 Text("Potrošeno")
-                                    .font(.system(.caption, design: .default))
+                                    .font(.system(.caption, design: .monospaced))
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -182,8 +182,7 @@ struct DashboardView: View {
                 }
                 .padding(.bottom, 20)
             }
-            .navigationTitle("Kontrolna tabla")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Kontrolna tabla")
             // simultaneousGesture so the vertical ScrollView doesn't swallow
             // the swipe; the dominance check keeps diagonal scrolls from
             // accidentally flipping the year.

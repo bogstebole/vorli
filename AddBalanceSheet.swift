@@ -45,8 +45,7 @@ struct AddBalanceSheet: View {
                     }
                 }
             }
-            .navigationTitle("Mesečna zarada")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Mesečna zarada")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button {

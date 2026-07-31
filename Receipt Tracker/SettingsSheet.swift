@@ -191,8 +191,7 @@ struct SettingsSheet: View {
                         .font(.system(.caption, design: .monospaced))
                 }
             }
-            .navigationTitle("Podešavanja")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Podešavanja")
             // List applies the accent tint to button/link rows even over an
             // explicit foregroundStyle — override the tint itself so every
             // row is monochrome (destructive stays red by role).

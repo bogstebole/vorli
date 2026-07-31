@@ -78,8 +78,7 @@ struct ReceiptConfirmView: View {
                     }
                 }
             }
-            .navigationTitle("Potvrdi račun")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Potvrdi račun")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {

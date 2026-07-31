@@ -93,8 +93,7 @@ struct CategoryPickerSheet: View {
                     }
                 }
             }
-            .navigationTitle("Kategorija")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Kategorija")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {

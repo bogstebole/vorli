@@ -29,8 +29,7 @@ struct ListaZeljaSheet: View {
                     listSection
                 }
             }
-            .navigationTitle("Lista želja")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Lista želja")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
@@ -300,8 +299,7 @@ struct WishEditSheet: View {
                     }
                 }
             }
-            .navigationTitle(wish == nil ? "Nova želja" : "Izmeni želju")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle(wish == nil ? "Nova želja" : "Izmeni želju")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {

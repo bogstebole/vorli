@@ -158,8 +158,7 @@ struct ReceiptDetailView: View {
             }
             .padding()
         }
-        .navigationTitle("Racun")
-        .navigationBarTitleDisplayMode(.inline)
+        .monoNavigationTitle("Racun")
         .sheet(item: $historyItem) { item in
             PriceHistorySheet(item: item)
         }

@@ -25,8 +25,7 @@ struct PriceHistorySheet: View {
                 }
                 purchasesSection
             }
-            .navigationTitle(item.name)
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle(item.name)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {

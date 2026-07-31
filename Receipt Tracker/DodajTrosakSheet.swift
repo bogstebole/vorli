@@ -48,8 +48,7 @@ struct DodajTrosakSheet: View {
                         .font(.system(.subheadline, design: .monospaced))
                 }
             }
-            .navigationTitle("Dodaj trošak")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Dodaj trošak")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
