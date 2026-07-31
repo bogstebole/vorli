@@ -113,12 +113,15 @@ struct SummaryHeaderCard: View {
             }
 
             if !categories.isEmpty {
-                categoryChart
-                    .padding(12)
-                    // Own panel: groups the chart and keeps it from reading as
-                    // loose content hanging under the balance row.
-                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
-                    .padding(.top, 10)
+                VStack(alignment: .leading, spacing: 12) {
+                    categoryChart
+                    categoryLegend
+                }
+                .padding(12)
+                // One panel holds the bars and their legend, so the breakdown
+                // reads as a single quiet block inside the card.
+                .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+                .padding(.top, 10)
             }
         }
         .padding(16)
@@ -156,9 +159,7 @@ struct SummaryHeaderCard: View {
     /// month changes. The caller decides how many rows to show (and folds the
     /// tail into "Ostalo"), so every row it hands over gets a bar.
     private var categoryChart: some View {
-        let names = categories.map(\.name)
-
-        return Chart {
+        Chart {
             ForEach(Array(categories.enumerated()), id: \.element.id) { index, row in
                 BarMark(
                     x: .value("Kategorija", row.name),
@@ -171,67 +172,49 @@ struct SummaryHeaderCard: View {
                 .accessibilityValue("\(MoneyFormat.grouped(row.total)) dinara, \(Int((row.fraction * 100).rounded())) odsto")
             }
         }
-        // Amounts above, names below — both as axis labels, so they stay on one
-        // line each instead of chasing the top of every bar.
-        .chartXAxis {
-            AxisMarks(position: .top, values: names) { value in
-                AxisValueLabel {
-                    if let name = value.as(String.self), let row = row(named: name) {
-                        Text(MoneyFormat.grouped(row.total))
-                            .font(.system(size: 9, design: .monospaced))
-                            .foregroundStyle(row.isUncategorized ? dim : muted)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                            .frame(width: labelWidth)
-                    }
-                }
-            }
-            AxisMarks(position: .bottom, values: names) { value in
-                AxisValueLabel {
-                    if let name = value.as(String.self) {
-                        // Real category names are long ("Odeća i obuća",
-                        // "Fiksni troškovi"); without a width cap and a second
-                        // line the neighbouring labels run into each other.
-                        Text(name)
-                            .font(.system(size: 8, design: .monospaced))
-                            .foregroundStyle(row(named: name)?.isUncategorized == true ? dim : muted)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.center)
-                            .frame(width: labelWidth)
-                    }
-                }
-            }
-        }
+        // Bars only. Names and amounts live in the list under the card: five
+        // long Serbian labels plus five numbers inside this panel was unreadable.
+        .chartXAxis(.hidden)
         .chartYAxis(.hidden)
-        .chartXScale(domain: names)
+        .chartXScale(domain: categories.map(\.name))
         .chartPlotStyle { plot in
             plot.frame(height: Self.barAreaHeight)
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: categories.map(\.total))
     }
 
-    private func row(named name: String) -> CategorySpending.Row? {
-        categories.first { $0.name == name }
-    }
+    /// Names and amounts for the bars, quietly: swatch in the bar's own shade,
+    /// no rules, no percentages — the bar heights already carry the proportion.
+    private var categoryLegend: some View {
+        VStack(spacing: 5) {
+            ForEach(Array(categories.enumerated()), id: \.element.id) { index, row in
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(shade(index: index, row: row))
+                        .frame(width: 6, height: 6)
 
-    /// Roughly one column's share of the plot width, so labels get a hard
-    /// bound instead of spilling into their neighbours.
-    private var labelWidth: CGFloat {
-        let plotWidth: CGFloat = 300
-        return max(40, plotWidth / CGFloat(max(categories.count, 1)) - 6)
+                    Text(row.name)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(row.isUncategorized ? dim : muted)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 8)
+
+                    Text(MoneyFormat.grouped(row.total))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.white.opacity(row.isUncategorized ? 0.55 : 0.8))
+                }
+            }
+        }
     }
 
     private static let barAreaHeight: CGFloat = 52
     private static let barWidth: CGFloat = 30
 
     /// Brightness follows the bar's rank, which (since the caller sorts by
-    /// amount) means the tallest bar is also the brightest. Leftover buckets
-    /// are dimmed a step, but not flattened — one of them being large is worth
-    /// seeing, not hiding.
+    /// amount) means the tallest bar is also the brightest.
     private func shade(index: Int, row: CategorySpending.Row) -> Color {
-        let steps: [Double] = [0.95, 0.72, 0.55, 0.42, 0.32]
-        let base = index < steps.count ? steps[index] : 0.26
-        return .white.opacity(row.isUncategorized ? base * 0.65 : base)
+        .white.opacity(CategorySpending.shadeOpacity(rank: index, isUncategorized: row.isUncategorized))
     }
 
     // MARK: - Text

@@ -21,6 +21,15 @@ enum CategorySpending {
         let isUncategorized: Bool
     }
 
+    /// Shade step for the bar (and its list swatch) at `rank`, 0 = biggest.
+    /// Callers apply it to white on the dark card and to `.primary` in the
+    /// list, so a row and its bar always carry the same weight.
+    static func shadeOpacity(rank: Int, isUncategorized: Bool) -> Double {
+        let steps: [Double] = [0.95, 0.72, 0.55, 0.42, 0.32]
+        let base = rank < steps.count ? steps[rank] : 0.26
+        return isUncategorized ? base * 0.65 : base
+    }
+
     /// Totals per category for the given receipts, largest first.
     ///
     /// `fixedCosts` (active recurring costs for the period) becomes its own row
