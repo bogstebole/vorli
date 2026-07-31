@@ -3,186 +3,189 @@
 //  Receipt Tracker
 //
 //  Home header, built to the Figma spec ("New dashboard", node 263:1549):
-//  a black receipt-slip card — date chip + balance on top, dashed tear line,
-//  then the month's spend as the hero number with today's spend under it.
+//  a "Stanje" title row with the settings control, then a dark gradient card —
+//  month, the month's spend as the hero figure, a hairline, today's spend and
+//  the balance, and a monochrome bar chart of spending per category.
 //
-//  The card stays black in both appearances (as designed); the white inset
-//  stroke is what separates it from a dark background.
+//  The card keeps its dark gradient in both appearances (as designed); only
+//  the title above it follows the system label colour.
 //
 
 import SwiftUI
 
 struct SummaryHeaderCard: View {
-    /// Month the screen is scoped to — drives the chip and the totals.
+    /// Month the screen is scoped to — drives the label and the totals.
     let month: Date
     let balance: Decimal
     let spent: Decimal
     let spentToday: Decimal
-    /// Same rows as the list below the card, so the bar doubles as its legend.
+    /// Same rows as the list below the card, so the chart matches it.
     var categories: [CategorySpending.Row] = []
 
     var onSettings: () -> Void = {}
 
-    // Figma palette (fixed on the black card, so not semantic colors).
-    private let dim = Color(red: 0.447, green: 0.447, blue: 0.447)      // #727272
-    private let bright = Color(red: 0.851, green: 0.851, blue: 0.851)   // #d9d9d9
-    private let value = Color(red: 0.749, green: 0.749, blue: 0.749)    // #bfbfbf
+    // Figma palette. Fixed values, not semantic colors: they sit on the dark
+    // card, which does not invert.
+    private let dim = Color(red: 0.447, green: 0.447, blue: 0.447)     // #727272
+    private let muted = Color(red: 0.749, green: 0.749, blue: 0.749)   // #bfbfbf
+
+    /// Radial highlight near the top centre falling off to black, per the
+    /// design's gradient (#575757 → #000000).
+    private let cardGradient = EllipticalGradient(
+        stops: [
+            .init(color: Color(red: 0.341, green: 0.341, blue: 0.341), location: 0.0),
+            .init(color: Color(red: 0.255, green: 0.255, blue: 0.255), location: 0.25),
+            .init(color: Color(red: 0.173, green: 0.173, blue: 0.173), location: 0.5),
+            .init(color: Color(red: 0.086, green: 0.086, blue: 0.086), location: 0.75),
+            .init(color: Color(red: 0.043, green: 0.043, blue: 0.043), location: 0.875),
+            .init(color: .black, location: 1.0)
+        ],
+        center: UnitPoint(x: 0.515, y: 0.28),
+        startRadiusFraction: 0,
+        endRadiusFraction: 0.95
+    )
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            topRow
-            tearLine
-            amountBlock
-            if !categories.isEmpty {
-                categoryBar
-            }
+        VStack(alignment: .leading, spacing: 16) {
+            titleRow
+            card
         }
-        .padding(12)
-        .background(Color.black, in: RoundedRectangle(cornerRadius: 12))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .strokeBorder(Color.white.opacity(0.65), lineWidth: 2)
-        }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, 16)
     }
 
-    // MARK: - Top row: date chip + balance
+    // MARK: - Title row (outside the card)
 
-    private var topRow: some View {
-        HStack(spacing: 4) {
-            HStack(spacing: 8) {
-                Text(chipText)
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(Color.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 4))
+    private var titleRow: some View {
+        HStack {
+            Text("Stanje")
+                .font(.system(size: 16, design: .monospaced))
+                .foregroundStyle(.primary)
 
-                Text(yearText)
-                    .font(.system(size: 13, design: .monospaced))
-                    .foregroundStyle(dim)
-            }
-            .padding(.leading, 2)
-            .padding(.trailing, 8)
-            .padding(.vertical, 2)
-            .background(Color.white.opacity(0.21), in: RoundedRectangle(cornerRadius: 6))
-
-            Spacer(minLength: 4)
-
-            // Balance, then settings — same row as the chip, per the design.
-            HStack(spacing: 0) {
-                Text("Stanje — ")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(bright)
-                Text(MoneyFormat.signed(balance))
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(value)
-                    .contentTransition(.numericText())
-            }
-            .lineLimit(1)
+            Spacer()
 
             Button(action: onSettings) {
-                TablerIcon("settings", size: 15)
-                    .foregroundStyle(bright)
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
+                TablerIcon("settings", size: 20)
+                    .foregroundStyle(.primary)
+                    .frame(width: 36, height: 36)
+                    .glassEffect(.regular.interactive(), in: .circle)
             }
-            .buttonStyle(.plain)
+            .tint(.primary)
             .accessibilityLabel("Podešavanja")
         }
+        .frame(height: 36)
     }
 
-    private var tearLine: some View {
-        DashedLine()
-            .stroke(Color.white.opacity(0.28), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-            .frame(height: 1)
-            .padding(.vertical, 4)
-    }
+    // MARK: - Card
 
-    // MARK: - Hero amount
+    private var card: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(monthLabel)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(muted)
 
-    private var amountBlock: some View {
-        VStack(spacing: 4) {
-            VStack(spacing: 0) {
-                Text("RSD")
-                    .font(.system(size: 11, design: .monospaced))
-                    .foregroundStyle(dim)
-
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Text(MoneyFormat.grouped(spent))
                     .font(.system(size: 36, design: .monospaced))
-                    .foregroundStyle(bright)
+                    .foregroundStyle(.white)
                     .contentTransition(.numericText())
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
-            }
 
-            if isCurrentMonth {
-                HStack(spacing: 4) {
-                    Text("Danas — ")
-                        .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(bright)
-                    Text(MoneyFormat.grouped(spentToday))
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(dim)
-                        .contentTransition(.numericText())
-                }
-            } else {
-                Text("potrošeno ovog meseca")
+                Spacer(minLength: 0)
+
+                Text("RSD")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(dim)
             }
+
+            hairline
+
+            HStack(spacing: 8) {
+                if isCurrentMonth {
+                    labelledValue("Danas", MoneyFormat.grouped(spentToday))
+                }
+                Spacer(minLength: 0)
+                labelledValue("Stanje", MoneyFormat.signed(balance))
+            }
+
+            if !categories.isEmpty {
+                hairline
+                    .padding(.top, 4)
+                categoryChart
+            }
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 8)
+        .padding(16)
+        .background(cardGradient, in: RoundedRectangle(cornerRadius: 16))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(.black, lineWidth: 1)
+        }
+        .shadow(color: Color(white: 0.35).opacity(0.10), radius: 4.5, y: 4)
+        .shadow(color: Color(white: 0.35).opacity(0.09), radius: 7.5, y: 15)
     }
 
-    // MARK: - Category bar
+    private var hairline: some View {
+        Rectangle()
+            .fill(.white.opacity(0.16))
+            .frame(height: 1)
+    }
 
-    /// Monochrome breakdown of the month's spend: one segment per category,
-    /// brightest for the biggest. Widths come from the same fractions as the
-    /// list below, so segment order and sizes match it exactly.
-    private var categoryBar: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            GeometryReader { geometry in
-                let gap: CGFloat = 2
-                let usable = max(0, geometry.size.width - gap * CGFloat(max(0, categories.count - 1)))
-                HStack(spacing: gap) {
-                    ForEach(Array(categories.enumerated()), id: \.element.id) { index, row in
+    private func labelledValue(_ label: String, _ value: String) -> some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(muted)
+            Text(value + " RSD")
+                .font(.system(size: 11, design: .monospaced))
+                .foregroundStyle(.white)
+                .contentTransition(.numericText())
+        }
+    }
+
+    // MARK: - Category chart
+
+    /// Plain vertical bar chart: one bar per category, tallest = biggest spend,
+    /// scaled against the largest so the chart always fills its height.
+    private var categoryChart: some View {
+        let shown = Array(categories.prefix(5))
+        let maxFraction = shown.map(\.fraction).max() ?? 1
+
+        return HStack(alignment: .bottom, spacing: 8) {
+            ForEach(Array(shown.enumerated()), id: \.element.id) { index, row in
+                VStack(spacing: 6) {
+                    ZStack(alignment: .bottom) {
+                        Color.clear
+                            .frame(height: Self.barAreaHeight)
                         RoundedRectangle(cornerRadius: 2)
                             .fill(shade(index: index, row: row))
-                            // Floor keeps a sliver visible for tiny categories.
-                            .frame(width: max(3, usable * row.fraction))
+                            // Fixed width so these read as bars, not blocks;
+                            // the floor keeps a stub visible for tiny ones.
+                            .frame(
+                                width: Self.barWidth,
+                                height: max(3, Self.barAreaHeight * (row.fraction / max(maxFraction, 0.0001)))
+                            )
                     }
-                }
-            }
-            .frame(height: 8)
-            // The 3pt floor above can round past the available width when many
-            // categories are tiny; clipping keeps the bar inside the card.
-            .clipped()
 
-            HStack(spacing: 4) {
-                Text(topCategoryLabel)
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(dim)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
+                    Text(row.name)
+                        .font(.system(size: 9, design: .monospaced))
+                        .foregroundStyle(row.isUncategorized ? dim : muted)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+                .frame(maxWidth: .infinity)
             }
         }
-        .padding(.top, 4)
     }
+
+    private static let barAreaHeight: CGFloat = 52
+    private static let barWidth: CGFloat = 30
 
     private func shade(index: Int, row: CategorySpending.Row) -> Color {
-        // The leftover buckets ("Bez kategorije", "Ostalo") stay dimmest so
-        // they never read as the headline category.
-        if row.isUncategorized { return .white.opacity(0.16) }
-        let steps: [Double] = [0.92, 0.70, 0.54, 0.42, 0.32]
-        return .white.opacity(index < steps.count ? steps[index] : 0.24)
-    }
-
-    /// One line of context so the bar isn't abstract: the biggest category.
-    private var topCategoryLabel: String {
-        guard let top = categories.first(where: { !$0.isUncategorized }) ?? categories.first else { return "" }
-        return "\(top.name) \(Int((top.fraction * 100).rounded()))%"
+        // Leftover buckets ("Bez kategorije", "Ostalo") stay dimmest so they
+        // never read as the headline category.
+        if row.isUncategorized { return .white.opacity(0.20) }
+        let steps: [Double] = [0.95, 0.72, 0.55, 0.42, 0.32]
+        return .white.opacity(index < steps.count ? steps[index] : 0.26)
     }
 
     // MARK: - Text
@@ -191,28 +194,11 @@ struct SummaryHeaderCard: View {
         Calendar.current.isDate(month, equalTo: Date(), toGranularity: .month)
     }
 
-    /// Today's date while browsing the current month; the month's name when
-    /// browsing an older one — a day chip would be a lie there.
-    private var chipText: String {
+    private var monthLabel: String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "sr_Latn_RS")
-        formatter.dateFormat = isCurrentMonth ? "EEE, d. MMM" : "MMMM"
-        return formatter.string(from: isCurrentMonth ? Date() : month).sentenceCased
-    }
-
-    private var yearText: String {
-        String(Calendar.current.component(.year, from: month))
-    }
-}
-
-// MARK: - Dashed tear line
-
-private struct DashedLine: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: 0, y: rect.midY))
-        path.addLine(to: CGPoint(x: rect.width, y: rect.midY))
-        return path
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: month).sentenceCased
     }
 }
 
@@ -220,9 +206,16 @@ private struct DashedLine: Shape {
     VStack {
         SummaryHeaderCard(
             month: Date(),
-            balance: 350_000,
+            balance: 234_000,
             spent: 56_212,
-            spentToday: 1_000
+            spentToday: 1_000,
+            categories: [
+                .init(name: "Tehnika", total: 33_332, fraction: 0.60, isUncategorized: false),
+                .init(name: "Hrana", total: 13_360, fraction: 0.24, isUncategorized: false),
+                .init(name: "Prevoz", total: 8_000, fraction: 0.14, isUncategorized: false),
+                .init(name: "Pekara", total: 480, fraction: 0.01, isUncategorized: false),
+                .init(name: "Bez kategorije", total: 520, fraction: 0.01, isUncategorized: true)
+            ]
         )
         Spacer()
     }
