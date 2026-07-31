@@ -201,40 +201,12 @@ struct ContentView: View {
         )
     }
 
-    /// Bars for the chart: the biggest categories, then the folded remainder,
-    /// then uncategorised spending.
-    ///
-    /// "Bez kategorije" always keeps its own bar. It is appended after sorting,
-    /// so a plain top-N cut would swallow it into the remainder even when it is
-    /// the largest bucket — and "how much haven't I labelled" is exactly what
-    /// the user needs to see. The fold is named "+N drugih" rather than
-    /// "Ostalo" so it can't collide with a category the user named that (equal
-    /// x values make Swift Charts stack the bars on top of each other).
+    /// Every category gets a bar — the bars share the available width, so there
+    /// is no reason to hide any behind a "+N drugih" bucket. Descending by
+    /// amount, since "Bez kategorije" can easily outweigh a named category and
+    /// parking it last made the bar heights jump around.
     private var displayCategoryRows: [CategorySpending.Row] {
-        let maxBars = 5
-        let rows = categoryRows
-        let real = rows.filter { !$0.isUncategorized }
-        let uncategorised = rows.filter(\.isUncategorized)
-
-        let realSlots = maxBars - uncategorised.count
-        let bars: [CategorySpending.Row]
-        if real.count > realSlots {
-            let folded = real.dropFirst(realSlots - 1)
-            let foldRow = CategorySpending.Row(
-                name: "+\(folded.count) drugih",
-                total: folded.reduce(Decimal(0)) { $0 + $1.total },
-                fraction: folded.reduce(0.0) { $0 + $1.fraction },
-                isUncategorized: true
-            )
-            bars = Array(real.prefix(realSlots - 1)) + [foldRow] + uncategorised
-        } else {
-            bars = real + uncategorised
-        }
-
-        // Descending by amount so the chart is a clean staircase — the folded
-        // and uncategorised buckets can easily outweigh a named category, and
-        // parking them at the end made the bar heights jump around.
-        return bars.sorted { $0.total > $1.total }
+        categoryRows.sorted { $0.total > $1.total }
     }
 
     private var filteredReceipts: [Receipt] {

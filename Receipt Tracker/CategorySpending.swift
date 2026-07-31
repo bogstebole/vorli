@@ -21,13 +21,14 @@ enum CategorySpending {
         let isUncategorized: Bool
     }
 
-    /// Shade step for the bar (and its list swatch) at `rank`, 0 = biggest.
-    /// Callers apply it to white on the dark card and to `.primary` in the
-    /// list, so a row and its bar always carry the same weight.
-    static func shadeOpacity(rank: Int, isUncategorized: Bool) -> Double {
-        let steps: [Double] = [0.95, 0.72, 0.55, 0.42, 0.32]
-        let base = rank < steps.count ? steps[rank] : 0.26
-        return isUncategorized ? base * 0.65 : base
+    /// Shade for the bar (and its legend swatch) at `rank`, 0 = biggest, as a
+    /// smooth ramp across however many bars there are — a fixed step table
+    /// flattened out once the chart showed every category.
+    static func shadeOpacity(rank: Int, count: Int, isUncategorized: Bool) -> Double {
+        guard count > 1 else { return 0.95 }
+        let progress = Double(min(rank, count - 1)) / Double(count - 1)
+        let base = 0.95 - progress * 0.62
+        return isUncategorized ? base * 0.7 : base
     }
 
     /// Totals per category for the given receipts, largest first.

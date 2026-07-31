@@ -113,13 +113,14 @@ struct SummaryHeaderCard: View {
             }
 
             if !categories.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 18) {
                     categoryChart
                     categoryLegend
                 }
-                .padding(12)
-                // One panel holds the bars and their legend, so the breakdown
-                // reads as a single quiet block inside the card.
+                // Vertical padding only: a horizontal inset here pushed the
+                // legend off the left edge shared by the month, the amount and
+                // the balance row.
+                .padding(.vertical, 12)
                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
                 .padding(.top, 10)
             }
@@ -164,7 +165,9 @@ struct SummaryHeaderCard: View {
                 BarMark(
                     x: .value("Kategorija", row.name),
                     y: .value("Iznos", (row.total as NSDecimalNumber).doubleValue),
-                    width: .fixed(Self.barWidth)
+                    // Ratio, not a fixed width: the bars split the plot evenly
+                    // and fill it whatever the category count is.
+                    width: .ratio(0.72)
                 )
                 .foregroundStyle(shade(index: index, row: row))
                 .cornerRadius(2)
@@ -185,6 +188,8 @@ struct SummaryHeaderCard: View {
 
     /// Names and amounts for the bars, quietly: swatch in the bar's own shade,
     /// no rules, no percentages — the bar heights already carry the proportion.
+    /// Every label uses one colour; varying them per row made the block harder
+    /// to read, not easier.
     private var categoryLegend: some View {
         VStack(spacing: 5) {
             ForEach(Array(categories.enumerated()), id: \.element.id) { index, row in
@@ -195,26 +200,28 @@ struct SummaryHeaderCard: View {
 
                     Text(row.name)
                         .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(row.isUncategorized ? dim : muted)
                         .lineLimit(1)
 
                     Spacer(minLength: 8)
 
                     Text(MoneyFormat.grouped(row.total))
                         .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(.white.opacity(row.isUncategorized ? 0.55 : 0.8))
                 }
+                .foregroundStyle(muted)
             }
         }
     }
 
     private static let barAreaHeight: CGFloat = 52
-    private static let barWidth: CGFloat = 30
 
     /// Brightness follows the bar's rank, which (since the caller sorts by
     /// amount) means the tallest bar is also the brightest.
     private func shade(index: Int, row: CategorySpending.Row) -> Color {
-        .white.opacity(CategorySpending.shadeOpacity(rank: index, isUncategorized: row.isUncategorized))
+        .white.opacity(CategorySpending.shadeOpacity(
+            rank: index,
+            count: categories.count,
+            isUncategorized: row.isUncategorized
+        ))
     }
 
     // MARK: - Text
