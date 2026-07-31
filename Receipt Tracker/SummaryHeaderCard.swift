@@ -84,7 +84,7 @@ struct SummaryHeaderCard: View {
     private var card: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(monthLabel)
-                .font(.system(size: 11, design: .monospaced))
+                .font(.system(size: 16, design: .monospaced))
                 .foregroundStyle(muted)
 
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -117,14 +117,11 @@ struct SummaryHeaderCard: View {
                     categoryChart
                     categoryLegend
                 }
+                // 10pt inside the panel; the panel's own edges line up with the
+                // hairline and the text above it.
                 .padding(.vertical, 12)
                 .padding(.horizontal, 10)
                 .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
-                // Pull the panel back out by the same 10pt it just inset its
-                // content: the bars and legend keep breathing room inside the
-                // panel, while still sharing the left edge with the month, the
-                // amount and the balance row.
-                .padding(.horizontal, -10)
                 .padding(.top, 10)
             }
         }
