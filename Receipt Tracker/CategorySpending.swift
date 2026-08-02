@@ -25,9 +25,11 @@ enum CategorySpending {
     /// smooth ramp across however many bars there are — a fixed step table
     /// flattened out once the chart showed every category.
     static func shadeOpacity(rank: Int, count: Int, isUncategorized: Bool) -> Double {
-        guard count > 1 else { return 0.95 }
+        // Tops out well below full strength — at full white the biggest
+        // segment glared against the card and read as a rendering glitch.
+        guard count > 1 else { return 0.72 }
         let progress = Double(min(rank, count - 1)) / Double(count - 1)
-        let base = 0.95 - progress * 0.62
+        let base = 0.72 - progress * 0.46
         return isUncategorized ? base * 0.7 : base
     }
 

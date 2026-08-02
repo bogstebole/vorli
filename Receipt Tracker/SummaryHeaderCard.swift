@@ -108,7 +108,7 @@ struct SummaryHeaderCard: View {
                 // hairline and the text above it.
                 .padding(.vertical, 12)
                 .padding(.horizontal, 10)
-                .background(onCard.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                .background(onCard.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
                 .padding(.top, 10)
             }
         }
@@ -142,15 +142,17 @@ struct SummaryHeaderCard: View {
     /// carries VoiceOver descriptions and Audio Graphs, and animates when the
     /// month changes. The caller decides how many rows to show (and folds the
     /// tail into "Ostalo"), so every row it hands over gets a bar.
+    /// One inline strip, split into a segment per category — every mark shares
+    /// the same band, so Swift Charts stacks them along the x axis. Reads well
+    /// with one category or with ten, unlike columns, which turn a single
+    /// category into a slab. Names and amounts are in the legend below.
     private var categoryChart: some View {
         Chart {
             ForEach(Array(categories.enumerated()), id: \.element.id) { index, row in
                 BarMark(
-                    x: .value("Kategorija", row.name),
-                    y: .value("Iznos", (row.total as NSDecimalNumber).doubleValue),
-                    // Ratio, not a fixed width: the bars split the plot evenly
-                    // and fill it whatever the category count is.
-                    width: .ratio(0.72)
+                    x: .value("Iznos", (row.total as NSDecimalNumber).doubleValue),
+                    y: .value("Potrošnja", "sve"),
+                    height: .fixed(Self.barAreaHeight)
                 )
                 .foregroundStyle(shade(index: index, row: row))
                 .cornerRadius(2)
@@ -158,11 +160,8 @@ struct SummaryHeaderCard: View {
                 .accessibilityValue("\(MoneyFormat.grouped(row.total)) dinara, \(Int((row.fraction * 100).rounded())) odsto")
             }
         }
-        // Bars only. Names and amounts live in the list under the card: five
-        // long Serbian labels plus five numbers inside this panel was unreadable.
         .chartXAxis(.hidden)
         .chartYAxis(.hidden)
-        .chartXScale(domain: categories.map(\.name))
         .chartPlotStyle { plot in
             plot.frame(height: Self.barAreaHeight)
         }
@@ -195,7 +194,7 @@ struct SummaryHeaderCard: View {
         }
     }
 
-    private static let barAreaHeight: CGFloat = 52
+    private static let barAreaHeight: CGFloat = 12
 
     /// Brightness follows the bar's rank, which (since the caller sorts by
     /// amount) means the tallest bar is also the brightest.
