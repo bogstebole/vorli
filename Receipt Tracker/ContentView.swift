@@ -62,7 +62,11 @@ struct ContentView: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationBarHidden(true)
+            // Scoped to this screen. The old `.navigationBarHidden(true)` drove
+            // the shared UINavigationController's hidden state, so every push
+            // had to unhide the bar mid-transition — the pushed screen laid out
+            // without the bar's inset and its header ended up underneath it.
+            .toolbar(.hidden, for: .navigationBar)
             .alert("Greška", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
             } message: {
