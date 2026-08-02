@@ -310,7 +310,12 @@ struct ContentView: View {
     private func openStagedReceipt() {
         guard !scannerVisible, !confirmVisible, let receipt = stagedReceipt else { return }
         stagedReceipt = nil
-        scannedReceipt = receipt
+        // Next runloop turn. `onDismiss` runs inside UIKit's dismissal
+        // completion, and pushing from there tears the presentation down
+        // mid-flight — the app dies right after the receipt is saved.
+        Task { @MainActor in
+            scannedReceipt = receipt
+        }
     }
 
     private func processReceipt(from urlString: String) async {
