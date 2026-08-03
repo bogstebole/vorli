@@ -58,7 +58,14 @@ struct RootView: View {
                 // event the tab's own (empty) content would be all you see —
                 // an app that opens to a blank white screen.
                 Color.clear
-                    .onAppear { leaveScanTab() }
+                    .onAppear {
+                        // Only when this tab is genuinely the selected one.
+                        // TabView also builds and "appears" tabs that are not
+                        // on screen, and bouncing then opens the scanner over
+                        // Home at launch — which looks like a blank app.
+                        guard nav.selectedTab == .scan else { return }
+                        leaveScanTab()
+                    }
             }
         }
         // Icons only, no labels.
