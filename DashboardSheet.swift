@@ -344,13 +344,7 @@ struct DashboardView: View {
     
     private func calculateLeftOverBalance(for date: Date, spent: Decimal) -> Decimal {
         let calendar = Calendar.current
-        
-        // Get the start and end of the month
-        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: date)),
-              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart) else {
-            return 0
-        }
-        
+
         // Get all budget entries for this month
         let monthBudgetEntries = budgetEntries.filter { entry in
             calendar.isDate(entry.timestamp, equalTo: date, toGranularity: .month)
