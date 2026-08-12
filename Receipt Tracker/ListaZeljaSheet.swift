@@ -29,20 +29,18 @@ struct ListaZeljaSheet: View {
                     listSection
                 }
             }
-            .navigationTitle("Lista želja")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Lista želja")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
+                        TablerIcon("x", size: 18)
                             .foregroundStyle(.primary)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { showAdd = true } label: {
-                        Image(systemName: "plus")
-                            .font(.system(.body, weight: .semibold))
+                        TablerIcon("plus", size: 18)
+                            .foregroundStyle(.primary)
                     }
                 }
             }
@@ -82,7 +80,7 @@ struct ListaZeljaSheet: View {
             }
             if available < 0 {
                 HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
+                    TablerIcon("alert-triangle", size: 15)
                         .foregroundStyle(.orange)
                     Text("Odvojio si više nego što ti je ukupno ostalo od zarade.")
                         .font(.system(.caption, design: .monospaced))
@@ -108,7 +106,11 @@ struct ListaZeljaSheet: View {
                     Button(role: .destructive) {
                         delete(wish)
                     } label: {
-                        Label("Obriši", systemImage: "trash")
+                        Label {
+                            Text("Obriši")
+                        } icon: {
+                            TablerIcon("trash", size: 16)
+                        }
                     }
                 }
             }
@@ -287,26 +289,28 @@ struct WishEditSheet: View {
                         Button(role: .destructive) {
                             deleteWish()
                         } label: {
-                            Label("Obriši želju", systemImage: "trash")
-                                .font(.system(.subheadline, design: .monospaced))
+                            Label {
+                                Text("Obriši želju")
+                            } icon: {
+                                TablerIcon("trash", size: 16)
+                            }
+                            .font(.system(.subheadline, design: .monospaced))
                         }
                     }
                 }
             }
-            .navigationTitle(wish == nil ? "Nova želja" : "Izmeni želju")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle(wish == nil ? "Nova želja" : "Izmeni želju")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
+                        TablerIcon("x", size: 18)
                             .foregroundStyle(.primary)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { save() } label: {
-                        Image(systemName: "checkmark")
-                            .font(.system(.body, weight: .semibold))
+                        TablerIcon("check", size: 18)
+                            .foregroundStyle(.primary)
                     }
                     .disabled(!isValid)
                 }
@@ -355,8 +359,12 @@ struct WishEditSheet: View {
                 Button {
                     archive()
                 } label: {
-                    Label("Ostvareno 🎉", systemImage: "checkmark.circle.fill")
-                        .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    Label {
+                        Text("Ostvareno 🎉")
+                    } icon: {
+                        TablerIcon("circle-check", size: 16)
+                    }
+                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
                 }
             }
         } header: {

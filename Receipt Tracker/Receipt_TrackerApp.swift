@@ -12,6 +12,7 @@ import SwiftData
 struct Receipt_TrackerApp: App {
     @State private var premiumStore = PremiumStore()
 
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             Receipt.self,

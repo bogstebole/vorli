@@ -35,8 +35,7 @@ struct MonthBalanceCard: View {
                 Button {
                     onSettings()
                 } label: {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 17, weight: .medium))
+                    TablerIcon("settings", size: 19)
                         .foregroundStyle(.primary)
                         .frame(width: 36, height: 36)
                         .glassEffect(.regular.interactive(), in: .circle)

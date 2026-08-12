@@ -25,13 +25,11 @@ struct PriceHistorySheet: View {
                 }
                 purchasesSection
             }
-            .navigationTitle(item.name)
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle(item.name)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(.body, weight: .medium))
+                        TablerIcon("x", size: 18)
                             .foregroundStyle(.primary)
                     }
                 }

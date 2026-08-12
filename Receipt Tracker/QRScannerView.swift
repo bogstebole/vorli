@@ -91,8 +91,7 @@ struct QRScannerView: View {
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 15, weight: .medium))
+                        TablerIcon("x", size: 16)
                             .foregroundStyle(.primary)
                             .frame(width: 36, height: 36)
                             .glassEffect(.regular.interactive(), in: .circle)
@@ -141,10 +140,10 @@ struct QRScannerView: View {
     /// default, so its button is the prominent one.
     private var actionBar: some View {
         HStack(spacing: 24) {
-            circleAction(icon: "qrcode.viewfinder", title: "QR kod", isActive: true) {
+            circleAction(icon: "qrcode", title: "QR kod", isActive: true) {
                 // Already the default surface — nothing to switch.
             }
-            circleAction(icon: "doc.viewfinder", title: "Račun", isActive: false) {
+            circleAction(icon: "file-text", title: "Račun", isActive: false) {
                 openDocScanner()
             }
             VStack(spacing: 6) {
@@ -171,8 +170,7 @@ struct QRScannerView: View {
     /// True circle: glassEffect applied directly (the glass button style adds
     /// its own horizontal padding and turns everything into a pill).
     private func circleIcon(_ icon: String, isActive: Bool) -> some View {
-        Image(systemName: icon)
-            .font(.system(size: 17, weight: .medium))
+        TablerIcon(icon, size: 22)
             .foregroundStyle(isActive ? Color(uiColor: .systemBackground) : .primary)
             .frame(width: 48, height: 48)
             .glassEffect(
@@ -270,8 +268,7 @@ struct QRScannerView: View {
 
     private var permissionView: some View {
         VStack(spacing: 20) {
-            Image(systemName: "camera.fill")
-                .font(.system(size: 60))
+            TablerIcon("camera", size: 60)
                 .foregroundStyle(.gray)
 
             Text("Potreban pristup kameri")
@@ -339,6 +336,12 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
     // All session configuration and start/stop happens off the main thread —
     // AVCaptureSession setup takes long enough to cause a visible UI hitch.
     private let sessionQueue = DispatchQueue(label: "qr.scanner.session", qos: .userInitiated)
+    /// One code per screen. `stopRunning()` is dispatched, not immediate, so
+    /// metadata keeps arriving at frame rate for a few hundred milliseconds
+    /// after the first hit — without this latch a single QR code fires
+    /// `onScan` several times, each starting its own fetch and its own
+    /// navigation push, and the racing pushes take the app down.
+    private var hasDeliveredScan = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -438,16 +441,26 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
     }
 
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
+        guard !hasDeliveredScan else { return }
+
+        // Nothing readable in this batch — the code left the frame, or it was
+        // only partially decoded. Keep the session running so the next frame
+        // gets a chance; stopping here froze the camera on a half-read code.
+        guard let readableObject = metadataObjects
+                .compactMap({ $0 as? AVMetadataMachineReadableCodeObject })
+                .first(where: { $0.stringValue != nil }),
+              let stringValue = readableObject.stringValue else {
+            return
+        }
+
+        hasDeliveredScan = true
+
         sessionQueue.async { [weak self] in
             self?.captureSession?.stopRunning()
         }
 
-        if let metadataObject = metadataObjects.first,
-           let readableObject = metadataObject as? AVMetadataMachineReadableCodeObject,
-           let stringValue = readableObject.stringValue {
-            AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
-            onScan?(stringValue)
-        }
+        AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
+        onScan?(stringValue)
     }
 }
 

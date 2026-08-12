@@ -29,8 +29,7 @@ struct DashboardView: View {
                             Button {
                                 changeYear(by: -1)
                             } label: {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(.title3, weight: .semibold))
+                                TablerIcon("chevron-left", size: 22)
                                     .foregroundStyle(canGoBack ? .secondary : .quaternary)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
@@ -39,15 +38,14 @@ struct DashboardView: View {
                             .disabled(!canGoBack)
 
                             Text(String(format: "%d", selectedYear))
-                                .font(.system(.largeTitle, design: .default, weight: .bold))
+                                .font(.system(.largeTitle, design: .monospaced, weight: .bold))
                                 .foregroundStyle(.primary)
                                 .contentTransition(.numericText())
 
                             Button {
                                 changeYear(by: 1)
                             } label: {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(.title3, weight: .semibold))
+                                TablerIcon("chevron-right", size: 22)
                                     .foregroundStyle(canGoForward ? .secondary : .quaternary)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
@@ -74,7 +72,7 @@ struct DashboardView: View {
                                     .frame(width: 8, height: 8)
                                 
                                 Text("Preostalo stanje")
-                                    .font(.system(.caption, design: .default))
+                                    .font(.system(.caption, design: .monospaced))
                                     .foregroundStyle(.secondary)
                             }
                             
@@ -84,7 +82,7 @@ struct DashboardView: View {
                                     .frame(width: 8, height: 8)
                                 
                                 Text("Potrošeno")
-                                    .font(.system(.caption, design: .default))
+                                    .font(.system(.caption, design: .monospaced))
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -107,8 +105,7 @@ struct DashboardView: View {
                             )
                             .overlay(alignment: .topTrailing) {
                                 if !unlocked {
-                                    Image(systemName: "lock.fill")
-                                        .font(.system(size: 11))
+                                    TablerIcon("lock", size: 13)
                                         .foregroundStyle(.secondary)
                                         .padding(8)
                                 }
@@ -133,14 +130,13 @@ struct DashboardView: View {
                                 showPaywall = true
                             } label: {
                                 HStack(spacing: 10) {
-                                    Image(systemName: "lock.fill")
+                                    TablerIcon("lock", size: 15)
                                         .foregroundStyle(.secondary)
                                     Text("Raščlamba po kategorijama je deo Premium-a")
                                         .font(.system(.caption, design: .monospaced))
                                         .foregroundStyle(.secondary)
                                     Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 11, weight: .medium))
+                                    TablerIcon("chevron-right", size: 12)
                                         .foregroundStyle(.tertiary)
                                 }
                                 .padding(14)
@@ -186,8 +182,7 @@ struct DashboardView: View {
                 }
                 .padding(.bottom, 20)
             }
-            .navigationTitle("Kontrolna tabla")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Kontrolna tabla")
             // simultaneousGesture so the vertical ScrollView doesn't swallow
             // the swipe; the dominance check keeps diagonal scrolls from
             // accidentally flipping the year.
@@ -349,13 +344,7 @@ struct DashboardView: View {
     
     private func calculateLeftOverBalance(for date: Date, spent: Decimal) -> Decimal {
         let calendar = Calendar.current
-        
-        // Get the start and end of the month
-        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: date)),
-              let monthEnd = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: monthStart) else {
-            return 0
-        }
-        
+
         // Get all budget entries for this month
         let monthBudgetEntries = budgetEntries.filter { entry in
             calendar.isDate(entry.timestamp, equalTo: date, toGranularity: .month)

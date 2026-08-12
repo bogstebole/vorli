@@ -21,16 +21,16 @@ struct PlaniranjeView: View {
         NavigationStack {
             VStack(spacing: 0) {
                 VStack(spacing: 0) {
-                    AddNewRow(icon: "wallet.bifold.fill", title: "Mesečna zarada") {
+                    AddNewRow(icon: "wallet", title: "Mesečna zarada") {
                         showMesecnaZarada = true
                     }
                     AddNewRow(icon: "repeat", title: "Fiksni mesečni troškovi") {
                         showFiksniTroskovi = true
                     }
-                    AddNewRow(icon: "plus.circle", title: "Dodaj trošak ručno") {
+                    AddNewRow(icon: "circle-plus", title: "Dodaj trošak ručno") {
                         showDodajTrosak = true
                     }
-                    AddNewRow(icon: "app.gift.fill", title: "Lista želja") {
+                    AddNewRow(icon: "gift", title: "Lista želja") {
                         showListaZelja = true
                     }
                 }
@@ -39,8 +39,7 @@ struct PlaniranjeView: View {
 
                 Spacer()
             }
-            .navigationTitle("Planiranje")
-            .navigationBarTitleDisplayMode(.inline)
+            .monoNavigationTitle("Planiranje")
             .sheet(isPresented: $showMesecnaZarada) {
                 AddBalanceSheet()
             }
@@ -67,8 +66,7 @@ struct AddNewRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(.body, weight: .medium))
+                TablerIcon(icon, size: 20)
                     .frame(width: 24, alignment: .center)
                     .foregroundStyle(.primary)
 
@@ -79,8 +77,7 @@ struct AddNewRow: View {
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .medium))
+                TablerIcon("chevron-right", size: 13)
                     .foregroundStyle(.secondary)
             }
             .padding(16)

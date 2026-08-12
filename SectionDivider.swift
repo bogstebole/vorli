@@ -15,10 +15,12 @@ struct SectionDivider: View {
             // Left line with equals pattern
             EqualsPattern()
             
-            // Title
+            // Title — never wraps; the dashed rules give up width instead.
             Text(title)
                 .font(.system(.subheadline, design: .monospaced, weight: .semibold))
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .fixedSize()
             
             // Right line with equals pattern
             EqualsPattern()

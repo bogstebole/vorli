@@ -31,17 +31,17 @@ struct ReceiptCardView: View {
             
             
             HStack {
-                // Date and Time
+                // Date and Time — Serbian, not the device locale
                 HStack(spacing: 6) {
-                    Text(receipt.timestamp, style: .date)
+                    Text(Self.dateFormatter.string(from: receipt.timestamp))
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
-                    
+
                     Text("•")
                         .font(.system(.caption2, design: .monospaced))
                         .foregroundStyle(.tertiary)
-                    
-                    Text(receipt.timestamp, style: .time)
+
+                    Text(Self.timeFormatter.string(from: receipt.timestamp))
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                 }
@@ -53,6 +53,20 @@ struct ReceiptCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "sr_Latn_RS")
+        f.dateFormat = "d. MMM yyyy"
+        return f
+    }()
+
+    private static let timeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "sr_Latn_RS")
+        f.dateFormat = "HH:mm"
+        return f
+    }()
+
     private func formatCurrency(_ amount: Decimal) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency

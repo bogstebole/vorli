@@ -53,7 +53,19 @@ struct RootView: View {
             // Detached trailing action. `.search` role gives the native
             // separated circle; we never actually stay on it.
             Tab("Skeniraj", image: "tab-scan", value: RootTab.scan, role: .search) {
+                // Bounces off itself. `onChange` below normally gets there
+                // first, but if the selection ever lands here without a change
+                // event the tab's own (empty) content would be all you see —
+                // an app that opens to a blank white screen.
                 Color.clear
+                    .onAppear {
+                        // Only when this tab is genuinely the selected one.
+                        // TabView also builds and "appears" tabs that are not
+                        // on screen, and bouncing then opens the scanner over
+                        // Home at launch — which looks like a blank app.
+                        guard nav.selectedTab == .scan else { return }
+                        leaveScanTab()
+                    }
             }
         }
         // Icons only, no labels.
@@ -63,9 +75,15 @@ struct RootView: View {
         .environment(nav)
         .onChange(of: nav.selectedTab) { _, newValue in
             guard newValue == .scan else { return }
-            nav.selectedTab = .home
-            nav.showScanner = true
+            leaveScanTab()
         }
+    }
+
+    /// Scanning is an action, not a destination: hop back to Home and present
+    /// the scanner there, so the flow stays inside Home's navigation stack.
+    private func leaveScanTab() {
+        nav.selectedTab = .home
+        nav.showScanner = true
     }
 }
 

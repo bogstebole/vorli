@@ -37,6 +37,13 @@ extension String {
     var isSerbianFiscalURL: Bool {
         self.contains("suf.purs.gov.rs") && self.hasPrefix("http")
     }
+
+    /// Uppercases only the first character. Unlike `capitalized`, this keeps
+    /// Serbian month names lowercase ("Petak, 31. jul", not "Petak, 31. Jul").
+    var sentenceCased: String {
+        guard let first else { return self }
+        return first.uppercased() + dropFirst()
+    }
     
     /// Cleans the string from extra whitespace and newlines
     var cleaned: String {
