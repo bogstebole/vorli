@@ -24,17 +24,15 @@ struct ContentView: View {
     @State private var showError = false
     @State private var showSettings = false
     @State private var showVorli = false
-    @State private var scannedReceipt: Receipt?
-    @State private var pendingReceipt: ParsedReceipt?
 
-    /// A freshly scanned receipt waiting for the scanner (or the confirm sheet)
-    /// to finish going away before it is pushed. Pushing mid-dismissal leaves
-    /// the detail view without its navigation-bar inset — its content ends up
-    /// underneath the bar.
+    /// A receipt from the OCR flow, waiting for the confirm sheet to finish
+    /// going away before it is pushed. Pushing mid-dismissal leaves the detail
+    /// view without its navigation-bar inset — its content ends up underneath
+    /// the bar. (The QR flow does not need this: the scanner holds itself open
+    /// until the push is done, so there is no dismissal to collide with.)
     @State private var stagedReceipt: Receipt?
-    /// True from the moment the presenter appears until its dismissal
+    /// True from the moment the confirm sheet appears until its dismissal
     /// *animation* completes — the binding flips to false too early to use.
-    @State private var scannerVisible = false
     @State private var confirmVisible = false
 
     var body: some View {
@@ -74,21 +72,9 @@ struct ContentView: View {
                     Text(errorMessage)
                 }
             }
-            // Full screen, not a sheet: the document scanner is always full
-            // screen, so QR ↔ Račun stays frame-to-frame without the sheet
-            // chrome jumping in between.
-            .fullScreenCover(isPresented: $nav.showScanner, onDismiss: {
-                scannerVisible = false
-                openStagedReceipt()
-            }) {
-                QRScannerView { url in
-                    Task { await processReceipt(from: url) }
-                } onReceiptParsed: { parsed in
-                    pendingReceipt = parsed
-                }
-                .onAppear { scannerVisible = true }
-            }
-            .sheet(item: $pendingReceipt, onDismiss: {
+            // The scanner is its own tab now, so nothing is presented here.
+            // It hands its results over through `AppNavigation`.
+            .sheet(item: $nav.pendingReceipt, onDismiss: {
                 confirmVisible = false
                 openStagedReceipt()
             }) { parsed in
@@ -104,16 +90,16 @@ struct ContentView: View {
             // .fullScreenCover(isPresented: $showVorli) {
             //     VorliChatView()
             // }
-            .navigationDestination(item: $scannedReceipt) { receipt in
+            .navigationDestination(item: $nav.scannedReceipt) { receipt in
                 ReceiptDetailView(receipt: receipt)
             }
-            .fullScreenCover(isPresented: $showOnboarding) {
-                OnboardingView { startScanning in
-                    onboardingCompleted = true
-                    showOnboarding = false
-                    if startScanning {
-                        nav.showScanner = true
-                    }
+        }
+        .fullScreenCover(isPresented: $showOnboarding) {
+            OnboardingView { startScanning in
+                onboardingCompleted = true
+                showOnboarding = false
+                if startScanning {
+                    nav.selectedTab = .scan
                 }
             }
         }
@@ -312,28 +298,17 @@ struct ContentView: View {
     }
 
     private func openStagedReceipt() {
-        guard !scannerVisible, !confirmVisible, let receipt = stagedReceipt else { return }
+        guard !confirmVisible, let receipt = stagedReceipt else { return }
         // A detail screen is already up (or on its way up). Swapping the
         // destination mid-transition tears the push down under UIKit —
         // whatever produced a second receipt has to wait for the pop.
-        guard scannedReceipt == nil else { return }
+        guard nav.scannedReceipt == nil else { return }
         stagedReceipt = nil
         // Next runloop turn. `onDismiss` runs inside UIKit's dismissal
         // completion, and pushing from there tears the presentation down
         // mid-flight — the app dies right after the receipt is saved.
         Task { @MainActor in
-            scannedReceipt = receipt
-        }
-    }
-
-    private func processReceipt(from urlString: String) async {
-        do {
-            let service = ReceiptService(modelContext: modelContext)
-            let receipt = try await service.processReceipt(from: urlString)
-            stageReceipt(receipt)
-        } catch {
-            errorMessage = error.localizedDescription
-            showError = true
+            nav.scannedReceipt = receipt
         }
     }
 

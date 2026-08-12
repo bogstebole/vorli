@@ -2,12 +2,21 @@
 //  RootView.swift
 //  Receipt Tracker
 //
-//  Hosts the native iOS 26 Liquid Glass tab bar: Početna + Pregled as
-//  switchable tabs, and Skeniraj as a detached trailing action (the
-//  `.search` role slot — the same "pill + gap + circle" the Phone app uses).
-//  Tapping Skeniraj is an action, not a destination: it flips back to Home
-//  and presents the scanner there, so the scan → confirm → detail flow stays
-//  inside Home's navigation stack.
+//  Hosts the native iOS 26 Liquid Glass tab bar: four switchable tabs in the
+//  pill, and Skeniraj as the detached trailing circle beside it (the `.search`
+//  role slot — the same "pill + gap + circle" the Phone app uses).
+//
+//  Skeniraj is a real destination, not an action dressed up as one. It used to
+//  be an action: tapping it let the selection land on `.scan` and then put it
+//  back on `.home`, with the scanner presented over Home as a full screen
+//  cover. That round trip tears Home's hosting controller down and rebuilds it
+//  mid-switch, and the rebuilt navigation stack loses the navigation bar's
+//  inset — after which every pushed screen, every receipt and not just a
+//  freshly scanned one, laid out ~115pt too high with its header behind the
+//  bar, and stayed that way until the app was restarted. Refusing the selection
+//  write instead just left TabView parked on a tab with empty content: a blank
+//  screen with nothing but the tab bar. There is no third way out, so the tab
+//  now holds the scanner itself and selecting it is an ordinary tab switch.
 //
 
 import SwiftUI
@@ -17,16 +26,20 @@ enum RootTab: Hashable {
     case home, dashboard, planiranje, pretraga, scan
 }
 
-/// Shared navigation state so the Dashboard tab can jump Home to a chosen
-/// month, and the tab bar can trigger the scanner living inside Home.
+/// Shared navigation state. The Dashboard tab jumps Home to a chosen month,
+/// and the scan tab hands its results to Home's navigation stack.
 @Observable
 final class AppNavigation {
     var selectedTab: RootTab = .home
     var selectedMonth: Date = Date()
-    var showScanner: Bool = false
+    /// Set by the scan tab, consumed by Home's `navigationDestination`.
+    var scannedReceipt: Receipt?
+    /// An OCR result awaiting confirmation, consumed by Home's confirm sheet.
+    var pendingReceipt: ParsedReceipt?
 }
 
 struct RootView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var nav = AppNavigation()
 
     var body: some View {
@@ -50,22 +63,20 @@ struct RootView: View {
                 NavigationStack { SearchView() }
             }
 
-            // Detached trailing action. `.search` role gives the native
-            // separated circle; we never actually stay on it.
+            // Detached trailing circle. `.search` role gives that shape
+            // natively; nothing else does.
             Tab("Skeniraj", image: "tab-scan", value: RootTab.scan, role: .search) {
-                // Bounces off itself. `onChange` below normally gets there
-                // first, but if the selection ever lands here without a change
-                // event the tab's own (empty) content would be all you see —
-                // an app that opens to a blank white screen.
-                Color.clear
-                    .onAppear {
-                        // Only when this tab is genuinely the selected one.
-                        // TabView also builds and "appears" tabs that are not
-                        // on screen, and bouncing then opens the scanner over
-                        // Home at launch — which looks like a blank app.
-                        guard nav.selectedTab == .scan else { return }
-                        leaveScanTab()
-                    }
+                QRScannerView { url in
+                    await processScannedReceipt(from: url)
+                } onReceiptParsed: { parsed in
+                    nav.pendingReceipt = parsed
+                    nav.selectedTab = .home
+                } onClose: {
+                    nav.selectedTab = .home
+                }
+                // The camera wants the whole screen, and the X is the only way
+                // out that makes sense mid-scan anyway.
+                .toolbar(.hidden, for: .tabBar)
             }
         }
         // Icons only, no labels.
@@ -73,17 +84,31 @@ struct RootView: View {
         // Monochrome selection — no Apple blue on the active tab.
         .tint(.primary)
         .environment(nav)
-        .onChange(of: nav.selectedTab) { _, newValue in
-            guard newValue == .scan else { return }
-            leaveScanTab()
-        }
     }
 
-    /// Scanning is an action, not a destination: hop back to Home and present
-    /// the scanner there, so the flow stays inside Home's navigation stack.
-    private func leaveScanTab() {
-        nav.selectedTab = .home
-        nav.showScanner = true
+    /// Runs while the scan tab is still on screen. Returns nil once the detail
+    /// screen is in place in Home's stack, so switching to Home reveals a
+    /// finished screen instead of racing a push against the switch. On failure
+    /// the message goes back to the scanner, which shows it without leaving so
+    /// the user can line the code up again.
+    private func processScannedReceipt(from urlString: String) async -> String? {
+        do {
+            let service = ReceiptService(modelContext: modelContext)
+            let receipt = try await service.processReceipt(from: urlString)
+            // Unanimated: this push happens on a tab that is not on screen, so
+            // there is no transition to see, and an animated one would still be
+            // in flight when the tab switch lands on top of it.
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                nav.scannedReceipt = receipt
+            }
+            // Let that settle before the scanner hands control back.
+            await Task.yield()
+            return nil
+        } catch {
+            return error.localizedDescription
+        }
     }
 }
 

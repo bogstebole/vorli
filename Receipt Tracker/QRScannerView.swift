@@ -21,23 +21,38 @@ extension Notification.Name {
 }
 
 struct QRScannerView: View {
-    @Environment(\.dismiss) private var dismiss
-    let onScan: (String) -> Void
+    /// Handed a scanned code, and awaited: the scanner stays up, showing its
+    /// spinner, until the caller is done. Returns nil when the receipt landed
+    /// (the caller has already put its screen in place elsewhere, so all that
+    /// is left is to get out of the way), or a message to show while staying
+    /// open so the user can just scan again.
+    let onScan: (String) async -> String?
     let onReceiptParsed: ((ParsedReceipt) -> Void)?
+    /// How to leave. This lives in a tab rather than a presentation, so there
+    /// is no `dismiss()` to call — the owner decides where "away" is.
+    let onClose: () -> Void
 
     @State private var isAuthorized = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var isProcessing = false
+    /// Bumped to give the camera view a fresh identity after a failed scan —
+    /// a new controller means a new session and a re-armed scan latch.
+    @State private var scanAttempt = 0
     /// True from the moment the user taps "Račun" until the document scanner
     /// is dismissed — removes the QR camera so it releases the device.
     @State private var docScannerRequested = false
     @State private var showDocScanner = false
 
-    init(onScan: @escaping (String) -> Void, onReceiptParsed: ((ParsedReceipt) -> Void)? = nil) {
+    init(
+        onScan: @escaping (String) async -> String?,
+        onReceiptParsed: ((ParsedReceipt) -> Void)? = nil,
+        onClose: @escaping () -> Void
+    ) {
         self.onScan = onScan
         self.onReceiptParsed = onReceiptParsed
+        self.onClose = onClose
     }
 
     var body: some View {
@@ -48,9 +63,9 @@ struct QRScannerView: View {
                         Color.black.ignoresSafeArea()
                     } else {
                         QRScannerCameraView(onScan: { url in
-                            onScan(url)
-                            dismiss()
+                            Task { @MainActor in await handleScannedCode(url) }
                         })
+                        .id(scanAttempt)
                         .ignoresSafeArea()
                     }
                 } else {
@@ -90,7 +105,7 @@ struct QRScannerView: View {
                         .shadow(color: .black.opacity(0.5), radius: 3)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
+                    Button { onClose() } label: {
                         TablerIcon("x", size: 16)
                             .foregroundStyle(.primary)
                             .frame(width: 36, height: 36)
@@ -186,6 +201,35 @@ struct QRScannerView: View {
             .shadow(color: .black.opacity(0.5), radius: 3)
     }
 
+    // MARK: - Scanned code handoff
+
+    /// Stays on screen, spinner up, while the caller fetches and saves the
+    /// receipt. Closing first and letting the caller push afterwards put the
+    /// detail screen's navigation transition on top of this cover's teardown:
+    /// the detail laid out with the wrong insets — content jammed under the
+    /// navigation bar with nothing to scroll — and before that it took the app
+    /// down outright. Waiting means the push happens behind a settled cover
+    /// and all this has left to do is get out of the way.
+    private func handleScannedCode(_ code: String) async {
+        isProcessing = true
+        let failure = await onScan(code)
+        isProcessing = false
+
+        guard let failure else {
+            // Camera re-armed for next time: this view lives in a tab, so it
+            // is not torn down on the way out the way a presentation would be.
+            scanAttempt += 1
+            onClose()
+            return
+        }
+
+        // Nothing was opened behind us — say what went wrong and hand back a
+        // live camera instead of dumping the user on Home.
+        errorMessage = failure
+        showError = true
+        scanAttempt += 1
+    }
+
     // MARK: - Document scanner handoff
 
     private func openDocScanner() {
@@ -225,9 +269,7 @@ struct QRScannerView: View {
         }
 
         if let qrCode = decodeQRCode(from: uiImage) {
-            isProcessing = false
-            onScan(qrCode)
-            dismiss()
+            await handleScannedCode(qrCode)
         } else {
             // No QR in the photo — treat it as a receipt photo and run OCR.
             handleReceiptCapture(uiImage)
@@ -254,7 +296,8 @@ struct QRScannerView: View {
                 let parsedReceipt = try await ReceiptOCRParser.parseReceipt(from: image)
                 isProcessing = false
                 onReceiptParsed?(parsedReceipt)
-                dismiss()
+                scanAttempt += 1
+                onClose()
             } catch {
                 debugLog("❌ Error in handleReceiptCapture: \(error)")
                 isProcessing = false
@@ -467,7 +510,10 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
 #Preview {
     QRScannerView { url in
         print("Scanned URL: \(url)")
+        return nil
     } onReceiptParsed: { parsed in
         print("Parsed receipt: \(parsed.merchantName)")
+    } onClose: {
+        print("Closed")
     }
 }
