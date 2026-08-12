@@ -31,7 +31,7 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var nav = nav
-        TabView(selection: $nav.selectedTab) {
+        TabView(selection: scanIsAnAction) {
             Tab("Početna", image: "tab-home", value: RootTab.home) {
                 ContentView()
             }
@@ -51,21 +51,10 @@ struct RootView: View {
             }
 
             // Detached trailing action. `.search` role gives the native
-            // separated circle; we never actually stay on it.
+            // separated circle; the binding above makes sure we never actually
+            // land on it, so this content is never seen.
             Tab("Skeniraj", image: "tab-scan", value: RootTab.scan, role: .search) {
-                // Bounces off itself. `onChange` below normally gets there
-                // first, but if the selection ever lands here without a change
-                // event the tab's own (empty) content would be all you see —
-                // an app that opens to a blank white screen.
                 Color.clear
-                    .onAppear {
-                        // Only when this tab is genuinely the selected one.
-                        // TabView also builds and "appears" tabs that are not
-                        // on screen, and bouncing then opens the scanner over
-                        // Home at launch — which looks like a blank app.
-                        guard nav.selectedTab == .scan else { return }
-                        leaveScanTab()
-                    }
             }
         }
         // Icons only, no labels.
@@ -73,17 +62,34 @@ struct RootView: View {
         // Monochrome selection — no Apple blue on the active tab.
         .tint(.primary)
         .environment(nav)
-        .onChange(of: nav.selectedTab) { _, newValue in
-            guard newValue == .scan else { return }
-            leaveScanTab()
-        }
     }
 
-    /// Scanning is an action, not a destination: hop back to Home and present
-    /// the scanner there, so the flow stays inside Home's navigation stack.
-    private func leaveScanTab() {
-        nav.selectedTab = .home
-        nav.showScanner = true
+    /// Scanning is an action, not a destination, so the Skeniraj tab is never
+    /// allowed to become the selection — the write is swallowed and turned
+    /// into "present the scanner over whatever tab you were on".
+    ///
+    /// This used to let the selection land on `.scan` and then set it back to
+    /// `.home`. That round trip tears the home tab's hosting controller down
+    /// and rebuilds it mid-switch, and the rebuilt navigation stack loses the
+    /// navigation bar's inset: from then on every pushed screen — every
+    /// receipt, not just a freshly scanned one — laid out ~115pt too high with
+    /// its header behind the bar, and stayed that way until the app restarted.
+    private var scanIsAnAction: Binding<RootTab> {
+        Binding(
+            get: { nav.selectedTab },
+            set: { newValue in
+                guard newValue != .scan else {
+                    // Home, because the scan → confirm → detail flow lives in
+                    // Home's navigation stack. Going there from another tab is
+                    // an ordinary switch and harmless; it is only the trip
+                    // through `.scan` that does the damage.
+                    nav.selectedTab = .home
+                    nav.showScanner = true
+                    return
+                }
+                nav.selectedTab = newValue
+            }
+        )
     }
 }
 
