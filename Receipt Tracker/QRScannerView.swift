@@ -385,14 +385,27 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
     /// `onScan` several times, each starting its own fetch and its own
     /// navigation push, and the racing pushes take the app down.
     private var hasDeliveredScan = false
+    /// Observes the session actually starting, so the preview is only revealed
+    /// once there are live frames behind it.
+    private var didStartRunningObserver: NSObjectProtocol?
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Black underneath, so a hidden preview reads as "camera warming up"
+        // rather than as a broken white screen.
+        view.backgroundColor = .black
         setupCamera()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+
+        // The layer holds on to the last frame it drew, and this controller
+        // now lives in a tab, so it survives being left and comes back with
+        // that stale frame still on screen — the scanner appeared to reopen on
+        // whatever was in front of the camera last time. Stay hidden until the
+        // session reports it is running again.
+        previewLayer?.isHidden = true
 
         sessionQueue.async { [weak self] in
             if let session = self?.captureSession, !session.isRunning {
@@ -404,6 +417,8 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
 
+        previewLayer?.isHidden = true
+
         sessionQueue.async { [weak self] in
             if let session = self?.captureSession, session.isRunning {
                 session.stopRunning()
@@ -414,6 +429,12 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
             DispatchQueue.main.async {
                 NotificationCenter.default.post(name: .qrScannerSessionDidStop, object: nil)
             }
+        }
+    }
+
+    deinit {
+        if let didStartRunningObserver {
+            NotificationCenter.default.removeObserver(didStartRunningObserver)
         }
     }
 
@@ -431,8 +452,28 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
         let layer = AVCaptureVideoPreviewLayer(session: session)
         layer.frame = view.layer.bounds
         layer.videoGravity = .resizeAspectFill
+        layer.isHidden = true
         view.layer.addSublayer(layer)
         previewLayer = layer
+
+        didStartRunningObserver = NotificationCenter.default.addObserver(
+            forName: AVCaptureSession.didStartRunningNotification,
+            object: session,
+            queue: .main
+        ) { [weak self] _ in
+            // Frames are flowing now, so whatever the layer is holding is
+            // current. Fade in rather than snap — the first frame lands a beat
+            // after this fires and a hard cut reads as a flicker.
+            guard let layer = self?.previewLayer else { return }
+            layer.isHidden = false
+            layer.opacity = 0
+            let fade = CABasicAnimation(keyPath: "opacity")
+            fade.fromValue = 0
+            fade.toValue = 1
+            fade.duration = 0.2
+            layer.opacity = 1
+            layer.add(fade, forKey: "reveal")
+        }
 
         sessionQueue.async { [weak self] in
             guard let self else { return }
