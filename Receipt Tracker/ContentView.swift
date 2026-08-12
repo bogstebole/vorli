@@ -27,14 +27,14 @@ struct ContentView: View {
     @State private var scannedReceipt: Receipt?
     @State private var pendingReceipt: ParsedReceipt?
 
-    /// A freshly scanned receipt waiting for the scanner (or the confirm sheet)
-    /// to finish going away before it is pushed. Pushing mid-dismissal leaves
-    /// the detail view without its navigation-bar inset — its content ends up
-    /// underneath the bar.
+    /// A receipt from the OCR flow, waiting for the confirm sheet to finish
+    /// going away before it is pushed. Pushing mid-dismissal leaves the detail
+    /// view without its navigation-bar inset — its content ends up underneath
+    /// the bar. (The QR flow does not need this: the scanner holds itself open
+    /// until the push is done, so there is no dismissal to collide with.)
     @State private var stagedReceipt: Receipt?
-    /// True from the moment the presenter appears until its dismissal
+    /// True from the moment the confirm sheet appears until its dismissal
     /// *animation* completes — the binding flips to false too early to use.
-    @State private var scannerVisible = false
     @State private var confirmVisible = false
 
     var body: some View {
@@ -77,16 +77,12 @@ struct ContentView: View {
             // Full screen, not a sheet: the document scanner is always full
             // screen, so QR ↔ Račun stays frame-to-frame without the sheet
             // chrome jumping in between.
-            .fullScreenCover(isPresented: $nav.showScanner, onDismiss: {
-                scannerVisible = false
-                openStagedReceipt()
-            }) {
+            .fullScreenCover(isPresented: $nav.showScanner) {
                 QRScannerView { url in
-                    Task { await processReceipt(from: url) }
+                    await processReceipt(from: url)
                 } onReceiptParsed: { parsed in
                     pendingReceipt = parsed
                 }
-                .onAppear { scannerVisible = true }
             }
             .sheet(item: $pendingReceipt, onDismiss: {
                 confirmVisible = false
@@ -107,13 +103,13 @@ struct ContentView: View {
             .navigationDestination(item: $scannedReceipt) { receipt in
                 ReceiptDetailView(receipt: receipt)
             }
-            .fullScreenCover(isPresented: $showOnboarding) {
-                OnboardingView { startScanning in
-                    onboardingCompleted = true
-                    showOnboarding = false
-                    if startScanning {
-                        nav.showScanner = true
-                    }
+        }
+        .fullScreenCover(isPresented: $showOnboarding) {
+            OnboardingView { startScanning in
+                onboardingCompleted = true
+                showOnboarding = false
+                if startScanning {
+                    nav.showScanner = true
                 }
             }
         }
@@ -312,7 +308,7 @@ struct ContentView: View {
     }
 
     private func openStagedReceipt() {
-        guard !scannerVisible, !confirmVisible, let receipt = stagedReceipt else { return }
+        guard !confirmVisible, let receipt = stagedReceipt else { return }
         // A detail screen is already up (or on its way up). Swapping the
         // destination mid-transition tears the push down under UIKit —
         // whatever produced a second receipt has to wait for the pop.
@@ -326,14 +322,30 @@ struct ContentView: View {
         }
     }
 
-    private func processReceipt(from urlString: String) async {
+    /// Runs while the scanner is still covering the screen. Returns nil once
+    /// the detail screen is in place behind the scanner — pushing here means
+    /// the transition lands in a settled hierarchy, the same one a tap from the
+    /// list gets. On failure the message goes back to the scanner, which shows
+    /// it without closing so the user can line the code up again.
+    private func processReceipt(from urlString: String) async -> String? {
         do {
             let service = ReceiptService(modelContext: modelContext)
             let receipt = try await service.processReceipt(from: urlString)
-            stageReceipt(receipt)
+            // Unanimated on purpose: the scanner is covering this, so there is
+            // no transition to see — and an animated push would still be in
+            // flight when the cover starts coming down, which is the collision
+            // this whole handoff exists to avoid. Without the animation the
+            // push settles inside one layout pass.
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                scannedReceipt = receipt
+            }
+            // Let that pass run before handing control back to the scanner.
+            await Task.yield()
+            return nil
         } catch {
-            errorMessage = error.localizedDescription
-            showError = true
+            return error.localizedDescription
         }
     }
 
