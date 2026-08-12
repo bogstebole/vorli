@@ -24,8 +24,6 @@ struct ContentView: View {
     @State private var showError = false
     @State private var showSettings = false
     @State private var showVorli = false
-    @State private var scannedReceipt: Receipt?
-    @State private var pendingReceipt: ParsedReceipt?
 
     /// A receipt from the OCR flow, waiting for the confirm sheet to finish
     /// going away before it is pushed. Pushing mid-dismissal leaves the detail
@@ -74,17 +72,9 @@ struct ContentView: View {
                     Text(errorMessage)
                 }
             }
-            // Full screen, not a sheet: the document scanner is always full
-            // screen, so QR ↔ Račun stays frame-to-frame without the sheet
-            // chrome jumping in between.
-            .fullScreenCover(isPresented: $nav.showScanner) {
-                QRScannerView { url in
-                    await processReceipt(from: url)
-                } onReceiptParsed: { parsed in
-                    pendingReceipt = parsed
-                }
-            }
-            .sheet(item: $pendingReceipt, onDismiss: {
+            // The scanner is its own tab now, so nothing is presented here.
+            // It hands its results over through `AppNavigation`.
+            .sheet(item: $nav.pendingReceipt, onDismiss: {
                 confirmVisible = false
                 openStagedReceipt()
             }) { parsed in
@@ -100,7 +90,7 @@ struct ContentView: View {
             // .fullScreenCover(isPresented: $showVorli) {
             //     VorliChatView()
             // }
-            .navigationDestination(item: $scannedReceipt) { receipt in
+            .navigationDestination(item: $nav.scannedReceipt) { receipt in
                 ReceiptDetailView(receipt: receipt)
             }
         }
@@ -109,7 +99,7 @@ struct ContentView: View {
                 onboardingCompleted = true
                 showOnboarding = false
                 if startScanning {
-                    nav.showScanner = true
+                    nav.selectedTab = .scan
                 }
             }
         }
@@ -312,40 +302,13 @@ struct ContentView: View {
         // A detail screen is already up (or on its way up). Swapping the
         // destination mid-transition tears the push down under UIKit —
         // whatever produced a second receipt has to wait for the pop.
-        guard scannedReceipt == nil else { return }
+        guard nav.scannedReceipt == nil else { return }
         stagedReceipt = nil
         // Next runloop turn. `onDismiss` runs inside UIKit's dismissal
         // completion, and pushing from there tears the presentation down
         // mid-flight — the app dies right after the receipt is saved.
         Task { @MainActor in
-            scannedReceipt = receipt
-        }
-    }
-
-    /// Runs while the scanner is still covering the screen. Returns nil once
-    /// the detail screen is in place behind the scanner — pushing here means
-    /// the transition lands in a settled hierarchy, the same one a tap from the
-    /// list gets. On failure the message goes back to the scanner, which shows
-    /// it without closing so the user can line the code up again.
-    private func processReceipt(from urlString: String) async -> String? {
-        do {
-            let service = ReceiptService(modelContext: modelContext)
-            let receipt = try await service.processReceipt(from: urlString)
-            // Unanimated on purpose: the scanner is covering this, so there is
-            // no transition to see — and an animated push would still be in
-            // flight when the cover starts coming down, which is the collision
-            // this whole handoff exists to avoid. Without the animation the
-            // push settles inside one layout pass.
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                scannedReceipt = receipt
-            }
-            // Let that pass run before handing control back to the scanner.
-            await Task.yield()
-            return nil
-        } catch {
-            return error.localizedDescription
+            nav.scannedReceipt = receipt
         }
     }
 

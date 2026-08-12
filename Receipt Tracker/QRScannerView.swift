@@ -21,14 +21,16 @@ extension Notification.Name {
 }
 
 struct QRScannerView: View {
-    @Environment(\.dismiss) private var dismiss
     /// Handed a scanned code, and awaited: the scanner stays up, showing its
     /// spinner, until the caller is done. Returns nil when the receipt landed
-    /// (the caller has already put its screen in place behind us, so all that
+    /// (the caller has already put its screen in place elsewhere, so all that
     /// is left is to get out of the way), or a message to show while staying
     /// open so the user can just scan again.
     let onScan: (String) async -> String?
     let onReceiptParsed: ((ParsedReceipt) -> Void)?
+    /// How to leave. This lives in a tab rather than a presentation, so there
+    /// is no `dismiss()` to call — the owner decides where "away" is.
+    let onClose: () -> Void
 
     @State private var isAuthorized = false
     @State private var selectedPhoto: PhotosPickerItem?
@@ -43,9 +45,14 @@ struct QRScannerView: View {
     @State private var docScannerRequested = false
     @State private var showDocScanner = false
 
-    init(onScan: @escaping (String) async -> String?, onReceiptParsed: ((ParsedReceipt) -> Void)? = nil) {
+    init(
+        onScan: @escaping (String) async -> String?,
+        onReceiptParsed: ((ParsedReceipt) -> Void)? = nil,
+        onClose: @escaping () -> Void
+    ) {
         self.onScan = onScan
         self.onReceiptParsed = onReceiptParsed
+        self.onClose = onClose
     }
 
     var body: some View {
@@ -98,7 +105,7 @@ struct QRScannerView: View {
                         .shadow(color: .black.opacity(0.5), radius: 3)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button { dismiss() } label: {
+                    Button { onClose() } label: {
                         TablerIcon("x", size: 16)
                             .foregroundStyle(.primary)
                             .frame(width: 36, height: 36)
@@ -209,7 +216,10 @@ struct QRScannerView: View {
         isProcessing = false
 
         guard let failure else {
-            dismiss()
+            // Camera re-armed for next time: this view lives in a tab, so it
+            // is not torn down on the way out the way a presentation would be.
+            scanAttempt += 1
+            onClose()
             return
         }
 
@@ -286,7 +296,8 @@ struct QRScannerView: View {
                 let parsedReceipt = try await ReceiptOCRParser.parseReceipt(from: image)
                 isProcessing = false
                 onReceiptParsed?(parsedReceipt)
-                dismiss()
+                scanAttempt += 1
+                onClose()
             } catch {
                 debugLog("❌ Error in handleReceiptCapture: \(error)")
                 isProcessing = false
@@ -502,5 +513,7 @@ class QRScannerViewController: UIViewController, AVCaptureMetadataOutputObjectsD
         return nil
     } onReceiptParsed: { parsed in
         print("Parsed receipt: \(parsed.merchantName)")
+    } onClose: {
+        print("Closed")
     }
 }
