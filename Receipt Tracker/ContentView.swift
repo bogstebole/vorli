@@ -313,6 +313,10 @@ struct ContentView: View {
 
     private func openStagedReceipt() {
         guard !scannerVisible, !confirmVisible, let receipt = stagedReceipt else { return }
+        // A detail screen is already up (or on its way up). Swapping the
+        // destination mid-transition tears the push down under UIKit —
+        // whatever produced a second receipt has to wait for the pop.
+        guard scannedReceipt == nil else { return }
         stagedReceipt = nil
         // Next runloop turn. `onDismiss` runs inside UIKit's dismissal
         // completion, and pushing from there tears the presentation down

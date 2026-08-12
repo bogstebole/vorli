@@ -11,7 +11,15 @@ import SwiftData
 struct ReceiptDetailView: View {
     let receipt: Receipt
     @Environment(\.dismiss) private var dismiss
-    @Environment(PremiumStore.self) private var premiumStore
+    // Optional on purpose. This screen is pushed from Home, which hides the
+    // navigation bar — so the push makes UIKit unhide it and lay the bar out
+    // *synchronously*, from inside the transition, to size the monospaced
+    // `.principal` title item. That sizing pass evaluates this body before the
+    // environment is wired up. The non-optional form traps there ("No
+    // Observable object of type PremiumStore found") and kills the app; the
+    // optional form yields nil for that one throwaway pass and re-evaluates
+    // with the real store the moment the transition settles.
+    @Environment(PremiumStore.self) private var premiumStore: PremiumStore?
     @Query private var allReceipts: [Receipt]
     @Query private var merchantCategories: [MerchantCategory]
     @State private var historyItem: ReceiptItem?
@@ -127,7 +135,7 @@ struct ReceiptDetailView: View {
                             ) {
                                 // Change badge is the free teaser; the full
                                 // price history is premium.
-                                if premiumStore.isPremium {
+                                if premiumStore?.isPremium == true {
                                     historyItem = item
                                 } else {
                                     showPaywall = true
