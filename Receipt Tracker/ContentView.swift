@@ -40,8 +40,6 @@ struct ContentView: View {
     /// driven by this, not by the settled index — that is what makes the
     /// swipe read as a physical drag rather than a slide show.
     @State private var pageProgress: Double = 0
-    /// Which way the last movement went: +1 forward in time, -1 back.
-    @State private var swipeDirection: Double = 1
     /// True while a day is being read off a chart. The pager is frozen for the
     /// duration so the scrubbing finger doesn't also turn the page.
     @State private var isScrubbing = false
@@ -169,11 +167,8 @@ struct ContentView: View {
             let width = geometry.containerSize.width
             guard width > 0 else { return 0 }
             return geometry.contentOffset.x / width
-        } action: { old, new in
+        } action: { _, new in
             pageProgress = new
-            if abs(new - old) > 0.0005 {
-                swipeDirection = new > old ? 1 : -1
-            }
         }
         // Start where navigation says we are, not always on the newest month.
         .onAppear { pagedMonth = Self.startOfMonth(nav.selectedMonth) }
@@ -203,7 +198,6 @@ struct ContentView: View {
             dailyTotals: dailyTotals(in: month, receipts: receipts),
             receiptCount: receipts.count,
             closeness: max(0, 1 - abs(pageProgress - Double(index))),
-            swipeDirection: swipeDirection,
             onReceipts: { showReceipts = true },
             onCategories: { showCategories = true },
             onScrubbingChanged: { isScrubbing = $0 }

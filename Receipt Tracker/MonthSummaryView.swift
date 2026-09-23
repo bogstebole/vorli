@@ -39,10 +39,6 @@ struct MonthSummaryView: View {
     /// depth effect, so a half-swiped month reads as "on its way" instead of
     /// sliding past at full strength.
     var closeness: Double = 1
-    /// Which way the user is swiping: +1 forward in time, -1 back. Decides
-    /// which side the content settles in from, and which end of the chart
-    /// fills first.
-    var swipeDirection: Double = 1
 
     var onReceipts: () -> Void = {}
     var onCategories: () -> Void = {}
@@ -105,7 +101,7 @@ struct MonthSummaryView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
                 .accessibilityLabel("Potrošeno \(MoneyFormat.grouped(spent)) dinara")
-                .reveal(revealed, delay: 0, dx: 18 * swipeDirection)
+                .reveal(revealed, delay: 0)
 
             Text("Od \(MoneyFormat.grouped(income))")
                 .font(.system(size: 13, design: .monospaced))
@@ -116,7 +112,7 @@ struct MonthSummaryView: View {
                 .minimumScaleFactor(0.7)
                 .padding(.top, 2)
                 .accessibilityLabel("Od \(MoneyFormat.grouped(income)) dinara")
-                .reveal(revealed, delay: 0.04, dx: 18 * swipeDirection)
+                .reveal(revealed, delay: 0.06)
 
             // The slot is always here; only the month on the calendar has a
             // "today" to report, so past months get a blank line of the same
@@ -128,7 +124,7 @@ struct MonthSummaryView: View {
                 .contentTransition(.numericText())
                 .padding(.top, 8)
                 .accessibilityLabel(isCurrentMonth ? "Danas \(MoneyFormat.grouped(spentToday)) dinara" : "")
-                .reveal(revealed, delay: 0.08, dx: 18 * swipeDirection)
+                .reveal(revealed, delay: 0.12)
         }
         .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)
@@ -154,13 +150,15 @@ struct MonthSummaryView: View {
                     .fill(barColor(day: index))
                     .frame(height: barHeight(amount, day: index))
                     .frame(maxWidth: .infinity)
-                    // Grows out of the baseline, swept from the side the
-                    // swipe came from.
+                    // Grows out of the baseline, sweeping the month from the
+                    // 1st to the last — the chart filling up in order, which
+                    // is the one direction that means something here.
                     .scaleEffect(y: revealed ? 1 : 0, anchor: .bottom)
                     .opacity(revealed ? 1 : 0)
+                    .blur(radius: revealed ? 0 : 4)
                     .animation(
                         .spring(response: 0.42, dampingFraction: 0.82)
-                            .delay(0.14 + Double(barOrder(index)) * 0.008),
+                            .delay(0.18 + Double(index) * 0.004),
                         value: revealed
                     )
             }
@@ -224,7 +222,7 @@ struct MonthSummaryView: View {
         .font(.system(size: 9, design: .monospaced))
         .foregroundStyle(.tertiary)
         .accessibilityHidden(true)
-        .reveal(revealed, delay: 0.2, dx: 12 * swipeDirection)
+        .reveal(revealed, delay: 0.30)
     }
 
     // MARK: - Chart maths
@@ -247,12 +245,6 @@ struct MonthSummaryView: View {
         if isFuture(day: index) { return .primary.opacity(0.08) }
         // Everything dims a little while another day is being read.
         return .primary.opacity(scrubbedDay == nil ? 0.28 : 0.16)
-    }
-
-    /// Sweep order for the entrance: the chart fills from the side the swipe
-    /// came from.
-    private func barOrder(_ index: Int) -> Int {
-        swipeDirection >= 0 ? index : (dailyTotals.count - 1 - index)
     }
 
     private func day(atX x: CGFloat) -> Int {
@@ -292,9 +284,9 @@ struct MonthSummaryView: View {
     private var buttons: some View {
         HStack(spacing: 8) {
             glassButton("Računi (\(receiptCount))", action: onReceipts)
-                .reveal(revealed, delay: 0.3, dx: 18 * swipeDirection)
+                .reveal(revealed, delay: 0.36)
             glassButton("Kategorije", action: onCategories)
-                .reveal(revealed, delay: 0.35, dx: 18 * swipeDirection)
+                .reveal(revealed, delay: 0.42)
         }
     }
 
@@ -411,14 +403,20 @@ private struct ChartScrubber: UIViewRepresentable {
 // MARK: - Staggered entrance
 
 private extension View {
-    /// Composed entrance: the element fades, slides in from the side the swipe
-    /// came from, and settles on a spring. `delay` is what staggers the block.
-    func reveal(_ revealed: Bool, delay: Double, dx: CGFloat) -> some View {
+    /// Composed entrance: the element pulls into focus out of a blur while it
+    /// fades up and rises the last few points onto a spring. Three properties
+    /// rather than one — a bare fade reads as a glitch, and the blur is what
+    /// makes it read as coming into focus rather than switching on.
+    ///
+    /// `delay` staggers the block from the top down: the figure first, then
+    /// what it is measured against, then the chart, then the buttons — the
+    /// order the screen is read in.
+    func reveal(_ revealed: Bool, delay: Double) -> some View {
         self
             .opacity(revealed ? 1 : 0)
-            .offset(x: revealed ? 0 : dx)
-            .blur(radius: revealed ? 0 : 3)
-            .animation(.spring(response: 0.44, dampingFraction: 0.86).delay(delay), value: revealed)
+            .offset(y: revealed ? 0 : 10)
+            .blur(radius: revealed ? 0 : 6)
+            .animation(.spring(response: 0.46, dampingFraction: 0.88).delay(delay), value: revealed)
     }
 }
 
