@@ -35,6 +35,16 @@ struct ContentView: View {
     /// `nav.selectedMonth` in both directions: the Dashboard tab writes that
     /// to jump Home to a month, and swiping writes it back.
     @State private var pagedMonth: Date?
+    /// The pager's continuous position (2.4 = 40% of the way from the third
+    /// month to the fourth). The indicator and each page's depth effect are
+    /// driven by this, not by the settled index — that is what makes the
+    /// swipe read as a physical drag rather than a slide show.
+    @State private var pageProgress: Double = 0
+    /// Which way the last movement went: +1 forward in time, -1 back.
+    @State private var swipeDirection: Double = 1
+    /// True while a day is being read off a chart. The pager is frozen for the
+    /// duration so the scrubbing finger doesn't also turn the page.
+    @State private var isScrubbing = false
 
     /// Sheets hung off the month buttons.
     @State private var showReceipts = false
@@ -53,9 +63,17 @@ struct ContentView: View {
     var body: some View {
         @Bindable var nav = nav
         return NavigationStack {
-            monthPager
-                .background(Color(uiColor: .systemGroupedBackground))
-                .overlay(alignment: .topTrailing) { settingsButton }
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                MonthPagerIndicator(months: availableMonths, progress: pageProgress)
+                Spacer().frame(height: 24)
+                monthPager
+                    .frame(height: MonthSummaryView.pageHeight)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(uiColor: .systemGroupedBackground))
+            .overlay(alignment: .topTrailing) { settingsButton }
             // Scoped to this screen. The old `.navigationBarHidden(true)` drove
             // the shared UINavigationController's hidden state, so every push
             // had to unhide the bar mid-transition — the pushed screen laid out
@@ -133,8 +151,8 @@ struct ContentView: View {
     private var monthPager: some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
-                ForEach(availableMonths, id: \.self) { month in
-                    monthPage(month)
+                ForEach(Array(availableMonths.enumerated()), id: \.element) { index, month in
+                    monthPage(month, index: index)
                         .containerRelativeFrame(.horizontal)
                         .id(month)
                 }
@@ -143,7 +161,20 @@ struct ContentView: View {
         }
         .scrollTargetBehavior(.paging)
         .scrollIndicators(.hidden)
+        .scrollDisabled(isScrubbing)
         .scrollPosition(id: $pagedMonth, anchor: .center)
+        // The indicator has to move with the finger, so it needs the live
+        // offset rather than the page the scroll view eventually lands on.
+        .onScrollGeometryChange(for: Double.self) { geometry in
+            let width = geometry.containerSize.width
+            guard width > 0 else { return 0 }
+            return geometry.contentOffset.x / width
+        } action: { old, new in
+            pageProgress = new
+            if abs(new - old) > 0.0005 {
+                swipeDirection = new > old ? 1 : -1
+            }
+        }
         // Start where navigation says we are, not always on the newest month.
         .onAppear { pagedMonth = Self.startOfMonth(nav.selectedMonth) }
         // Swiping is the source of truth while the user is on this screen.
@@ -161,7 +192,7 @@ struct ContentView: View {
         }
     }
 
-    private func monthPage(_ month: Date) -> some View {
+    private func monthPage(_ month: Date, index: Int) -> some View {
         let receipts = receipts(in: month)
         let fixed = fixedCostsTotal
         return MonthSummaryView(
@@ -171,8 +202,11 @@ struct ContentView: View {
             spentToday: spentToday(in: month, receipts: receipts),
             dailyTotals: dailyTotals(in: month, receipts: receipts),
             receiptCount: receipts.count,
+            closeness: max(0, 1 - abs(pageProgress - Double(index))),
+            swipeDirection: swipeDirection,
             onReceipts: { showReceipts = true },
-            onCategories: { showCategories = true }
+            onCategories: { showCategories = true },
+            onScrubbingChanged: { isScrubbing = $0 }
         )
     }
 
