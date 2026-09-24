@@ -55,7 +55,7 @@ struct MonthSummaryView: View {
     /// Fixed so every page lines up: the "danas" line is only meaningful for
     /// the month on the calendar, but its slot is reserved on every page so
     /// the chart and buttons don't shift as you swipe across months.
-    static let pageHeight: CGFloat = 320
+    static let pageHeight: CGFloat = 344
 
     // MARK: - Layout constants (from the Figma spec)
 
@@ -75,7 +75,9 @@ struct MonthSummaryView: View {
     var body: some View {
         VStack(spacing: 0) {
             figures
-            Spacer().frame(height: 48)
+            // Room for the scrub read-out: it floats above the bars, and at
+            // 48pt its top ran into the figures.
+            Spacer().frame(height: 72)
             chart
             Spacer().frame(height: 48)
             buttons

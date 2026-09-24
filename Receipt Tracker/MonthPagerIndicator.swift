@@ -40,10 +40,26 @@ struct LiveMonthIndicator: View {
     }
 }
 
+/// The chip row is a button that opens the calendar. The style only hands the
+/// press down to the row, which shows it on the open month itself — scaling
+/// the whole row squeezed the dots too and was hard to see at all.
+struct MonthChipButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .environment(\.monthChipPressed, configuration.isPressed)
+    }
+}
+
+extension EnvironmentValues {
+    @Entry var monthChipPressed = false
+}
+
 struct MonthPagerIndicator: View {
     let months: [Date]
     /// Continuous page position from the scroll view, not the settled index.
     let progress: Double
+
+    @Environment(\.monthChipPressed) private var pressed
 
     // MARK: - Metrics
 
@@ -53,6 +69,9 @@ struct MonthPagerIndicator: View {
     private static let minDotSize: CGFloat = 2.5
     private static let falloff: Double = 3
     private static let chipFillOpacity: Double = 0.13
+    /// Under the finger the open chip darkens to this and gives a little.
+    private static let pressedFillOpacity: Double = 0.26
+    private static let pressedScale: CGFloat = 0.92
     private static let chipHeight: CGFloat = 34
     private static let gap: CGFloat = 8
     private static let horizontalPadding: CGFloat = 22
@@ -105,12 +124,18 @@ struct MonthPagerIndicator: View {
         let textScale: CGFloat
         let textOpacity: Double
         let fillOpacity: Double
+        /// 1 for the open month, 0 for a dot.
+        let expansion: CGFloat
     }
 
     private func chipView(_ chip: ChipLayout) -> some View {
-        ZStack {
+        // Only the open month answers a press; the dots stay as they are.
+        let press = pressed ? Double(chip.expansion) : 0
+        return ZStack {
             Capsule(style: .continuous)
-                .fill(Color.primary.opacity(chip.fillOpacity))
+                .fill(Color.primary.opacity(
+                    chip.fillOpacity + (Self.pressedFillOpacity - chip.fillOpacity) * press
+                ))
 
             Text(chip.label)
                 .font(.system(size: 13, design: .monospaced))
@@ -132,6 +157,8 @@ struct MonthPagerIndicator: View {
         // neighbours.
         .frame(width: chip.width, height: chip.height)
         .clipShape(Capsule(style: .continuous))
+        .scaleEffect(1 - (1 - Self.pressedScale) * press)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: pressed)
     }
 
     // MARK: - Geometry
@@ -171,7 +198,8 @@ struct MonthPagerIndicator: View {
             height: dot + (Self.chipHeight - dot) * expansion,
             textScale: full > 0 ? min(1, width / full) : 0,
             textOpacity: pow(closeness, 1.4),
-            fillOpacity: dotFill + (Self.chipFillOpacity - dotFill) * Double(expansion)
+            fillOpacity: dotFill + (Self.chipFillOpacity - dotFill) * Double(expansion),
+            expansion: expansion
         )
     }
 

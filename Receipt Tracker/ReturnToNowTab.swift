@@ -3,7 +3,7 @@
 //  Receipt Tracker
 //
 //  The way back to the current month once you have paged away from it: a tab
-//  that grows out of the trailing screen edge, level with the month chips.
+//  that grows out of the trailing screen edge, halfway down the screen.
 //
 //  It is driven by the pager's live position, like the month indicator, so it
 //  does not pop in once a swipe has settled — it swells out of the edge as the
@@ -38,10 +38,12 @@ struct ReturnToNowTab: View {
     var action: () -> Void
 
     /// How far the tab reaches in from the edge when fully out.
-    static let maxDepth: CGFloat = 34
-    static let height: CGFloat = 104
-    /// Wider than the tab itself so the tap target clears 44pt.
-    private static let hitWidth: CGFloat = 56
+    static let maxDepth: CGFloat = 26
+    static let height: CGFloat = 80
+    /// Wider than the tab itself so the tap target clears 44pt, and no wider:
+    /// the tab sits over the pager, and a swipe that starts on it does not
+    /// reach the pages.
+    private static let hitWidth: CGFloat = 44
 
     @State private var taps = 0
 
@@ -58,7 +60,7 @@ struct ReturnToNowTab: View {
             EdgeBump(depth: depth)
                 .fill(Color.primary)
                 .overlay {
-                    TablerIcon("arrow-right", size: 16)
+                    TablerIcon("arrow-right", size: 14)
                         // Ink of the screen behind, so it inverts with the
                         // appearance exactly as the tab does.
                         .foregroundStyle(Color(uiColor: .systemBackground))
@@ -116,8 +118,8 @@ struct EdgeBump: Shape {
     }
 }
 
-/// Press feedback for tappable things that are not glass buttons — the month
-/// chip and the edge tab keep their own look, but still give under the finger.
+/// Press feedback for tappable things that are not glass buttons — the edge
+/// tab keeps its own look, but still gives under the finger.
 struct PressScaleButtonStyle: ButtonStyle {
     var scale: CGFloat = 0.96
     var anchor: UnitPoint = .center

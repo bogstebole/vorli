@@ -30,6 +30,9 @@ struct DayPickerSheet: View {
     /// Which way the last month change went, so the grid slides the right way.
     @State private var forward = true
     @State private var picks = 0
+    /// Taps on each chevron, to kick its arrow.
+    @State private var backKicks = 0
+    @State private var forwardKicks = 0
 
     init(index: MonthIndex, initialMonth: Date, focusedDay: Date?, onSelect: @escaping (Date) -> Void) {
         self.index = index
@@ -43,14 +46,19 @@ struct DayPickerSheet: View {
             VStack(spacing: 14) {
                 monthHeader
                 weekdayRow
-                grid
-                    .id(month)
-                    .transition(.push(from: forward ? .trailing : .leading))
+                ZStack {
+                    grid
+                        .id(month)
+                        .transition(.push(from: forward ? .trailing : .leading))
+                }
+                // Only the days are clipped, so the month slides within the
+                // grid. Clipping the whole column also cut the top off the
+                // chevrons' glass, which swells past its frame when pressed.
+                .clipped()
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 20)
             .padding(.top, 4)
-            .clipped()
             .navigationTitle("Izaberi dan")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -75,31 +83,51 @@ struct DayPickerSheet: View {
 
     // MARK: - Month header
 
-    /// Same chevron pattern as the year switcher on Pregled.
+    /// Laid out on the grid's own seven columns, so the chevrons sit exactly
+    /// over Monday and Sunday instead of floating somewhere in between; the
+    /// month name is centred across the whole row above them.
     private var monthHeader: some View {
-        HStack(spacing: 16) {
-            chevron("chevron-left", enabled: canGoBack) { step(-1) }
+        HStack(spacing: 0) {
+            chevron("chevron-left", direction: -1, enabled: canGoBack)
                 .accessibilityLabel("Prethodni mesec")
-
+                .frame(maxWidth: .infinity)
+            ForEach(0..<5, id: \.self) { _ in
+                Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
+            }
+            chevron("chevron-right", direction: 1, enabled: canGoForward)
+                .accessibilityLabel("Sledeći mesec")
+                .frame(maxWidth: .infinity)
+        }
+        .overlay {
             Text(Self.monthFormatter.string(from: month).sentenceCased)
                 .font(.system(.headline, design: .monospaced))
                 .foregroundStyle(.primary)
-                .contentTransition(.numericText())
-                .frame(minWidth: 180)
-
-            chevron("chevron-right", enabled: canGoForward) { step(1) }
-                .accessibilityLabel("Sledeći mesec")
+                // The year rolls the way the month went.
+                .contentTransition(.numericText(countsDown: !forward))
         }
+        .sensoryFeedback(.selection, trigger: month)
     }
 
-    private func chevron(_ icon: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            TablerIcon(icon, size: 20)
-                .foregroundStyle(enabled ? .secondary : .quaternary)
-                .frame(width: 44, height: 44)
-                .contentShape(Rectangle())
+    /// Glass, like every other button in the app, so a press is felt: the
+    /// glass gives under the finger, and the arrow kicks the way it points.
+    private func chevron(_ icon: String, direction: CGFloat, enabled: Bool) -> some View {
+        let kicks = direction < 0 ? backKicks : forwardKicks
+        return Button {
+            if direction < 0 { backKicks += 1 } else { forwardKicks += 1 }
+            step(Int(direction))
+        } label: {
+            TablerIcon(icon, size: 18)
+                .foregroundStyle(enabled ? .primary : .quaternary)
+                .keyframeAnimator(initialValue: CGFloat(0), trigger: kicks) { content, x in
+                    content.offset(x: x)
+                } keyframes: { _ in
+                    SpringKeyframe(direction * 4, duration: 0.1, spring: .snappy)
+                    SpringKeyframe(0, duration: 0.35, spring: .bouncy)
+                }
+                .frame(width: 26, height: 26)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
         .disabled(!enabled)
     }
 
@@ -183,7 +211,7 @@ struct DayPickerSheet: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(PressScaleButtonStyle(scale: 0.88))
+        .buttonStyle(DayCellButtonStyle())
         .disabled(isFuture)
         .accessibilityLabel(Self.dayFormatter.string(from: date))
         .accessibilityValue(spent > 0 ? "\(MoneyFormat.grouped(amount)) dinara" : "bez potrošnje")
@@ -219,4 +247,19 @@ struct DayPickerSheet: View {
         f.dateFormat = "EEEE, d. MMMM"
         return f
     }()
+}
+
+/// A day under the finger: a soft disc comes up behind the number and the
+/// cell gives a little, so the press shows before the sheet closes on release.
+private struct DayCellButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background {
+                Circle()
+                    .fill(Color.primary.opacity(configuration.isPressed ? 0.14 : 0))
+                    .frame(width: 42, height: 42)
+            }
+            .scaleEffect(configuration.isPressed ? 0.9 : 1)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+    }
 }
