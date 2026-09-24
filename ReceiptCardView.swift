@@ -49,7 +49,9 @@ struct ReceiptCardView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.ultraThinMaterial)
+        // The shared card surface (Assets: Surface), so the cards and the
+        // segmented tabs over them change together.
+        .background(Color.surface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     

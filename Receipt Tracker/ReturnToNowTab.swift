@@ -5,39 +5,46 @@
 //  The way back to the current month once you have paged away from it: a tab
 //  that grows out of the trailing screen edge, halfway down the screen.
 //
-//  It is driven by the pager's live position, like the month indicator, so it
-//  does not pop in once a swipe has settled — it swells out of the edge as the
-//  finger drags away from the current month, and sinks back into it on the way
-//  home. Nothing about it animates on its own; the finger is the clock.
+//  It pops rather than slides. Once the swipe is more than half a month away
+//  from now the tab springs out of the edge the way the volume indicator
+//  springs out beside the volume buttons: it shoots a little past its depth
+//  while it is still short, then fills out along the edge as it settles, so it
+//  reads as the edge stretching rather than a button fading in. Going back it
+//  tucks away quickly and without the bounce.
 //
 
 import SwiftUI
 
-/// Reads the pager's live position and draws the tab. Its own view so that,
-/// like the indicator, only it is redrawn while a swipe is in progress.
+/// Reads the pager's live position and decides whether the tab is out. Its
+/// own view so that, like the indicator, only it is redrawn during a swipe.
 struct LiveReturnTab: View {
     let progress: PagerProgress
     /// Page index of the current month, or nil if it has no page.
     let nowIndex: Int?
     var action: () -> Void
 
+    @State private var shown = false
+
     var body: some View {
-        ReturnToNowTab(reveal: reveal, action: action)
+        // Out past 0.6 of a month away, back in under 0.35: the gap keeps a
+        // finger resting near halfway from popping the tab in and out.
+        let wantsOut = shown ? away > 0.35 : away > 0.6
+        ReturnToNowTab(shown: shown, action: action)
+            .onChange(of: wantsOut, initial: true) { _, out in shown = out }
     }
 
     /// 0 on the current month, 1 once a full month away or further.
-    private var reveal: Double {
+    private var away: Double {
         guard let nowIndex else { return 0 }
         return min(1, max(0, Double(nowIndex) - progress.value))
     }
 }
 
 struct ReturnToNowTab: View {
-    /// How far out of the edge the tab has come, 0...1.
-    let reveal: Double
+    let shown: Bool
     var action: () -> Void
 
-    /// How far the tab reaches in from the edge when fully out.
+    /// How far the tab reaches in from the edge when out.
     static let maxDepth: CGFloat = 26
     static let height: CGFloat = 80
     /// Wider than the tab itself so the tap target clears 44pt, and no wider:
@@ -45,40 +52,64 @@ struct ReturnToNowTab: View {
     /// reach the pages.
     private static let hitWidth: CGFloat = 44
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var taps = 0
 
     var body: some View {
-        // Smoothstep: the tab eases out of the edge instead of starting at
-        // full speed, and settles into its full depth rather than stopping dead.
-        let t = CGFloat(reveal * reveal * (3 - 2 * reveal))
-        let depth = Self.maxDepth * t
-
         Button {
             taps += 1
             action()
         } label: {
-            EdgeBump(depth: depth)
-                .fill(Color.primary)
-                .overlay {
-                    TablerIcon("arrow-right", size: 14)
-                        // Ink of the screen behind, so it inverts with the
-                        // appearance exactly as the tab does.
-                        .foregroundStyle(Color(uiColor: .systemBackground))
-                        // Arrives once there is a tab to sit in, not while it is
-                        // still a sliver.
-                        .opacity(pow(Double(t), 2))
-                        .scaleEffect(0.5 + 0.5 * t)
-                        .position(x: Self.hitWidth - depth * 0.46, y: Self.height / 2)
-                }
-                .frame(width: Self.hitWidth, height: Self.height)
-                .contentShape(Rectangle())
+            ZStack {
+                EdgeBump(depth: shown ? Self.maxDepth : 0)
+                    .fill(Color.primary)
+                    // Depth on a loose spring: it overshoots, bulging past its
+                    // resting depth before it settles back.
+                    .animation(depthAnimation, value: shown)
+                    // Length along the edge on a slower, firmer one, so it is
+                    // still short while the depth overshoots — the stretch.
+                    .scaleEffect(y: shown ? 1 : 0.3)
+                    .animation(lengthAnimation, value: shown)
+
+                TablerIcon("arrow-right", size: 14)
+                    // Ink of the screen behind, so it inverts with the
+                    // appearance exactly as the tab does.
+                    .foregroundStyle(Color(uiColor: .systemBackground))
+                    .scaleEffect(shown ? 1 : 0.4)
+                    .opacity(shown ? 1 : 0)
+                    // Rides out with the tip, a beat behind it.
+                    .position(
+                        x: shown ? Self.hitWidth - Self.maxDepth * 0.46 : Self.hitWidth + 6,
+                        y: Self.height / 2
+                    )
+                    .animation(arrowAnimation, value: shown)
+            }
+            .frame(width: Self.hitWidth, height: Self.height)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(PressScaleButtonStyle(scale: 0.92, anchor: .trailing))
-        .allowsHitTesting(reveal > 0.6)
+        .buttonStyle(EdgeTabButtonStyle())
+        .allowsHitTesting(shown)
         .sensoryFeedback(.impact(weight: .light), trigger: taps)
         .accessibilityLabel("Na tekući mesec")
-        .accessibilityHidden(reveal < 0.5)
+        .accessibilityHidden(!shown)
     }
+
+    private var depthAnimation: Animation {
+        if reduceMotion { return .easeOut(duration: 0.2) }
+        return shown ? .spring(response: 0.36, dampingFraction: 0.55) : Self.tuckIn
+    }
+
+    private var lengthAnimation: Animation {
+        if reduceMotion { return .easeOut(duration: 0.2) }
+        return shown ? .spring(response: 0.46, dampingFraction: 0.74) : Self.tuckIn
+    }
+
+    private var arrowAnimation: Animation {
+        if reduceMotion { return .easeOut(duration: 0.2) }
+        return shown ? .spring(response: 0.34, dampingFraction: 0.66).delay(0.04) : Self.tuckIn
+    }
+
+    private static let tuckIn = Animation.spring(response: 0.26, dampingFraction: 0.92)
 }
 
 /// A bump growing out of the trailing edge: concave where it leaves the edge,
@@ -118,30 +149,30 @@ struct EdgeBump: Shape {
     }
 }
 
-/// Press feedback for tappable things that are not glass buttons — the edge
-/// tab keeps its own look, but still gives under the finger.
-struct PressScaleButtonStyle: ButtonStyle {
-    var scale: CGFloat = 0.96
-    var anchor: UnitPoint = .center
-
+/// Under the finger the tab stretches further out of the edge and thins a
+/// little, as if pulled; on release it springs back.
+private struct EdgeTabButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? scale : 1, anchor: anchor)
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            .scaleEffect(
+                x: configuration.isPressed ? 1.16 : 1,
+                y: configuration.isPressed ? 0.92 : 1,
+                anchor: .trailing
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.55), value: configuration.isPressed)
     }
 }
 
 #Preview {
-    VStack(spacing: 30) {
-        ForEach([0.0, 0.3, 0.6, 1.0], id: \.self) { r in
-            HStack {
-                Text(String(format: "reveal %.1f", r))
-                    .font(.system(size: 11, design: .monospaced))
-                Spacer()
-                ReturnToNowTab(reveal: r) {}
-            }
+    @Previewable @State var shown = false
+    VStack {
+        Button(shown ? "Sakrij" : "Prikaži") { shown.toggle() }
+            .font(.system(size: 13, design: .monospaced))
+        HStack {
+            Spacer()
+            ReturnToNowTab(shown: shown) {}
         }
     }
+    .frame(maxHeight: .infinity)
     .background(Color(uiColor: .systemGroupedBackground))
 }
