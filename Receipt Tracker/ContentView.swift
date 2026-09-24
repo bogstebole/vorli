@@ -36,10 +36,11 @@ struct ContentView: View {
     /// to jump Home to a month, and swiping writes it back.
     @State private var pagedMonth: Date?
     /// The pager's continuous position (2.4 = 40% of the way from the third
-    /// month to the fourth). The indicator and each page's depth effect are
-    /// driven by this, not by the settled index — that is what makes the
-    /// swipe read as a physical drag rather than a slide show.
-    @State private var pageProgress: Double = 0
+    /// month to the fourth), for the month indicator. An observable object
+    /// rather than `@State` on purpose: as state it re-ran this whole screen on
+    /// every frame of a swipe; as an object only the indicator, which reads
+    /// it, is redrawn.
+    @State private var pagerProgress = PagerProgress()
     /// True while a day is being read off a chart. The pager is frozen for the
     /// duration so the scrubbing finger doesn't also turn the page.
     @State private var isScrubbing = false
@@ -60,12 +61,16 @@ struct ContentView: View {
 
     var body: some View {
         @Bindable var nav = nav
+        // Every month's figures in one pass over the receipts. This body no
+        // longer runs during a swipe, only when data or navigation changes, so
+        // this is paid once per change rather than once per frame.
+        let index = monthIndex
         return NavigationStack {
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                MonthPagerIndicator(months: availableMonths, progress: pageProgress)
+                LiveMonthIndicator(months: index.months, progress: pagerProgress)
                 Spacer().frame(height: 24)
-                monthPager
+                monthPager(index)
                     .frame(height: MonthSummaryView.pageHeight)
                 Spacer(minLength: 0)
             }
@@ -150,14 +155,26 @@ struct ContentView: View {
 
     // MARK: - Month pager
 
-    /// A page per month, full width, snapping. `LazyHStack` keeps the months
-    /// off-screen from doing any work — each page recomputes its own totals.
-    private var monthPager: some View {
+    /// A page per month, full width, snapping. Pages only look their figures
+    /// up; nothing in here depends on the scroll offset, so a swipe does not
+    /// re-run it.
+    private func monthPager(_ index: MonthIndex) -> some View {
         ScrollView(.horizontal) {
             LazyHStack(spacing: 0) {
-                ForEach(Array(availableMonths.enumerated()), id: \.element) { index, month in
-                    monthPage(month, index: index)
+                ForEach(index.months, id: \.self) { month in
+                    monthPage(month, figures: index.figures(for: month))
+                        .equatable()
                         .containerRelativeFrame(.horizontal)
+                        // Depth: pages away from centre sit back rather than
+                        // sliding past at full strength. Computed by the scroll
+                        // view while it draws, so it tracks the finger without
+                        // re-running any page.
+                        .scrollTransition(.interactive, axis: .horizontal) { content, phase in
+                            let distance = abs(phase.value)
+                            return content
+                                .scaleEffect(1 - 0.06 * distance)
+                                .opacity(1 - 0.75 * distance)
+                        }
                         .id(month)
                 }
             }
@@ -174,7 +191,7 @@ struct ContentView: View {
             guard width > 0 else { return 0 }
             return geometry.contentOffset.x / width
         } action: { _, new in
-            pageProgress = new
+            pagerProgress.value = new
         }
         // Start where navigation says we are, not always on the newest month.
         .onAppear { pagedMonth = Self.startOfMonth(nav.selectedMonth) }
@@ -193,17 +210,15 @@ struct ContentView: View {
         }
     }
 
-    private func monthPage(_ month: Date, index: Int) -> some View {
-        let receipts = receipts(in: month)
-        let fixed = fixedCostsTotal
-        return MonthSummaryView(
+    /// Returns the concrete type so the pager can mark it `.equatable()`.
+    private func monthPage(_ month: Date, figures: MonthFigures) -> MonthSummaryView {
+        MonthSummaryView(
             month: month,
-            spent: receipts.reduce(Decimal(0)) { $0 + $1.totalAmount } + fixed,
-            income: income(in: month),
-            spentToday: spentToday(in: month, receipts: receipts),
-            dailyTotals: dailyTotals(in: month, receipts: receipts),
-            receiptCount: receipts.count,
-            closeness: max(0, 1 - abs(pageProgress - Double(index))),
+            spent: figures.spent,
+            income: figures.income,
+            spentToday: figures.spentToday,
+            dailyTotals: figures.dailyTotals,
+            receiptCount: figures.receiptCount,
             onReceipts: { showReceipts = true },
             onCategories: { showCategories = true },
             onScrubbingChanged: { isScrubbing = $0 }
@@ -229,30 +244,15 @@ struct ContentView: View {
 
     // MARK: - Months
 
-    /// Every month from the oldest thing on record to the current one, so the
-    /// pager can't wander into empty years in either direction.
-    private var availableMonths: [Date] {
-        let calendar = Calendar.current
-        let thisMonth = Self.startOfMonth(Date())
-
-        let stamps = allReceipts.map(\.timestamp) + budgetEntries.map(\.timestamp)
-        guard let earliest = stamps.min() else { return [thisMonth] }
-
-        var months: [Date] = []
-        var cursor = Self.startOfMonth(earliest)
-        // Guard against a nonsense timestamp dragging the pager back decades.
-        while cursor <= thisMonth, months.count < 600 {
-            months.append(cursor)
-            guard let next = calendar.date(byAdding: .month, value: 1, to: cursor) else { break }
-            cursor = next
-        }
-        // A month the user navigated to but has no data for still needs a page.
-        let selected = Self.startOfMonth(nav.selectedMonth)
-        if !months.contains(selected) {
-            months.append(selected)
-            months.sort()
-        }
-        return months
+    /// Every month from the oldest thing on record to the current one, with
+    /// its figures. One pass over the receipts; see `MonthIndex`.
+    private var monthIndex: MonthIndex {
+        MonthIndex(
+            receipts: allReceipts,
+            budgetEntries: budgetEntries,
+            fixedCosts: fixedCostsTotal,
+            including: nav.selectedMonth
+        )
     }
 
     private static func startOfMonth(_ date: Date) -> Date {
@@ -266,44 +266,13 @@ struct ContentView: View {
         pagedMonth ?? Self.startOfMonth(nav.selectedMonth)
     }
 
-    // MARK: - Per-month figures
+    // MARK: - Month on screen (for the sheets)
 
     private func receipts(in month: Date) -> [Receipt] {
         let calendar = Calendar.current
         return allReceipts.filter {
             calendar.isDate($0.timestamp, equalTo: month, toGranularity: .month)
         }
-    }
-
-    /// Everything added to the budget this month — what the month's spending
-    /// is measured against.
-    private func income(in month: Date) -> Decimal {
-        let calendar = Calendar.current
-        return budgetEntries
-            .filter { calendar.isDate($0.timestamp, equalTo: month, toGranularity: .month) }
-            .reduce(Decimal(0)) { $0 + $1.amount }
-    }
-
-    private func spentToday(in month: Date, receipts: [Receipt]) -> Decimal {
-        let calendar = Calendar.current
-        guard calendar.isDate(month, equalTo: Date(), toGranularity: .month) else { return 0 }
-        return receipts
-            .filter { calendar.isDate($0.timestamp, inSameDayAs: Date()) }
-            .reduce(Decimal(0)) { $0 + $1.totalAmount }
-    }
-
-    /// Spend per calendar day, index 0 = the 1st. Receipts only: fixed costs
-    /// are charged to the month, not to any particular day.
-    private func dailyTotals(in month: Date, receipts: [Receipt]) -> [Decimal] {
-        let calendar = Calendar.current
-        let dayCount = calendar.range(of: .day, in: .month, for: month)?.count ?? 30
-        var totals = [Decimal](repeating: 0, count: dayCount)
-        for receipt in receipts {
-            let day = calendar.component(.day, from: receipt.timestamp)
-            guard day >= 1, day <= dayCount else { continue }
-            totals[day - 1] += receipt.totalAmount
-        }
-        return totals
     }
 
     // MARK: - Computed Properties (month on screen)

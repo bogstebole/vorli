@@ -35,11 +35,6 @@ struct MonthSummaryView: View {
     let dailyTotals: [Decimal]
     let receiptCount: Int
 
-    /// How close this page is to the centre of the pager, 0...1. Drives the
-    /// depth effect, so a half-swiped month reads as "on its way" instead of
-    /// sliding past at full strength.
-    var closeness: Double = 1
-
     var onReceipts: () -> Void = {}
     var onCategories: () -> Void = {}
     /// Raised while a day is being read off the chart, so the pager can hold
@@ -83,14 +78,15 @@ struct MonthSummaryView: View {
         // 294pt wide on a 390pt screen, exactly two buttons and their gap.
         .padding(.horizontal, 48)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Depth: pages away from centre sit back rather than sliding past at
-        // full strength, which is what made the plain pager feel mechanical.
-        .scaleEffect(0.94 + 0.06 * closeness)
-        .opacity(0.25 + 0.75 * closeness)
-        .blur(radius: (1 - closeness) * 2.5)
-        .onAppear { if closeness > 0.2 { revealed = true } }
-        .onChange(of: closeness > 0.2) { _, near in
-            if near { revealed = true }
+        // The depth effect as pages slide past lives on the pager, in a
+        // `scrollTransition`: applied while drawing, instead of re-running this
+        // body on every frame of the swipe to feed it an offset.
+        //
+        // The entrance fires once a fifth of the page is on screen — the same
+        // point as before, but reported by the scroll view rather than worked
+        // out from the offset frame by frame.
+        .onScrollVisibilityChange(threshold: 0.2) { visible in
+            if visible { revealed = true }
         }
     }
 
@@ -149,18 +145,24 @@ struct MonthSummaryView: View {
     }
 
     private var bars: some View {
-        HStack(alignment: .bottom, spacing: Self.barSpacing) {
+        // Worked out once for the whole chart. The busiest day and today's
+        // index used to be recomputed inside every one of the 30 bars — the
+        // busiest day by scanning all 30 again each time.
+        let peak = (peakDailyTotal as NSDecimalNumber).doubleValue
+        let today = todayIndex
+        let scrubbed = scrubbedDay
+
+        return HStack(alignment: .bottom, spacing: Self.barSpacing) {
             ForEach(Array(dailyTotals.enumerated()), id: \.offset) { index, amount in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(barColor(day: index))
-                    .frame(height: barHeight(amount, day: index))
+                    .fill(barColor(index, today: today, scrubbed: scrubbed))
+                    .frame(height: barHeight(amount, index, today: today, peak: peak))
                     .frame(maxWidth: .infinity)
                     // Grows out of the baseline, sweeping the month from the
                     // 1st to the last — the chart filling up in order, which
                     // is the one direction that means something here.
                     .scaleEffect(y: revealed ? 1 : 0, anchor: .bottom)
                     .opacity(revealed ? 1 : 0)
-                    .blur(radius: revealed ? 0 : 4)
                     .animation(
                         .spring(response: 0.42, dampingFraction: 0.82)
                             .delay(0.15 + Double(index) * 0.004),
@@ -169,6 +171,10 @@ struct MonthSummaryView: View {
             }
         }
         .frame(height: Self.barAreaHeight, alignment: .bottom)
+        // One blur for the whole chart as it pulls into focus, not one per
+        // bar: the same look, from one blurred layer instead of thirty.
+        .blur(radius: revealed ? 0 : 4)
+        .animation(.spring(response: 0.42, dampingFraction: 0.88).delay(0.15), value: revealed)
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: dailyTotals)
         .contentShape(.rect)
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { chartWidth = $0 }
@@ -238,18 +244,18 @@ struct MonthSummaryView: View {
         dailyTotals.max() ?? 0
     }
 
-    private func barHeight(_ amount: Decimal, day index: Int) -> CGFloat {
-        guard !isFuture(day: index), peakDailyTotal > 0 else { return Self.minBarHeight }
-        let fraction = (amount as NSDecimalNumber).doubleValue / (peakDailyTotal as NSDecimalNumber).doubleValue
+    private func barHeight(_ amount: Decimal, _ index: Int, today: Int?, peak: Double) -> CGFloat {
+        let isFuture = today.map { index > $0 } ?? false
+        guard !isFuture, peak > 0 else { return Self.minBarHeight }
+        let fraction = (amount as NSDecimalNumber).doubleValue / peak
         return max(Self.minBarHeight, Self.barAreaHeight * fraction)
     }
 
-    private func barColor(day index: Int) -> Color {
-        if scrubbedDay == index { return .primary }
-        if isToday(day: index) { return .primary }
-        if isFuture(day: index) { return .primary.opacity(0.08) }
+    private func barColor(_ index: Int, today: Int?, scrubbed: Int?) -> Color {
+        if scrubbed == index || today == index { return .primary }
+        if let today, index > today { return .primary.opacity(0.08) }
         // Everything dims a little while another day is being read.
-        return .primary.opacity(scrubbedDay == nil ? 0.28 : 0.16)
+        return .primary.opacity(scrubbed == nil ? 0.28 : 0.16)
     }
 
     private func day(atX x: CGFloat) -> Int {
@@ -271,12 +277,11 @@ struct MonthSummaryView: View {
         dailyTotals.indices.contains(index) ? dailyTotals[index] : 0
     }
 
-    private func isToday(day index: Int) -> Bool {
-        isCurrentMonth && index + 1 == Calendar.current.component(.day, from: Date())
-    }
-
-    private func isFuture(day index: Int) -> Bool {
-        isCurrentMonth && index + 1 > Calendar.current.component(.day, from: Date())
+    /// Today's bar, or nil for any month but the current one. Days after it
+    /// are still to come.
+    private var todayIndex: Int? {
+        guard isCurrentMonth else { return nil }
+        return Calendar.current.component(.day, from: Date()) - 1
     }
 
     private var chartAccessibilityValue: String {
@@ -345,6 +350,23 @@ struct MonthSummaryView: View {
         f.dateFormat = "EEE, d. MMM"
         return f
     }()
+}
+
+// MARK: - Equatable
+
+/// A page only needs redrawing when what it shows changes. Home re-runs once
+/// mid-swipe, when the settled month flips; without this every page the pager
+/// has built — about six — would redraw its chart for identical figures. The
+/// callbacks are left out on purpose: they always do the same thing.
+extension MonthSummaryView: Equatable {
+    static func == (lhs: MonthSummaryView, rhs: MonthSummaryView) -> Bool {
+        lhs.month == rhs.month
+            && lhs.receiptCount == rhs.receiptCount
+            && lhs.spent == rhs.spent
+            && lhs.income == rhs.income
+            && lhs.spentToday == rhs.spentToday
+            && lhs.dailyTotals == rhs.dailyTotals
+    }
 }
 
 // MARK: - Chart scrubbing
