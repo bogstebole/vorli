@@ -4,6 +4,12 @@
 //
 //  Created by Bogdan Stefanovic on 15. 12. 2025..
 //
+//  Home is one month at a time, and nothing else: the month's figures centred
+//  on an otherwise empty screen (see `MonthSummaryView`), with the receipts and
+//  the category split behind their two buttons. Months are a horizontal pager —
+//  swiping left and right walks the months that actually have data, oldest to
+//  the current one.
+//
 
 import SwiftUI
 import SwiftData
@@ -25,6 +31,23 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showVorli = false
 
+    /// Which month the pager is parked on. Kept in step with
+    /// `nav.selectedMonth` in both directions: the Dashboard tab writes that
+    /// to jump Home to a month, and swiping writes it back.
+    @State private var pagedMonth: Date?
+    /// The pager's continuous position (2.4 = 40% of the way from the third
+    /// month to the fourth). The indicator and each page's depth effect are
+    /// driven by this, not by the settled index — that is what makes the
+    /// swipe read as a physical drag rather than a slide show.
+    @State private var pageProgress: Double = 0
+    /// True while a day is being read off a chart. The pager is frozen for the
+    /// duration so the scrubbing finger doesn't also turn the page.
+    @State private var isScrubbing = false
+
+    /// Sheets hung off the month buttons.
+    @State private var showReceipts = false
+    @State private var showCategories = false
+
     /// A receipt from the OCR flow, waiting for the confirm sheet to finish
     /// going away before it is pushed. Pushing mid-dismissal leaves the detail
     /// view without its navigation-bar inset — its content ends up underneath
@@ -39,27 +62,22 @@ struct ContentView: View {
         @Bindable var nav = nav
         return NavigationStack {
             VStack(spacing: 0) {
-                ScrollView {
-                    VStack(spacing: 12) {
-                        SummaryHeaderCard(
-                            month: nav.selectedMonth,
-                            balance: currentMonthLeftoverBalance,
-                            spent: currentMonthSpent,
-                            spentToday: currentDaySpent,
-                            categories: displayCategoryRows,
-                            onSettings: { showSettings = true }
-                        )
-
-                        if filteredReceipts.isEmpty {
-                            EmptyReceiptsView()
-                                .padding(.top, 40)
-                        } else {
-                            receiptsSection
-                        }
-                    }
-                    .padding(.bottom, 20)
-                }
+                Spacer(minLength: 0)
+                MonthPagerIndicator(months: availableMonths, progress: pageProgress)
+                Spacer().frame(height: 24)
+                monthPager
+                    .frame(height: MonthSummaryView.pageHeight)
+                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(uiColor: .systemGroupedBackground))
+            // Centre against the whole screen, not against whatever the tab
+            // bar leaves behind. The bar is hidden for the opening animation
+            // and slides in at the end; centring inside the safe area would
+            // make the figures drift up by half a bar as it lands. The block
+            // is far shorter than the screen, so the bar never reaches it.
+            .ignoresSafeArea(.container, edges: .bottom)
+            .overlay(alignment: .topTrailing) { settingsButton }
             // Scoped to this screen. The old `.navigationBarHidden(true)` drove
             // the shared UINavigationController's hidden state, so every push
             // had to unhide the bar mid-transition — the pushed screen laid out
@@ -85,6 +103,16 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsSheet()
+            }
+            .sheet(isPresented: $showReceipts) {
+                MonthReceiptsSheet(month: displayedMonth, receipts: filteredReceipts)
+            }
+            .sheet(isPresented: $showCategories) {
+                MonthCategoriesSheet(
+                    month: displayedMonth,
+                    rows: displayCategoryRows,
+                    total: currentMonthSpent
+                )
             }
             // COMMENTED OUT FOR FIRST RELEASE - VORLI AI NOT SHIPPING YET
             // .fullScreenCover(isPresented: $showVorli) {
@@ -120,84 +148,165 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Sections
+    // MARK: - Month pager
 
-    /// Every receipt of the month on screen, grouped by day. The day headers
-    /// carry the structure — no section title above them.
-    private var receiptsSection: some View {
-        LazyVStack(spacing: 12) {
-            ForEach(receiptsByDay, id: \.day) { group in
-                dayHeader(day: group.day, total: group.total)
-                    .padding(.top, 4)
-                ForEach(group.receipts) { receipt in
-                    receiptRow(receipt)
+    /// A page per month, full width, snapping. `LazyHStack` keeps the months
+    /// off-screen from doing any work — each page recomputes its own totals.
+    private var monthPager: some View {
+        ScrollView(.horizontal) {
+            LazyHStack(spacing: 0) {
+                ForEach(Array(availableMonths.enumerated()), id: \.element) { index, month in
+                    monthPage(month, index: index)
+                        .containerRelativeFrame(.horizontal)
+                        .id(month)
                 }
             }
+            .scrollTargetLayout()
         }
-        .padding(.horizontal)
-        .padding(.top, 4)
+        .scrollTargetBehavior(.paging)
+        .scrollIndicators(.hidden)
+        .scrollDisabled(isScrubbing)
+        .scrollPosition(id: $pagedMonth, anchor: .center)
+        // The indicator has to move with the finger, so it needs the live
+        // offset rather than the page the scroll view eventually lands on.
+        .onScrollGeometryChange(for: Double.self) { geometry in
+            let width = geometry.containerSize.width
+            guard width > 0 else { return 0 }
+            return geometry.contentOffset.x / width
+        } action: { _, new in
+            pageProgress = new
+        }
+        // Start where navigation says we are, not always on the newest month.
+        .onAppear { pagedMonth = Self.startOfMonth(nav.selectedMonth) }
+        // Swiping is the source of truth while the user is on this screen.
+        .onChange(of: pagedMonth) { _, month in
+            guard let month else { return }
+            nav.selectedMonth = month
+        }
+        // The Dashboard tab jumps Home to a month; follow it.
+        .onChange(of: nav.selectedMonth) { _, month in
+            let normalized = Self.startOfMonth(month)
+            guard normalized != pagedMonth else { return }
+            withAnimation(.easeInOut(duration: 0.25)) {
+                pagedMonth = normalized
+            }
+        }
     }
 
-    // MARK: - Row builders
+    private func monthPage(_ month: Date, index: Int) -> some View {
+        let receipts = receipts(in: month)
+        let fixed = fixedCostsTotal
+        return MonthSummaryView(
+            month: month,
+            spent: receipts.reduce(Decimal(0)) { $0 + $1.totalAmount } + fixed,
+            income: income(in: month),
+            spentToday: spentToday(in: month, receipts: receipts),
+            dailyTotals: dailyTotals(in: month, receipts: receipts),
+            receiptCount: receipts.count,
+            closeness: max(0, 1 - abs(pageProgress - Double(index))),
+            onReceipts: { showReceipts = true },
+            onCategories: { showCategories = true },
+            onScrubbingChanged: { isScrubbing = $0 }
+        )
+    }
 
-    @ViewBuilder
-    private func receiptRow(_ receipt: Receipt) -> some View {
-        NavigationLink {
-            ReceiptDetailView(receipt: receipt)
+    /// The gear has nowhere else to live — Home is the only screen that opens
+    /// Settings, and the month layout has no header to hang it off.
+    private var settingsButton: some View {
+        Button {
+            showSettings = true
         } label: {
-            ReceiptCardView(receipt: receipt)
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            Button(role: .destructive) {
-                deleteReceipt(receipt)
-            } label: {
-                Label {
-                    Text("Obriši")
-                } icon: {
-                    TablerIcon("trash", size: 16)
-                }
-            }
-        }
-    }
-
-    private static let dayHeaderFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "sr_Latn_RS")
-        f.dateFormat = "EEEE, d. MMM"
-        return f
-    }()
-
-    private func dayHeader(day: Date, total: Decimal) -> some View {
-        HStack {
-            // Only the weekday is capitalised — Serbian months are lowercase.
-            Text(Self.dayHeaderFormatter.string(from: day).sentenceCased)
-                .font(.system(.caption, design: .monospaced, weight: .semibold))
+            TablerIcon("settings", size: 20)
                 .foregroundStyle(.primary)
-            Spacer()
-            Text(MoneyFormat.grouped(total) + " RSD")
-                .font(.system(.caption, design: .monospaced, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .frame(width: 36, height: 36)
+                .glassEffect(.regular.interactive(), in: .circle)
         }
-        // Match ReceiptCardView's inner padding so the header lines up with
-        // the card's merchant name.
-        .padding(.horizontal, 16)
+        .tint(.primary)
+        .accessibilityLabel("Podešavanja")
+        .padding(.trailing, 20)
+        .padding(.top, 8)
     }
 
-    // MARK: - Computed Properties
+    // MARK: - Months
 
-    /// The month's receipts grouped by calendar day, newest day first.
-    private var receiptsByDay: [(day: Date, total: Decimal, receipts: [Receipt])] {
+    /// Every month from the oldest thing on record to the current one, so the
+    /// pager can't wander into empty years in either direction.
+    private var availableMonths: [Date] {
         let calendar = Calendar.current
-        let groups = Dictionary(grouping: filteredReceipts) {
-            calendar.startOfDay(for: $0.timestamp)
+        let thisMonth = Self.startOfMonth(Date())
+
+        let stamps = allReceipts.map(\.timestamp) + budgetEntries.map(\.timestamp)
+        guard let earliest = stamps.min() else { return [thisMonth] }
+
+        var months: [Date] = []
+        var cursor = Self.startOfMonth(earliest)
+        // Guard against a nonsense timestamp dragging the pager back decades.
+        while cursor <= thisMonth, months.count < 600 {
+            months.append(cursor)
+            guard let next = calendar.date(byAdding: .month, value: 1, to: cursor) else { break }
+            cursor = next
         }
-        return groups.keys.sorted(by: >).map { day in
-            let dayReceipts = (groups[day] ?? []).sorted { $0.timestamp > $1.timestamp }
-            let total = dayReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
-            return (day: day, total: total, receipts: dayReceipts)
+        // A month the user navigated to but has no data for still needs a page.
+        let selected = Self.startOfMonth(nav.selectedMonth)
+        if !months.contains(selected) {
+            months.append(selected)
+            months.sort()
+        }
+        return months
+    }
+
+    private static func startOfMonth(_ date: Date) -> Date {
+        let calendar = Calendar.current
+        return calendar.date(from: calendar.dateComponents([.year, .month], from: date)) ?? date
+    }
+
+    /// What the sheets are scoped to: the page on screen, falling back to
+    /// navigation state before the pager has settled.
+    private var displayedMonth: Date {
+        pagedMonth ?? Self.startOfMonth(nav.selectedMonth)
+    }
+
+    // MARK: - Per-month figures
+
+    private func receipts(in month: Date) -> [Receipt] {
+        let calendar = Calendar.current
+        return allReceipts.filter {
+            calendar.isDate($0.timestamp, equalTo: month, toGranularity: .month)
         }
     }
+
+    /// Everything added to the budget this month — what the month's spending
+    /// is measured against.
+    private func income(in month: Date) -> Decimal {
+        let calendar = Calendar.current
+        return budgetEntries
+            .filter { calendar.isDate($0.timestamp, equalTo: month, toGranularity: .month) }
+            .reduce(Decimal(0)) { $0 + $1.amount }
+    }
+
+    private func spentToday(in month: Date, receipts: [Receipt]) -> Decimal {
+        let calendar = Calendar.current
+        guard calendar.isDate(month, equalTo: Date(), toGranularity: .month) else { return 0 }
+        return receipts
+            .filter { calendar.isDate($0.timestamp, inSameDayAs: Date()) }
+            .reduce(Decimal(0)) { $0 + $1.totalAmount }
+    }
+
+    /// Spend per calendar day, index 0 = the 1st. Receipts only: fixed costs
+    /// are charged to the month, not to any particular day.
+    private func dailyTotals(in month: Date, receipts: [Receipt]) -> [Decimal] {
+        let calendar = Calendar.current
+        let dayCount = calendar.range(of: .day, in: .month, for: month)?.count ?? 30
+        var totals = [Decimal](repeating: 0, count: dayCount)
+        for receipt in receipts {
+            let day = calendar.component(.day, from: receipt.timestamp)
+            guard day >= 1, day <= dayCount else { continue }
+            totals[day - 1] += receipt.totalAmount
+        }
+        return totals
+    }
+
+    // MARK: - Computed Properties (month on screen)
 
     /// Spending per category for the month on screen, largest first. Includes
     /// fixed costs, so the rows add up to the header's "spent" figure.
@@ -218,10 +327,7 @@ struct ContentView: View {
     }
 
     private var filteredReceipts: [Receipt] {
-        let calendar = Calendar.current
-        return allReceipts.filter { receipt in
-            calendar.isDate(receipt.timestamp, equalTo: nav.selectedMonth, toGranularity: .month)
-        }
+        receipts(in: displayedMonth)
     }
 
     private var fixedCostsTotal: Decimal {
@@ -229,25 +335,7 @@ struct ContentView: View {
     }
 
     private var currentMonthSpent: Decimal {
-        let receiptsSpent = filteredReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
-        return receiptsSpent + fixedCostsTotal
-    }
-
-    private var currentDaySpent: Decimal {
-        let calendar = Calendar.current
-        let today = Date()
-        return filteredReceipts.filter { receipt in
-            calendar.isDate(receipt.timestamp, inSameDayAs: today)
-        }.reduce(Decimal(0)) { $0 + $1.totalAmount }
-    }
-
-    private var currentMonthLeftoverBalance: Decimal {
-        let calendar = Calendar.current
-        let monthBudgetEntries = budgetEntries.filter { entry in
-            calendar.isDate(entry.timestamp, equalTo: nav.selectedMonth, toGranularity: .month)
-        }
-        let totalBudgetAdded = monthBudgetEntries.reduce(Decimal(0)) { $0 + $1.amount }
-        return totalBudgetAdded - currentMonthSpent
+        filteredReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount } + fixedCostsTotal
     }
 
     // MARK: - Methods

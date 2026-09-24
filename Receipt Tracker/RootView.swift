@@ -42,11 +42,16 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var nav = AppNavigation()
 
+    /// The tab bar arrives last, once Home has finished assembling itself.
+    /// One shot per launch — it is not replayed on every tab switch.
+    @State private var chromeRevealed = false
+
     var body: some View {
         @Bindable var nav = nav
         TabView(selection: $nav.selectedTab) {
             Tab("Početna", image: "tab-home", value: RootTab.home) {
                 ContentView()
+                    .toolbar(chromeRevealed ? .visible : .hidden, for: .tabBar)
             }
 
             Tab("Pregled", image: "tab-pregled", value: RootTab.dashboard) {
@@ -77,6 +82,16 @@ struct RootView: View {
                 // The camera wants the whole screen, and the X is the only way
                 // out that makes sense mid-scan anyway.
                 .toolbar(.hidden, for: .tabBar)
+            }
+        }
+        // The screen assembles top down and the chrome arrives last: Home's
+        // figures fade up out of their blur, then the bar slides in under
+        // them. The whole opening runs a touch over a second.
+        .task {
+            guard !chromeRevealed else { return }
+            try? await Task.sleep(for: .seconds(MonthSummaryView.revealDuration))
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) {
+                chromeRevealed = true
             }
         }
         // Icons only, no labels.
