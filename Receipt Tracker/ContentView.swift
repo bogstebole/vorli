@@ -58,6 +58,11 @@ struct ContentView: View {
     /// touched or that page is left.
     @State private var focusedDay: Date?
 
+    /// Any of this screen's sheets is up.
+    private var sheetUp: Bool {
+        showSettings || showDayPicker || showReceipts || showCategories || nav.pendingReceipt != nil
+    }
+
     /// A receipt from the OCR flow, waiting for the confirm sheet to finish
     /// going away before it is pushed. Pushing mid-dismissal leaves the detail
     /// view without its navigation-bar inset — its content ends up underneath
@@ -77,21 +82,15 @@ struct ContentView: View {
         return NavigationStack {
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                // Tapping the month opens the calendar. The tab back to the
-                // current month grows out of the screen edge on the same line.
+                // Tapping the month opens the calendar.
                 Button {
                     showDayPicker = true
                 } label: {
                     LiveMonthIndicator(months: index.months, progress: pagerProgress)
                 }
-                .buttonStyle(PressScaleButtonStyle())
+                .buttonStyle(MonthChipButtonStyle())
                 .accessibilityHint("Otvara kalendar za izbor dana")
                 .frame(maxWidth: .infinity)
-                .overlay(alignment: .trailing) {
-                    LiveReturnTab(progress: pagerProgress, nowIndex: nowIndex(in: index)) {
-                        returnToCurrentMonth(index)
-                    }
-                }
                 Spacer().frame(height: 24)
                 monthPager(index)
                     .frame(height: MonthSummaryView.pageHeight)
@@ -105,6 +104,20 @@ struct ContentView: View {
             // make the figures drift up by half a bar as it lands. The block
             // is far shorter than the screen, so the bar never reaches it.
             .ignoresSafeArea(.container, edges: .bottom)
+            // The tab back to the current month grows out of the trailing edge
+            // halfway down the screen, where the thumb already is. The page's
+            // own margin is wider than the tab, so it never covers a figure.
+            .overlay {
+                LiveReturnTab(progress: pagerProgress, nowIndex: nowIndex(in: index)) {
+                    returnToCurrentMonth(index)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
+                .ignoresSafeArea()
+                // Sheets float clear of the screen edge now, and the tab
+                // showed as a grey bump beside them.
+                .opacity(sheetUp ? 0 : 1)
+                .animation(.easeOut(duration: 0.2), value: sheetUp)
+            }
             .overlay(alignment: .topTrailing) { settingsButton }
             // Scoped to this screen. The old `.navigationBarHidden(true)` drove
             // the shared UINavigationController's hidden state, so every push
