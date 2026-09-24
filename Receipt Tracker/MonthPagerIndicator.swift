@@ -86,10 +86,13 @@ struct MonthPagerIndicator: View {
                 .foregroundStyle(.primary)
                 .lineLimit(1)
                 .fixedSize()
-                // Holds off until the chip is wide enough to hold the words,
-                // so the text never appears squeezed inside a dot.
-                .opacity(pow(c, 3))
-                .scaleEffect(0.86 + 0.14 * c)
+                // Scales with the chip rather than being cropped by it. The
+                // factor is the chip's own width over the width it wants, so
+                // the label and its padding shrink at exactly the rate the
+                // capsule does — the month contracts into the dot instead of
+                // sliding out through a letterbox.
+                .scaleEffect(textScale(at: index))
+                .opacity(pow(c, 1.4))
         }
         // Size first, clip second. The other way round clips the label at its
         // natural width and then lets that full-width capsule overflow the
@@ -127,10 +130,22 @@ struct MonthPagerIndicator: View {
         Self.minDotSize + (Self.maxDotSize - Self.minDotSize) * neighbourWeight(at: index)
     }
 
+    /// What the chip measures when fully open — SF Mono is monospaced, so the
+    /// label's width is just its character count.
+    private func fullWidth(at index: Int) -> CGFloat {
+        CGFloat(label(for: months[index]).count) * Self.advance + Self.horizontalPadding
+    }
+
     private func width(at index: Int) -> CGFloat {
         let dot = dotSize(at: index)
-        let full = CGFloat(label(for: months[index]).count) * Self.advance + Self.horizontalPadding
-        return dot + (full - dot) * expansion(at: index)
+        return dot + (fullWidth(at: index) - dot) * expansion(at: index)
+    }
+
+    /// 1 when the chip is open, shrinking to nothing as it closes into a dot.
+    private func textScale(at index: Int) -> CGFloat {
+        let full = fullWidth(at: index)
+        guard full > 0 else { return 0 }
+        return min(1, width(at: index) / full)
     }
 
     private func height(at index: Int) -> CGFloat {

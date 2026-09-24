@@ -71,6 +71,12 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(uiColor: .systemGroupedBackground))
+            // Centre against the whole screen, not against whatever the tab
+            // bar leaves behind. The bar is hidden for the opening animation
+            // and slides in at the end; centring inside the safe area would
+            // make the figures drift up by half a bar as it lands. The block
+            // is far shorter than the screen, so the bar never reaches it.
+            .ignoresSafeArea(.container, edges: .bottom)
             .overlay(alignment: .topTrailing) { settingsButton }
             // Scoped to this screen. The old `.navigationBarHidden(true)` drove
             // the shared UINavigationController's hidden state, so every push

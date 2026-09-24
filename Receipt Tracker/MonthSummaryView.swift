@@ -46,6 +46,11 @@ struct MonthSummaryView: View {
     /// still instead of turning the page under the scrubbing finger.
     var onScrubbingChanged: (Bool) -> Void = { _ in }
 
+    /// How long the staggered entrance takes end to end: the last element's
+    /// delay plus its spring. `RootView` waits this out before sliding the tab
+    /// bar up, so the screen assembles top-down and the chrome arrives last.
+    static let revealDuration: Double = 0.32 + 0.42
+
     /// Fixed so every page lines up: the "danas" line is only meaningful for
     /// the month on the calendar, but its slot is reserved on every page so
     /// the chart and buttons don't shift as you swipe across months.
@@ -112,7 +117,7 @@ struct MonthSummaryView: View {
                 .minimumScaleFactor(0.7)
                 .padding(.top, 2)
                 .accessibilityLabel("Od \(MoneyFormat.grouped(income)) dinara")
-                .reveal(revealed, delay: 0.06)
+                .reveal(revealed, delay: 0.05)
 
             // The slot is always here; only the month on the calendar has a
             // "today" to report, so past months get a blank line of the same
@@ -124,7 +129,7 @@ struct MonthSummaryView: View {
                 .contentTransition(.numericText())
                 .padding(.top, 8)
                 .accessibilityLabel(isCurrentMonth ? "Danas \(MoneyFormat.grouped(spentToday)) dinara" : "")
-                .reveal(revealed, delay: 0.12)
+                .reveal(revealed, delay: 0.10)
         }
         .frame(maxWidth: .infinity)
         .multilineTextAlignment(.center)
@@ -158,7 +163,7 @@ struct MonthSummaryView: View {
                     .blur(radius: revealed ? 0 : 4)
                     .animation(
                         .spring(response: 0.42, dampingFraction: 0.82)
-                            .delay(0.18 + Double(index) * 0.004),
+                            .delay(0.15 + Double(index) * 0.004),
                         value: revealed
                     )
             }
@@ -222,7 +227,7 @@ struct MonthSummaryView: View {
         .font(.system(size: 9, design: .monospaced))
         .foregroundStyle(.tertiary)
         .accessibilityHidden(true)
-        .reveal(revealed, delay: 0.30)
+        .reveal(revealed, delay: 0.24)
     }
 
     // MARK: - Chart maths
@@ -284,9 +289,9 @@ struct MonthSummaryView: View {
     private var buttons: some View {
         HStack(spacing: 8) {
             glassButton("Računi (\(receiptCount))", action: onReceipts)
-                .reveal(revealed, delay: 0.36)
+                .reveal(revealed, delay: 0.28)
             glassButton("Kategorije", action: onCategories)
-                .reveal(revealed, delay: 0.42)
+                .reveal(revealed, delay: 0.32)
         }
     }
 
@@ -416,7 +421,7 @@ private extension View {
             .opacity(revealed ? 1 : 0)
             .offset(y: revealed ? 0 : 10)
             .blur(radius: revealed ? 0 : 6)
-            .animation(.spring(response: 0.46, dampingFraction: 0.88).delay(delay), value: revealed)
+            .animation(.spring(response: 0.42, dampingFraction: 0.88).delay(delay), value: revealed)
     }
 }
 
