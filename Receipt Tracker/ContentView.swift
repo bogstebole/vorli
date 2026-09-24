@@ -49,6 +49,15 @@ struct ContentView: View {
     @State private var showReceipts = false
     @State private var showCategories = false
 
+    /// The calendar behind the month chip.
+    @State private var showDayPicker = false
+    /// Picked in the calendar, applied once the sheet has gone — so the pager
+    /// visibly travels to it instead of moving behind a closing sheet.
+    @State private var pendingDay: Date?
+    /// The picked day, held up on its month's chart until the chart is
+    /// touched or that page is left.
+    @State private var focusedDay: Date?
+
     /// A receipt from the OCR flow, waiting for the confirm sheet to finish
     /// going away before it is pushed. Pushing mid-dismissal leaves the detail
     /// view without its navigation-bar inset — its content ends up underneath
@@ -68,7 +77,21 @@ struct ContentView: View {
         return NavigationStack {
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                LiveMonthIndicator(months: index.months, progress: pagerProgress)
+                // Tapping the month opens the calendar. The tab back to the
+                // current month grows out of the screen edge on the same line.
+                Button {
+                    showDayPicker = true
+                } label: {
+                    LiveMonthIndicator(months: index.months, progress: pagerProgress)
+                }
+                .buttonStyle(PressScaleButtonStyle())
+                .accessibilityHint("Otvara kalendar za izbor dana")
+                .frame(maxWidth: .infinity)
+                .overlay(alignment: .trailing) {
+                    LiveReturnTab(progress: pagerProgress, nowIndex: nowIndex(in: index)) {
+                        returnToCurrentMonth(index)
+                    }
+                }
                 Spacer().frame(height: 24)
                 monthPager(index)
                     .frame(height: MonthSummaryView.pageHeight)
@@ -108,6 +131,15 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsSheet()
+            }
+            .sheet(isPresented: $showDayPicker, onDismiss: applyPendingDay) {
+                DayPickerSheet(
+                    index: monthIndex,
+                    initialMonth: displayedMonth,
+                    focusedDay: focusedDay
+                ) { day in
+                    pendingDay = day
+                }
             }
             .sheet(isPresented: $showReceipts) {
                 MonthReceiptsSheet(month: displayedMonth, receipts: filteredReceipts)
@@ -204,7 +236,10 @@ struct ContentView: View {
         .onChange(of: nav.selectedMonth) { _, month in
             let normalized = Self.startOfMonth(month)
             guard normalized != pagedMonth else { return }
-            withAnimation(.easeInOut(duration: 0.25)) {
+            // Jumps can cross several months at once, from the calendar or the
+            // tab back to now; a little more time lets the month chips visibly
+            // run past on the way instead of blinking to the end.
+            withAnimation(.smooth(duration: 0.45)) {
                 pagedMonth = normalized
             }
         }
@@ -221,8 +256,43 @@ struct ContentView: View {
             receiptCount: figures.receiptCount,
             onReceipts: { showReceipts = true },
             onCategories: { showCategories = true },
-            onScrubbingChanged: { isScrubbing = $0 }
+            onScrubbingChanged: { scrubbing in
+                isScrubbing = scrubbing
+                // A scrub takes over from a day picked in the calendar.
+                if scrubbing { focusedDay = nil }
+            },
+            focusedDay: focusedDayIndex(in: month),
+            onFocusCleared: { focusedDay = nil }
         )
+    }
+
+    // MARK: - Jumping to a day or back to now
+
+    private func nowIndex(in index: MonthIndex) -> Int? {
+        index.months.firstIndex(of: Self.startOfMonth(Date()))
+    }
+
+    private func returnToCurrentMonth(_ index: MonthIndex) {
+        guard let now = nowIndex(in: index) else { return }
+        focusedDay = nil
+        nav.selectedMonth = index.months[now]
+    }
+
+    /// Runs once the calendar sheet has finished closing. Paging to the month
+    /// goes through `nav.selectedMonth`, the same route the Dashboard uses.
+    private func applyPendingDay() {
+        guard let day = pendingDay else { return }
+        pendingDay = nil
+        focusedDay = Calendar.current.startOfDay(for: day)
+        nav.selectedMonth = Self.startOfMonth(day)
+    }
+
+    /// The picked day as an index into `month`'s chart, if it falls in it.
+    private func focusedDayIndex(in month: Date) -> Int? {
+        let calendar = Calendar.current
+        guard let focusedDay,
+              calendar.isDate(focusedDay, equalTo: month, toGranularity: .month) else { return nil }
+        return calendar.component(.day, from: focusedDay) - 1
     }
 
     /// The gear has nowhere else to live — Home is the only screen that opens

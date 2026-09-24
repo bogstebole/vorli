@@ -41,6 +41,12 @@ struct MonthSummaryView: View {
     /// still instead of turning the page under the scrubbing finger.
     var onScrubbingChanged: (Bool) -> Void = { _ in }
 
+    /// A day picked from the calendar, held up on the chart with the same read
+    /// out a scrub gives, until the chart is touched or the page is left.
+    var focusedDay: Int? = nil
+    /// Asks Home to let go of `focusedDay`.
+    var onFocusCleared: () -> Void = {}
+
     /// How long the staggered entrance takes end to end: the last element's
     /// delay plus its spring. `RootView` waits this out before sliding the tab
     /// bar up, so the screen assembles top-down and the chrome arrives last.
@@ -86,7 +92,14 @@ struct MonthSummaryView: View {
         // point as before, but reported by the scroll view rather than worked
         // out from the offset frame by frame.
         .onScrollVisibilityChange(threshold: 0.2) { visible in
-            if visible { revealed = true }
+            if visible {
+                revealed = true
+            } else if revealed, focusedDay != nil {
+                // Paged away from a day picked in the calendar: let it go.
+                // Only once the page has actually been on screen — a page
+                // built off-screen on the way to that day starts invisible.
+                onFocusCleared()
+            }
         }
     }
 
@@ -150,12 +163,12 @@ struct MonthSummaryView: View {
         // busiest day by scanning all 30 again each time.
         let peak = (peakDailyTotal as NSDecimalNumber).doubleValue
         let today = todayIndex
-        let scrubbed = scrubbedDay
+        let highlighted = highlightedDay
 
         return HStack(alignment: .bottom, spacing: Self.barSpacing) {
             ForEach(Array(dailyTotals.enumerated()), id: \.offset) { index, amount in
                 RoundedRectangle(cornerRadius: 2)
-                    .fill(barColor(index, today: today, scrubbed: scrubbed))
+                    .fill(barColor(index, today: today, highlighted: highlighted))
                     .frame(height: barHeight(amount, index, today: today, peak: peak))
                     .frame(maxWidth: .infinity)
                     // Grows out of the baseline, sweeping the month from the
@@ -192,11 +205,14 @@ struct MonthSummaryView: View {
                 }
                 let day = day(atX: x)
                 if scrubbedDay != day { scrubbedDay = day }
+            } onTap: {
+                // A plain tap puts away a day picked in the calendar.
+                if focusedDay != nil { onFocusCleared() }
             }
         }
         .sensoryFeedback(.selection, trigger: scrubbedDay)
         .onChange(of: scrubbedDay != nil) { _, active in onScrubbingChanged(active) }
-        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: scrubbedDay)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: highlightedDay)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Potrošnja po danima")
         .accessibilityValue(chartAccessibilityValue)
@@ -205,7 +221,20 @@ struct MonthSummaryView: View {
     /// Reads out the scrubbed day as Liquid Glass, floating over the chart.
     @ViewBuilder
     private var scrubPopup: some View {
-        if let day = scrubbedDay {
+        ZStack(alignment: .topLeading) {
+            // Waits for the chart to have come in: a day picked in the
+            // calendar is set before its page has even appeared, and a read
+            // out floating over bars that are still growing looks like a slip.
+            if revealed, let day = highlightedDay {
+                popup(for: day)
+            }
+        }
+        .animation(.spring(response: 0.32, dampingFraction: 0.82), value: highlightedDay)
+        .animation(.spring(response: 0.32, dampingFraction: 0.82).delay(0.35), value: revealed)
+    }
+
+    private func popup(for day: Int) -> some View {
+        Group {
             VStack(spacing: 2) {
                 Text(dayLabel(day))
                     .font(.system(size: 10, design: .monospaced))
@@ -220,8 +249,8 @@ struct MonthSummaryView: View {
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { popupWidth = $0 }
             .offset(x: popupX(for: day), y: -(Self.barAreaHeight + 6))
             .allowsHitTesting(false)
-            .transition(.scale(scale: 0.9, anchor: .bottom).combined(with: .opacity))
         }
+        .transition(.scale(scale: 0.9, anchor: .bottom).combined(with: .opacity))
     }
 
     private var axis: some View {
@@ -251,11 +280,17 @@ struct MonthSummaryView: View {
         return max(Self.minBarHeight, Self.barAreaHeight * fraction)
     }
 
-    private func barColor(_ index: Int, today: Int?, scrubbed: Int?) -> Color {
-        if scrubbed == index || today == index { return .primary }
+    private func barColor(_ index: Int, today: Int?, highlighted: Int?) -> Color {
+        if highlighted == index || today == index { return .primary }
         if let today, index > today { return .primary.opacity(0.08) }
         // Everything dims a little while another day is being read.
-        return .primary.opacity(scrubbed == nil ? 0.28 : 0.16)
+        return .primary.opacity(highlighted == nil ? 0.28 : 0.16)
+    }
+
+    /// The day being read off the chart: under the finger if there is one,
+    /// otherwise the day picked in the calendar.
+    private var highlightedDay: Int? {
+        scrubbedDay ?? focusedDay
     }
 
     private func day(atX x: CGFloat) -> Int {
@@ -366,6 +401,7 @@ extension MonthSummaryView: Equatable {
             && lhs.income == rhs.income
             && lhs.spentToday == rhs.spentToday
             && lhs.dailyTotals == rhs.dailyTotals
+            && lhs.focusedDay == rhs.focusedDay
     }
 }
 
@@ -381,6 +417,8 @@ extension MonthSummaryView: Equatable {
 private struct ChartScrubber: UIViewRepresentable {
     /// x in the overlay's own coordinate space, or nil once the hold ends.
     var onChange: (CGFloat?) -> Void
+    /// A plain tap on the chart.
+    var onTap: () -> Void = {}
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
@@ -393,21 +431,30 @@ private struct ChartScrubber: UIViewRepresentable {
         recognizer.cancelsTouchesInView = false
         recognizer.delegate = context.coordinator
         view.addGestureRecognizer(recognizer)
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.tapped))
+        tap.cancelsTouchesInView = false
+        tap.delegate = context.coordinator
+        view.addGestureRecognizer(tap)
         return view
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
         context.coordinator.onChange = onChange
+        context.coordinator.onTap = onTap
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator(onChange: onChange) }
+    func makeCoordinator() -> Coordinator { Coordinator(onChange: onChange, onTap: onTap) }
 
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var onChange: (CGFloat?) -> Void
+        var onTap: () -> Void
 
-        init(onChange: @escaping (CGFloat?) -> Void) {
+        init(onChange: @escaping (CGFloat?) -> Void, onTap: @escaping () -> Void) {
             self.onChange = onChange
+            self.onTap = onTap
         }
+
+        @objc func tapped() { onTap() }
 
         @objc func handle(_ recognizer: UILongPressGestureRecognizer) {
             switch recognizer.state {
