@@ -46,8 +46,7 @@ struct ContentView: View {
     @State private var isScrubbing = false
 
     /// Sheets hung off the month buttons.
-    @State private var showReceipts = false
-    @State private var showCategories = false
+    @State private var showDetails = false
 
     /// The calendar behind the month chip.
     @State private var showDayPicker = false
@@ -60,7 +59,7 @@ struct ContentView: View {
 
     /// Any of this screen's sheets is up.
     private var sheetUp: Bool {
-        showSettings || showDayPicker || showReceipts || showCategories || nav.pendingReceipt != nil
+        showSettings || showDayPicker || showDetails || nav.pendingReceipt != nil
     }
 
     /// A receipt from the OCR flow, waiting for the confirm sheet to finish
@@ -154,13 +153,11 @@ struct ContentView: View {
                     pendingDay = day
                 }
             }
-            .sheet(isPresented: $showReceipts) {
-                MonthReceiptsSheet(month: displayedMonth, receipts: filteredReceipts)
-            }
-            .sheet(isPresented: $showCategories) {
-                MonthCategoriesSheet(
+            .sheet(isPresented: $showDetails) {
+                MonthDetailsSheet(
                     month: displayedMonth,
-                    rows: displayCategoryRows,
+                    receipts: filteredReceipts,
+                    categoryRows: displayCategoryRows,
                     total: currentMonthSpent
                 )
             }
@@ -266,9 +263,7 @@ struct ContentView: View {
             income: figures.income,
             spentToday: figures.spentToday,
             dailyTotals: figures.dailyTotals,
-            receiptCount: figures.receiptCount,
-            onReceipts: { showReceipts = true },
-            onCategories: { showCategories = true },
+            onDetails: { showDetails = true },
             onScrubbingChanged: { scrubbing in
                 isScrubbing = scrubbing
                 // A scrub takes over from a day picked in the calendar.

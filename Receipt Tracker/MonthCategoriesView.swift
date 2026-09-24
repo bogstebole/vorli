@@ -1,9 +1,9 @@
 //
-//  MonthCategoriesSheet.swift
+//  MonthCategoriesView.swift
 //  Receipt Tracker
 //
-//  Where the month's money went, behind the home screen's "Kategorije"
-//  button: a doughnut with the month's total in the hole, then a row per
+//  Where the month's money went — the "Kategorije" tab of the month's details
+//  sheet: a doughnut with the month's total in the hole, then a row per
 //  category.
 //
 //  This is the one screen in the app that carries colour. Everything else is
@@ -19,43 +19,23 @@
 import SwiftUI
 import Charts
 
-struct MonthCategoriesSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    let month: Date
+struct MonthCategoriesView: View {
     /// Sorted largest first by the caller, and summing to `total`.
     let rows: [CategorySpending.Row]
     let total: Decimal
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if rows.isEmpty {
-                    emptyState
-                } else {
-                    ScrollView {
-                        VStack(spacing: 28) {
-                            doughnut
-                            legend
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
-                        .padding(.bottom, 32)
-                    }
+        if rows.isEmpty {
+            emptyState
+        } else {
+            ScrollView {
+                VStack(spacing: 28) {
+                    doughnut
+                    legend
                 }
-            }
-            .navigationTitle(monthLabel)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        TablerIcon("x", size: 17)
-                            .foregroundStyle(.primary)
-                    }
-                    .accessibilityLabel("Zatvori")
-                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 32)
             }
         }
     }
@@ -192,16 +172,6 @@ struct MonthCategoriesSheet: View {
         Int((row.fraction * 100).rounded())
     }
 
-    private var monthLabel: String {
-        Self.monthFormatter.string(from: month).sentenceCased
-    }
-
-    private static let monthFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "sr_Latn_RS")
-        f.dateFormat = "MMMM yyyy"
-        return f
-    }()
 }
 
 // MARK: - Palette
@@ -248,8 +218,7 @@ private extension UIColor {
 }
 
 #Preview {
-    MonthCategoriesSheet(
-        month: Date(),
+    MonthCategoriesView(
         rows: [
             .init(name: "Hrana", total: 46_120, fraction: 0.39, isUncategorized: false),
             .init(name: "Fiksni troškovi", total: 32_000, fraction: 0.27, isUncategorized: false),

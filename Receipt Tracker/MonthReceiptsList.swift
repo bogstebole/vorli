@@ -1,58 +1,39 @@
 //
-//  MonthReceiptsSheet.swift
+//  MonthReceiptsList.swift
 //  Receipt Tracker
 //
-//  The month's receipts, grouped by day. This used to sit inline under the
-//  home header; the home screen is now just the month's figures, so the list
-//  moved behind the "Računi" button.
+//  The month's receipts, grouped by day — the "Računi" tab of the month's
+//  details sheet. The sheet owns the navigation stack, title and close button;
+//  this is only the list, so a receipt still pushes its detail inside the
+//  sheet.
 //
 
 import SwiftUI
 import SwiftData
 
-struct MonthReceiptsSheet: View {
-    @Environment(\.dismiss) private var dismiss
+struct MonthReceiptsList: View {
     @Environment(\.modelContext) private var modelContext
 
-    /// Month the list is scoped to — only drives the title.
-    let month: Date
-    /// Already filtered to `month` by the caller, which owns the query.
+    /// Already filtered to the month by the caller, which owns the query.
     let receipts: [Receipt]
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if receipts.isEmpty {
-                    EmptyReceiptsView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    ScrollView {
-                        LazyVStack(spacing: 12) {
-                            ForEach(receiptsByDay, id: \.day) { group in
-                                dayHeader(day: group.day, total: group.total)
-                                    .padding(.top, 4)
-                                ForEach(group.receipts) { receipt in
-                                    receiptRow(receipt)
-                                }
-                            }
+        if receipts.isEmpty {
+            EmptyReceiptsView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            ScrollView {
+                LazyVStack(spacing: 12) {
+                    ForEach(receiptsByDay, id: \.day) { group in
+                        dayHeader(day: group.day, total: group.total)
+                            .padding(.top, 4)
+                        ForEach(group.receipts) { receipt in
+                            receiptRow(receipt)
                         }
-                        .padding(.horizontal)
-                        .padding(.vertical, 8)
                     }
                 }
-            }
-            .navigationTitle(monthLabel)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        TablerIcon("x", size: 17)
-                            .foregroundStyle(.primary)
-                    }
-                    .accessibilityLabel("Zatvori")
-                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
             }
         }
     }
@@ -116,21 +97,10 @@ struct MonthReceiptsSheet: View {
         try? service.deleteReceipt(receipt)
     }
 
-    private var monthLabel: String {
-        Self.monthFormatter.string(from: month).sentenceCased
-    }
-
     private static let dayHeaderFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "sr_Latn_RS")
         f.dateFormat = "EEEE, d. MMM"
-        return f
-    }()
-
-    private static let monthFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "sr_Latn_RS")
-        f.dateFormat = "MMMM yyyy"
         return f
     }()
 }

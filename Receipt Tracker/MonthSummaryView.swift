@@ -33,10 +33,9 @@ struct MonthSummaryView: View {
     /// Spend per calendar day, index 0 = the 1st. Receipts only — fixed costs
     /// have no day to sit on, so they are in `spent` but not in the bars.
     let dailyTotals: [Decimal]
-    let receiptCount: Int
 
-    var onReceipts: () -> Void = {}
-    var onCategories: () -> Void = {}
+    /// Opens the month's details: its receipts and its categories.
+    var onDetails: () -> Void = {}
     /// Raised while a day is being read off the chart, so the pager can hold
     /// still instead of turning the page under the scrubbing finger.
     var onScrubbingChanged: (Bool) -> Void = { _ in }
@@ -50,7 +49,7 @@ struct MonthSummaryView: View {
     /// How long the staggered entrance takes end to end: the last element's
     /// delay plus its spring. `RootView` waits this out before sliding the tab
     /// bar up, so the screen assembles top-down and the chrome arrives last.
-    static let revealDuration: Double = 0.32 + 0.42
+    static let revealDuration: Double = 0.28 + 0.42
 
     /// Fixed so every page lines up: the "danas" line is only meaningful for
     /// the month on the calendar, but its slot is reserved on every page so
@@ -80,7 +79,7 @@ struct MonthSummaryView: View {
             Spacer().frame(height: 72)
             chart
             Spacer().frame(height: 48)
-            buttons
+            detailsButton
         }
         // 24pt of screen inset plus 24pt inside it — the content column is
         // 294pt wide on a 390pt screen, exactly two buttons and their gap.
@@ -326,30 +325,24 @@ struct MonthSummaryView: View {
         return "\(spentDays) dana sa potrošnjom, najviše \(MoneyFormat.grouped(peakDailyTotal)) dinara"
     }
 
-    // MARK: - Buttons
+    // MARK: - Details
 
-    private var buttons: some View {
-        HStack(spacing: 8) {
-            glassButton("Računi (\(receiptCount))", action: onReceipts)
-                .reveal(revealed, delay: 0.28)
-            glassButton("Kategorije", action: onCategories)
-                .reveal(revealed, delay: 0.32)
-        }
-    }
-
-    /// Native Liquid Glass, prominent. The label is pinned to the system
-    /// background colour on purpose: the app tints everything `.primary`, which
-    /// fills a prominent glass button with the same ink as its text.
-    private func glassButton(_ title: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
+    /// The one way into everything behind the figures: the receipts and the
+    /// categories share a sheet as its two tabs. Prominent glass in the
+    /// primary ink — white in dark mode, black in light — and only as wide as
+    /// its word. The label is pinned to the system background colour on
+    /// purpose: the app tints everything `.primary`, which fills a prominent
+    /// glass button with the same ink as its text.
+    private var detailsButton: some View {
+        Button(action: onDetails) {
+            Text("Detalji")
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(Color(uiColor: .systemBackground))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .frame(maxWidth: .infinity, minHeight: 34)
+                .padding(.horizontal, 20)
+                .frame(minHeight: 34)
         }
         .buttonStyle(.glassProminent)
+        .reveal(revealed, delay: 0.28)
     }
 
     // MARK: - Text
@@ -398,7 +391,6 @@ struct MonthSummaryView: View {
 extension MonthSummaryView: Equatable {
     static func == (lhs: MonthSummaryView, rhs: MonthSummaryView) -> Bool {
         lhs.month == rhs.month
-            && lhs.receiptCount == rhs.receiptCount
             && lhs.spent == rhs.spent
             && lhs.income == rhs.income
             && lhs.spentToday == rhs.spentToday
@@ -504,8 +496,7 @@ private extension View {
         spentToday: 13_840,
         dailyTotals: [3_200, 1_100, 700, 4_500, 2_000, 800, 6_100, 2_400, 700, 1_900,
                       3_300, 12_000, 2_200, 700, 1_500, 4_800, 2_900, 600, 7_400, 3_100,
-                      700, 6_080, 13_840, 0, 0, 0, 0, 0, 0, 0],
-        receiptCount: 34
+                      700, 6_080, 13_840, 0, 0, 0, 0, 0, 0, 0]
     )
     .frame(height: MonthSummaryView.pageHeight)
     .background(Color(uiColor: .systemGroupedBackground))

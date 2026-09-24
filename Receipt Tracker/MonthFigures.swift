@@ -24,7 +24,6 @@ struct MonthFigures: Equatable {
     var spentToday: Decimal
     /// Receipts per calendar day, index 0 = the 1st.
     var dailyTotals: [Decimal]
-    var receiptCount: Int
 }
 
 /// The months Home can page through, and what each of them shows.
@@ -114,8 +113,7 @@ struct MonthIndex {
                 spent: tally.spent + fixedCosts,
                 income: tally.income,
                 spentToday: tally.today,
-                dailyTotals: Array(tally.daily.prefix(days)),
-                receiptCount: tally.count
+                dailyTotals: Array(tally.daily.prefix(days))
             )
             months.append(start)
         }
@@ -129,19 +127,17 @@ struct MonthIndex {
         if let figures = figuresByMonth[month] { return figures }
         let days = calendar.range(of: .day, in: .month, for: month)?.count ?? 30
         return MonthFigures(spent: fixedCosts, income: 0, spentToday: 0,
-                            dailyTotals: Array(repeating: 0, count: days), receiptCount: 0)
+                            dailyTotals: Array(repeating: 0, count: days))
     }
 
     private struct Tally {
         var spent: Decimal = 0
         var today: Decimal = 0
         var income: Decimal = 0
-        var count = 0
         var daily = [Decimal](repeating: 0, count: 31)
 
         mutating func add(_ amount: Decimal, on day: Int, isToday: Bool) {
             spent += amount
-            count += 1
             if (1...31).contains(day) { daily[day - 1] += amount }
             if isToday { today += amount }
         }
