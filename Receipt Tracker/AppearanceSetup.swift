@@ -61,7 +61,9 @@ enum SegmentedControlAppearance {
         proxy.setTitleTextAttributes(
             [.font: UIFont.monospacedSystemFont(ofSize: 13, weight: .medium)], for: .selected
         )
-        proxy.backgroundColor = UIColor { trackColor(for: $0) }
+        // Read on the main actor here; UIKit resolves the provider elsewhere.
+        let surface = UIColor.surface
+        proxy.backgroundColor = UIColor { trackColor(for: $0, surface: surface) }
         proxy.selectedSegmentTintColor = .surfaceSelected
     }
 
@@ -73,9 +75,9 @@ enum SegmentedControlAppearance {
     /// the surface over the screen behind it, and the track is the colour that
     /// turns into that once the film is on. The film only ever darkens in
     /// light mode, so there the track stops at white, a shade under the cards.
-    nonisolated private static func trackColor(for traits: UITraitCollection) -> UIColor {
+    nonisolated private static func trackColor(for traits: UITraitCollection, surface surfaceColor: UIColor) -> UIColor {
         let backdrop = components(of: .systemBackground, in: traits)
-        let surface = components(of: .surface, in: traits)
+        let surface = components(of: surfaceColor, in: traits)
         let film = components(of: .tertiarySystemFill, in: traits)
 
         let card = (0..<3).map { surface[$0] * surface[3] + backdrop[$0] * (1 - surface[3]) }
