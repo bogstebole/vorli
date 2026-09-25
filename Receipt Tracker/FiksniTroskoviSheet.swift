@@ -31,7 +31,7 @@ struct FiksniTroskoviSheet: View {
                     Button {
                         dismiss()
                     } label: {
-                        TablerIcon("x", size: 18)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
@@ -39,7 +39,7 @@ struct FiksniTroskoviSheet: View {
                     Button {
                         showAdd = true
                     } label: {
-                        TablerIcon("plus", size: 18)
+                        TablerIcon("plus", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
@@ -63,7 +63,7 @@ struct FiksniTroskoviSheet: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text(formattedTotal + " RSD")
-                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
             }
         } footer: {
             Text("Automatski se oduzima od zarade svakog meseca.")
@@ -85,7 +85,7 @@ struct FiksniTroskoviSheet: View {
                             if !cost.isActive {
                                 Text("Pauzirano")
                                     .font(.system(.caption2, design: .monospaced))
-                                    .foregroundStyle(.tertiary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                         Spacer()
@@ -119,7 +119,7 @@ struct FiksniTroskoviSheet: View {
                     .foregroundStyle(.secondary)
                 Text("Dodaj obavezne mesečne troškove (stan, računi, pretplate) i automatski se oduzimaju svakog meseca.")
                     .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, alignment: .center)
@@ -197,8 +197,8 @@ struct FixedCostEditSheet: View {
                                 } label: {
                                     Text(preset)
                                         .font(.system(.subheadline, design: .monospaced))
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 9)
+                                        .padding(.horizontal, 16)
+                                        .padding(.vertical, 8)
                                         .background(
                                             selected
                                                 ? Color.accentColor.opacity(0.18)
@@ -211,7 +211,10 @@ struct FixedCostEditSheet: View {
                             }
                         }
                     }
-                    .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
+                    // Chips scroll out to the sheet's edge instead of being
+                    // cut off at the row's inset.
+                    .scrollClipDisabled()
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                     .listRowBackground(Color.clear)
                 } header: {
                     Text("Brzi izbor")
@@ -260,13 +263,13 @@ struct FixedCostEditSheet: View {
                     Button {
                         dismiss()
                     } label: {
-                        TablerIcon("x", size: 18)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { save() } label: {
-                        TablerIcon("check", size: 18)
+                        TablerIcon("check", size: 20)
                             .foregroundStyle(.primary)
                     }
                     .disabled(!isValid)

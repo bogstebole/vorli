@@ -50,6 +50,9 @@ struct OnboardingView: View {
                 Text("Gde odoše pare?")
                     .font(.system(size: 13, weight: .medium, design: .monospaced))
                     .foregroundStyle(.white)
+                    // A soft dark halo: the receipts in the clip are white,
+                    // and one passing behind the line used to wash it out.
+                    .modifier(LegibleOverVideo())
                     .opacity(videoSentenceVisible && !blackout ? 1 : 0)
                     .blur(radius: videoSentenceVisible && !blackout ? 0 : 3)
             }
@@ -64,12 +67,12 @@ struct OnboardingView: View {
                 VStack(spacing: 48) {
                     StaggeredText(text: Self.ctaLine, revealed: ctaVisible)
 
-                    VStack(spacing: 14) {
+                    VStack(spacing: 16) {
                         Button {
                             onFinish(true)
                         } label: {
                             Text("Skeniraj prvi račun")
-                                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                                .font(.system(.subheadline, design: .monospaced, weight: .medium))
                                 .foregroundStyle(.black)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 4)
@@ -94,7 +97,8 @@ struct OnboardingView: View {
                     if step < 4 {
                         Button("Preskoči") { onFinish(false) }
                             .font(.system(size: 12, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(.white.opacity(0.7))
+                            .modifier(LegibleOverVideo())
                             .padding(20)
                     }
                 }
@@ -155,6 +159,17 @@ struct OnboardingView: View {
         } else {
             dissolveToNext()
         }
+    }
+}
+
+/// Keeps white text readable over the intro clip, which is mostly black but
+/// has white receipts drifting through it: a wide soft shadow darkens whatever
+/// is behind the letters, a tight one edges them.
+private struct LegibleOverVideo: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .shadow(color: .black.opacity(0.9), radius: 12)
+            .shadow(color: .black.opacity(0.7), radius: 2)
     }
 }
 

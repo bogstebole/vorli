@@ -11,7 +11,7 @@ struct ReceiptCardView: View {
     let receipt: Receipt
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             // Company Name
             HStack(alignment: .top, spacing: 16) {
                 Text(receipt.merchantName)
@@ -32,7 +32,7 @@ struct ReceiptCardView: View {
             
             HStack {
                 // Date and Time — Serbian, not the device locale
-                HStack(spacing: 6) {
+                HStack(spacing: 4) {
                     Text(Self.dateFormatter.string(from: receipt.timestamp))
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)

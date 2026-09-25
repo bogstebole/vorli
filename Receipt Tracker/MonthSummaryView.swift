@@ -59,8 +59,8 @@ struct MonthSummaryView: View {
     // MARK: - Layout constants (from the Figma spec)
 
     private static let barAreaHeight: CGFloat = 56
-    private static let minBarHeight: CGFloat = 3
-    private static let barSpacing: CGFloat = 3
+    private static let minBarHeight: CGFloat = 4
+    private static let barSpacing: CGFloat = 4
 
     // MARK: - State
 
@@ -246,9 +246,9 @@ struct MonthSummaryView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .glassEffect(.regular, in: .rect(cornerRadius: 14))
+            .glassEffect(.regular, in: .rect(cornerRadius: 16))
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { popupWidth = $0 }
-            .offset(x: popupX(for: day), y: -(Self.barAreaHeight + 6))
+            .offset(x: popupX(for: day), y: -(Self.barAreaHeight + 4))
             .allowsHitTesting(false)
         }
         .transition(.scale(scale: 0.9, anchor: .bottom).combined(with: .opacity))
@@ -261,7 +261,7 @@ struct MonthSummaryView: View {
             Text(edgeDayLabel(first: false))
         }
         .font(.system(size: 9, design: .monospaced))
-        .foregroundStyle(.tertiary)
+        .foregroundStyle(.secondary)
         .accessibilityHidden(true)
         .reveal(revealed, delay: 0.24)
     }
@@ -339,7 +339,7 @@ struct MonthSummaryView: View {
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundStyle(Color(uiColor: .systemBackground))
                 .padding(.horizontal, 20)
-                .frame(minHeight: 34)
+                .frame(minHeight: 36)
         }
         .buttonStyle(.glassProminent)
         .reveal(revealed, delay: 0.28)

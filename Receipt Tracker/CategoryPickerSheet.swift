@@ -70,7 +70,7 @@ struct CategoryPickerSheet: View {
                             guard !trimmed.isEmpty else { return }
                             assign(trimmed)
                         }
-                        .font(.system(.caption, design: .monospaced, weight: .semibold))
+                        .font(.system(.caption, design: .monospaced, weight: .medium))
                         .disabled(customName.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 } header: {
@@ -83,11 +83,7 @@ struct CategoryPickerSheet: View {
                         Button(role: .destructive) {
                             remove()
                         } label: {
-                            Label {
-                                Text("Ukloni kategoriju")
-                            } icon: {
-                                TablerIcon("trash", size: 16)
-                            }
+                            TablerLabel("Ukloni kategoriju", icon: "trash")
                             .font(.system(.subheadline, design: .monospaced))
                         }
                     }
@@ -97,13 +93,16 @@ struct CategoryPickerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        TablerIcon("x", size: 18)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
             }
         }
         .presentationDetents([.medium, .large])
+        // Opaque at half height: the default glass let the tab bar and the
+        // screen behind show through the lowest rows.
+        .presentationBackground(Color(uiColor: .systemGroupedBackground))
     }
 
     // MARK: - Actions

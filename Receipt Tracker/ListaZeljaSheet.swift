@@ -33,13 +33,13 @@ struct ListaZeljaSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        TablerIcon("x", size: 18)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { showAdd = true } label: {
-                        TablerIcon("plus", size: 18)
+                        TablerIcon("plus", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
@@ -67,7 +67,7 @@ struct ListaZeljaSheet: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text(MoneyFormat.signed(totalReserved) + " RSD")
-                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
             }
             HStack {
                 Text("Raspoloživo")
@@ -80,7 +80,7 @@ struct ListaZeljaSheet: View {
             }
             if available < 0 {
                 HStack(spacing: 8) {
-                    TablerIcon("alert-triangle", size: 15)
+                    TablerIcon("alert-triangle", size: 16)
                         .foregroundStyle(.orange)
                     Text("Odvojio si više nego što ti je ukupno ostalo od zarade.")
                         .font(.system(.caption, design: .monospaced))
@@ -125,7 +125,7 @@ struct ListaZeljaSheet: View {
                     .foregroundStyle(.secondary)
                 Text("Dodaj nešto što želiš da kupiš i prati koliko si uštedeo za to.")
                     .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity, alignment: .center)
@@ -163,7 +163,7 @@ struct WishRowView: View {
     let avgLeftover: Decimal
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text(wish.naziv)
                     .font(.system(.subheadline, design: .monospaced))
@@ -178,13 +178,13 @@ struct WishRowView: View {
 
             Text(projectionText)
                 .font(.system(.caption2, design: .monospaced))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let rok = wish.rok {
                 Text("Rok: \(rok.formatted(.dateTime.day().month(.abbreviated).year()))")
                     .font(.system(.caption2, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 4)
@@ -289,11 +289,7 @@ struct WishEditSheet: View {
                         Button(role: .destructive) {
                             deleteWish()
                         } label: {
-                            Label {
-                                Text("Obriši želju")
-                            } icon: {
-                                TablerIcon("trash", size: 16)
-                            }
+                            TablerLabel("Obriši želju", icon: "trash")
                             .font(.system(.subheadline, design: .monospaced))
                         }
                     }
@@ -303,13 +299,13 @@ struct WishEditSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        TablerIcon("x", size: 18)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { save() } label: {
-                        TablerIcon("check", size: 18)
+                        TablerIcon("check", size: 20)
                             .foregroundStyle(.primary)
                     }
                     .disabled(!isValid)
@@ -337,7 +333,7 @@ struct WishEditSheet: View {
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text(MoneyFormat.grouped(ustecenoSoFar) + " RSD")
-                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
             }
 
             HStack(spacing: 8) {
@@ -351,7 +347,7 @@ struct WishEditSheet: View {
                         if formatted != newValue { odvojiDisplay = formatted }
                     }
                 Button("Odvojio sam") { odvoji() }
-                    .font(.system(.caption, design: .monospaced, weight: .semibold))
+                    .font(.system(.caption, design: .monospaced, weight: .medium))
                     .disabled((Int(odvojiRaw) ?? 0) <= 0)
             }
 
@@ -359,12 +355,8 @@ struct WishEditSheet: View {
                 Button {
                     archive()
                 } label: {
-                    Label {
-                        Text("Ostvareno 🎉")
-                    } icon: {
-                        TablerIcon("circle-check", size: 16)
-                    }
-                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    TablerLabel("Ostvareno 🎉", icon: "circle-check")
+                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
                 }
             }
         } header: {

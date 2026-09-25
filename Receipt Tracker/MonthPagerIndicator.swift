@@ -64,7 +64,8 @@ struct MonthPagerIndicator: View {
     // MARK: - Metrics
 
     /// A dot right beside the current month is at full size; four months out
-    /// it has shrunk to a speck and all but gone.
+    /// it has shrunk to a speck and all but gone. (2.5 is off the 4pt grid on
+    /// purpose: it is where the shrinking ends, not a size anything rests at.)
     private static let maxDotSize: CGFloat = 8
     private static let minDotSize: CGFloat = 2.5
     private static let falloff: Double = 3
@@ -72,9 +73,9 @@ struct MonthPagerIndicator: View {
     /// Under the finger the open chip darkens to this and gives a little.
     private static let pressedFillOpacity: Double = 0.26
     private static let pressedScale: CGFloat = 0.92
-    private static let chipHeight: CGFloat = 34
+    private static let chipHeight: CGFloat = 36
     private static let gap: CGFloat = 8
-    private static let horizontalPadding: CGFloat = 22
+    private static let horizontalPadding: CGFloat = 24
     /// SF Mono is monospaced, so one measurement covers every label.
     private static let advance: CGFloat = {
         let font = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)

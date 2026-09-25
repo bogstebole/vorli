@@ -103,7 +103,7 @@ struct DayPickerSheet: View {
                     Button {
                         dismiss()
                     } label: {
-                        TablerIcon("x", size: 17)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                     .accessibilityLabel("Zatvori")
@@ -254,7 +254,7 @@ struct DayPickerSheet: View {
             ForEach(Array(Self.weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
                 Text(symbol)
                     .font(.system(.caption2, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
             }
         }
@@ -298,7 +298,7 @@ struct DayPickerSheet: View {
         } label: {
             VStack(spacing: 4) {
                 Text("\(day)")
-                    .font(.system(.subheadline, design: .monospaced, weight: isToday ? .semibold : .regular))
+                    .font(.system(.subheadline, design: .monospaced, weight: isToday ? .medium : .regular))
                     .foregroundStyle(isFocused ? AnyShapeStyle(Color(uiColor: .systemBackground))
                                      : isFuture ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.primary))
                 // Spending that day: a dot that darkens with the amount. No
@@ -424,7 +424,7 @@ struct DayPickerSheet: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Text(title)
-                    .font(.system(.subheadline, design: .monospaced, weight: isNow ? .semibold : .regular))
+                    .font(.system(.subheadline, design: .monospaced, weight: isNow ? .medium : .regular))
                     .foregroundStyle(isShown ? AnyShapeStyle(Color(uiColor: .systemBackground))
                                      : enabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.quaternary))
                 spendDot(spent: spent, peak: peak, inverted: isShown)

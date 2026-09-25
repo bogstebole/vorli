@@ -45,7 +45,7 @@ struct ReturnToNowTab: View {
     var action: () -> Void
 
     /// How far the tab reaches in from the edge when out.
-    static let maxDepth: CGFloat = 26
+    static let maxDepth: CGFloat = 24
     static let height: CGFloat = 80
     /// Wider than the tab itself so the tap target clears 44pt, and no wider:
     /// the tab sits over the pager, and a swipe that starts on it does not
@@ -71,7 +71,7 @@ struct ReturnToNowTab: View {
                     .scaleEffect(y: shown ? 1 : 0.3)
                     .animation(lengthAnimation, value: shown)
 
-                TablerIcon("arrow-right", size: 14)
+                TablerIcon("arrow-right", size: 12)
                     // Ink of the screen behind, so it inverts with the
                     // appearance exactly as the tab does.
                     .foregroundStyle(Color(uiColor: .systemBackground))

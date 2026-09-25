@@ -59,7 +59,7 @@ struct AddBalanceSheet: View {
                             }
                         }
                     } label: {
-                        TablerIcon((mode == .display || !hasIncome) ? "x" : "chevron-left", size: 18)
+                        TablerIcon((mode == .display || !hasIncome) ? "x" : "chevron-left", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
@@ -67,7 +67,7 @@ struct AddBalanceSheet: View {
                 if !hasIncome || mode != .display {
                     ToolbarItem(placement: .confirmationAction) {
                         Button { save() } label: {
-                            TablerIcon("check", size: 18)
+                            TablerIcon("check", size: 20)
                                 .foregroundStyle(.primary)
                         }
                         .disabled(!isValidAmount)
@@ -84,9 +84,9 @@ struct AddBalanceSheet: View {
 
     private var totalSection: some View {
         Section {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 Text(formattedTotal + " RSD")
-                    .font(.system(.title2, design: .monospaced, weight: .semibold))
+                    .font(.system(.title2, design: .monospaced, weight: .medium))
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 8)
 
@@ -109,11 +109,7 @@ struct AddBalanceSheet: View {
                     isInputFocused = true
                 }
             } label: {
-                Label {
-                    Text("Dodaj iznos")
-                } icon: {
-                    TablerIcon("plus", size: 16)
-                }
+                TablerLabel("Dodaj iznos", icon: "plus")
                 .font(.system(.subheadline, design: .monospaced))
             }
 
@@ -125,22 +121,14 @@ struct AddBalanceSheet: View {
                     isInputFocused = true
                 }
             } label: {
-                Label {
-                    Text("Izmeni iznos")
-                } icon: {
-                    TablerIcon("pencil", size: 16)
-                }
+                TablerLabel("Izmeni iznos", icon: "pencil")
                 .font(.system(.subheadline, design: .monospaced))
             }
 
             Button(role: .destructive) {
                 removeIncome()
             } label: {
-                Label {
-                    Text("Ukloni")
-                } icon: {
-                    TablerIcon("trash", size: 16)
-                }
+                TablerLabel("Ukloni", icon: "trash")
                 .font(.system(.subheadline, design: .monospaced))
             }
         }
@@ -220,7 +208,8 @@ struct AddBalanceSheet: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
         formatter.locale = Locale(identifier: "sr_Latn_RS")
-        return formatter.string(from: Date())
+        // "Septembar 2026", as everywhere else — the formatter gives it lowercase.
+        return formatter.string(from: Date()).sentenceCased
     }
 
     // MARK: - Helpers

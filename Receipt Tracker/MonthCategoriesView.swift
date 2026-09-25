@@ -63,7 +63,7 @@ struct MonthCategoriesView: View {
         .overlay {
             VStack(spacing: 2) {
                 Text(MoneyFormat.grouped(total))
-                    .font(.system(.title3, design: .monospaced, weight: .semibold))
+                    .font(.system(.title3, design: .monospaced, weight: .medium))
                     .foregroundStyle(.primary)
                     .contentTransition(.numericText())
                     .lineLimit(1)
@@ -84,12 +84,12 @@ struct MonthCategoriesView: View {
     /// slices sit under 3:1 against a white sheet, so the words are what make
     /// them identifiable, not the colour on its own.
     private var legend: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 16) {
             ForEach(slices, id: \.row.id) { slice in
-                HStack(spacing: 10) {
+                HStack(spacing: 12) {
                     RoundedRectangle(cornerRadius: 2, style: .continuous)
                         .fill(slice.color)
-                        .frame(width: 10, height: 10)
+                        .frame(width: 12, height: 12)
 
                     Text(slice.row.name)
                         .font(.system(.subheadline, design: .monospaced))
@@ -100,7 +100,7 @@ struct MonthCategoriesView: View {
 
                     Text("\(percent(slice.row))%")
                         .font(.system(.caption2, design: .monospaced))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
 
                     Text(MoneyFormat.grouped(slice.row.total))
                         .font(.system(.subheadline, design: .monospaced))
@@ -118,12 +118,12 @@ struct MonthCategoriesView: View {
                 .foregroundStyle(.tertiary)
 
             Text("Nema potrošnje ovog meseca")
-                .font(.system(.headline, design: .monospaced))
+                .font(.system(.headline, design: .monospaced, weight: .medium))
                 .foregroundStyle(.secondary)
 
             Text("Skenirajte račun ili dodajte fiksni trošak.")
                 .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
         }

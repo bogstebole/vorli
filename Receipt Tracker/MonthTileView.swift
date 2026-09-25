@@ -14,10 +14,10 @@ struct MonthTileView: View {
     let spent: Decimal
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             // Month Name
             Text(month.uppercased())
-                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .font(.system(.caption, design: .monospaced, weight: .medium))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
             
@@ -49,7 +49,7 @@ struct MonthTileView: View {
             HStack(spacing: 4) {
                 Circle()
                     .fill(Color.cyan)
-                    .frame(width: 6, height: 6)
+                    .frame(width: 8, height: 8)
                 
                 Text(formatCurrency(leftOverBalance))
                     .font(.system(.caption2, design: .monospaced))
@@ -62,7 +62,7 @@ struct MonthTileView: View {
             HStack(spacing: 4) {
                 Circle()
                     .fill(Color.purple)
-                    .frame(width: 6, height: 6)
+                    .frame(width: 8, height: 8)
                 
                 Text(formatCurrency(spent))
                     .font(.system(.caption2, design: .monospaced))

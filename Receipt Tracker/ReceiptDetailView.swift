@@ -37,21 +37,17 @@ struct ReceiptDetailView: View {
                     } label: {
                         if let category {
                             Text(category.name)
-                                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                                .font(.system(.caption, design: .monospaced, weight: .medium))
                                 .foregroundStyle(.primary)
-                                .padding(.horizontal, 10)
+                                .padding(.horizontal, 12)
                                 .padding(.vertical, 4)
                                 .background(.quaternary.opacity(0.5))
                                 .clipShape(Capsule())
                         } else {
-                            Label {
-                                Text("Kategorija")
-                            } icon: {
-                                TablerIcon("plus", size: 12)
-                            }
+                            TablerLabel("Kategorija", icon: "plus", iconSize: 12, spacing: 4)
                                 .font(.system(.caption, design: .monospaced))
-                                .foregroundStyle(.tertiary)
-                                .padding(.horizontal, 10)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 12)
                                 .padding(.vertical, 4)
                                 .background(.quaternary.opacity(0.5))
                                 .clipShape(Capsule())
@@ -78,7 +74,7 @@ struct ReceiptDetailView: View {
                     
                     Text(receipt.timestamp.asSerbianDateTime)
                         .font(.system(.caption, design: .monospaced))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                     
                     Divider()
                     
@@ -107,11 +103,11 @@ struct ReceiptDetailView: View {
                         HStack {
                             Text("Način plaćanja:")
                                 .font(.system(.caption, design: .monospaced))
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(.secondary)
                             Spacer()
                             Text(receipt.paymentMethod)
                                 .font(.system(.caption, design: .monospaced))
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .padding()
@@ -153,20 +149,20 @@ struct ReceiptDetailView: View {
                     if !receipt.receiptNumber.isEmpty {
                         Text("PFR broj: \(receipt.receiptNumber)")
                             .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(.quaternary)
+                            .foregroundStyle(.secondary)
                     }
                     
                     if !receipt.cashRegisterNumber.isEmpty {
                         Text("ESIR: \(receipt.cashRegisterNumber)")
                             .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(.quaternary)
+                            .foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity)
             }
             .padding()
         }
-        .monoNavigationTitle("Racun")
+        .monoNavigationTitle("Račun")
         .sheet(item: $historyItem) { item in
             PriceHistorySheet(item: item)
         }
@@ -271,10 +267,10 @@ struct PriceChangeBadge: View {
 
     var body: some View {
         Text("\(change.isIncrease ? "▲ +" : "▼ −")\(change.percentText)%")
-            .font(.system(.caption2, design: .monospaced, weight: .semibold))
+            .font(.system(.caption2, design: .monospaced, weight: .medium))
             .foregroundStyle(tint)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 3)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
             .background(tint.opacity(0.14))
             .clipShape(Capsule())
     }

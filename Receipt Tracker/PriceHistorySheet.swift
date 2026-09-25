@@ -29,13 +29,16 @@ struct PriceHistorySheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        TablerIcon("x", size: 18)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
             }
         }
         .presentationDetents([.medium, .large])
+        // Opaque at half height: the default glass let the tab bar and the
+        // screen behind show through the lowest rows.
+        .presentationBackground(Color(uiColor: .systemGroupedBackground))
     }
 
     // MARK: - Sections

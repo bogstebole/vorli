@@ -56,7 +56,7 @@ struct MonthDetailsSheet: View {
                     Button {
                         dismiss()
                     } label: {
-                        TablerIcon("x", size: 17)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                     .accessibilityLabel("Zatvori")
@@ -79,7 +79,7 @@ struct MonthDetailsSheet: View {
         .padding(.top, 8)
         // Twice the old gap, so the tabs read as a control over the content
         // rather than its first row.
-        .padding(.bottom, 30)
+        .padding(.bottom, 32)
     }
 
     private var monthLabel: String {

@@ -52,13 +52,13 @@ struct DodajTrosakSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        TablerIcon("x", size: 18)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button { save() } label: {
-                        TablerIcon("check", size: 18)
+                        TablerIcon("check", size: 20)
                             .foregroundStyle(.primary)
                     }
                     .disabled(!isValid)

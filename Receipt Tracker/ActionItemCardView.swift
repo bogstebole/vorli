@@ -148,7 +148,7 @@ struct CardThumbnailView: View {
         switch cardType {
         case .pdf:
             Text("PDF")
-                .font(.system(size: 15.9, weight: .bold, design: .monospaced))
+                .font(.system(size: 15.9, weight: .medium, design: .monospaced))
                 .foregroundStyle(Color(hex: "#EB4322"))
         case .shoppingList:
             Image(systemName: "cart.fill")

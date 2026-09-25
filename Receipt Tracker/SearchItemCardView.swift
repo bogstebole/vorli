@@ -12,7 +12,7 @@ struct SearchItemCardView: View {
     let lineTotal: Decimal
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 16) {
                 Text(itemName)
                     .font(.system(.subheadline, design: .monospaced, weight: .regular))
@@ -35,7 +35,7 @@ struct SearchItemCardView: View {
                 Spacer()
                 Text(date.formatted(.dateTime.day().month(.abbreviated)))
                     .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(16)
