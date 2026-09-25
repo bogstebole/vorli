@@ -52,7 +52,8 @@ struct MonthDetailsSheet: View {
             .safeAreaBar(edge: .top) { tabPicker }
             .monoNavigationTitle(monthLabel)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                // Close sits on the left, as on every other sheet in the app.
+                ToolbarItem(placement: .cancellationAction) {
                     Button {
                         dismiss()
                     } label: {

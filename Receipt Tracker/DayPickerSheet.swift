@@ -99,7 +99,8 @@ struct DayPickerSheet: View {
             .padding(.top, Self.titleToControls)
             .monoNavigationTitle("Izaberi dan")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                // Close sits on the left, as on every other sheet in the app.
+                ToolbarItem(placement: .cancellationAction) {
                     Button {
                         dismiss()
                     } label: {
