@@ -89,7 +89,7 @@ struct FiksniTroskoviSheet: View {
                             }
                         }
                         Spacer()
-                        Text(MoneyFormat.decimalString(cost.iznos) + " RSD")
+                        Text(MoneyFormat.grouped(cost.iznos) + " RSD")
                             .font(.system(.subheadline, design: .monospaced))
                             .foregroundStyle(cost.isActive ? .primary : .secondary)
                     }
@@ -131,30 +131,7 @@ struct FiksniTroskoviSheet: View {
 
     private var formattedTotal: String {
         let total = fixedCosts.filter(\.isActive).reduce(Decimal(0)) { $0 + $1.iznos }
-        return MoneyFormat.decimalString(total)
-    }
-
-    // MARK: - Helpers
-
-    private func amountDigits(_ value: Decimal) -> String {
-        String(NSDecimalNumber(decimal: value).int64Value)
-    }
-
-    private func formatted(_ digits: String) -> String {
-        let onlyDigits = digits.filter(\.isNumber)
-        guard !onlyDigits.isEmpty else { return "0" }
-        let reversed = Array(onlyDigits.reversed())
-        var groups: [String] = []
-        var chunk = ""
-        for (i, char) in reversed.enumerated() {
-            chunk.append(char)
-            if (i + 1) % 3 == 0 && i + 1 < reversed.count {
-                groups.append(String(chunk.reversed()))
-                chunk = ""
-            }
-        }
-        if !chunk.isEmpty { groups.append(String(chunk.reversed())) }
-        return groups.reversed().joined(separator: ".")
+        return MoneyFormat.grouped(total)
     }
 
     // MARK: - Actions
@@ -232,13 +209,11 @@ struct FixedCostEditSheet: View {
 
                 Section {
                     TextField("0", text: $displayText)
-                        .keyboardType(.decimalPad)
+                        .keyboardType(.numberPad)
                         .font(.system(.subheadline, design: .monospaced))
                         .onChange(of: displayText) { _, newValue in
-                            let reformatted = formatAmountInput(newValue)
-                            if reformatted != newValue {
-                                displayText = reformatted
-                            }
+                            let formatted = MoneyFormat.grouped(newValue)
+                            if formatted != newValue { displayText = formatted }
                         }
                 } header: {
                     Text("Iznos (RSD)")
@@ -278,7 +253,7 @@ struct FixedCostEditSheet: View {
             .onAppear {
                 if let cost {
                     naziv = cost.naziv
-                    displayText = MoneyFormat.decimalString(cost.iznos)
+                    displayText = MoneyFormat.grouped(cost.iznos)
                     isActive = cost.isActive
                 } else {
                     nameFocused = true
@@ -287,24 +262,18 @@ struct FixedCostEditSheet: View {
         }
     }
 
-    /// Formats live input allowing an optional decimal comma, e.g. "2500,5" →
-    /// "2.500,5". Integer part is grouped; up to two decimals are kept.
-    private func formatAmountInput(_ input: String) -> String {
-        let filtered = input.filter { $0.isNumber || $0 == "," }
-        let parts = filtered.split(separator: ",", omittingEmptySubsequences: false)
-        let intGrouped = formatted(String(parts.first ?? ""))
-        guard filtered.contains(",") else { return intGrouped }
-        let frac = parts.count > 1 ? String(parts[1].prefix(2)) : ""
-        return (intGrouped.isEmpty ? "0" : intGrouped) + "," + frac
+    /// Whole dinars, as everywhere else in the app.
+    private var amount: Decimal? {
+        Decimal(string: displayText.filter(\.isNumber))
     }
 
     private var isValid: Bool {
-        guard let amount = MoneyFormat.parse(displayText), amount > 0 else { return false }
+        guard let amount, amount > 0 else { return false }
         return !naziv.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     private func save() {
-        guard let amount = MoneyFormat.parse(displayText), amount > 0 else { return }
+        guard let amount, amount > 0 else { return }
         let trimmed = naziv.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
 
@@ -318,28 +287,5 @@ struct FixedCostEditSheet: View {
         }
         try? modelContext.save()
         dismiss()
-    }
-
-    // MARK: - Helpers
-
-    private func amountDigits(_ value: Decimal) -> String {
-        String(NSDecimalNumber(decimal: value).int64Value)
-    }
-
-    private func formatted(_ digits: String) -> String {
-        let onlyDigits = digits.filter(\.isNumber)
-        guard !onlyDigits.isEmpty else { return "" }
-        let reversed = Array(onlyDigits.reversed())
-        var groups: [String] = []
-        var chunk = ""
-        for (i, char) in reversed.enumerated() {
-            chunk.append(char)
-            if (i + 1) % 3 == 0 && i + 1 < reversed.count {
-                groups.append(String(chunk.reversed()))
-                chunk = ""
-            }
-        }
-        if !chunk.isEmpty { groups.append(String(chunk.reversed())) }
-        return groups.reversed().joined(separator: ".")
     }
 }
