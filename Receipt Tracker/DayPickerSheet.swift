@@ -14,14 +14,20 @@
 //  the day up on the chart with the same glass read-out the press-and-hold
 //  scrub uses.
 //
-//  Tapping the month's name swaps the days for the year's twelve months, the
-//  way the system calendar does, and the chevrons then step whole years — so
-//  last spring is two taps away instead of a dozen.
+//  The month and the year are two buttons in the header. Each swaps the days
+//  for its own choice — the twelve months, or the years there are receipts
+//  for — and picking one comes back to the days, so last spring is two taps
+//  away instead of a dozen swipes.
 //
 
 import SwiftUI
 
 struct DayPickerSheet: View {
+    /// What the area under the header shows.
+    private enum Mode {
+        case days, months, years
+    }
+
     @Environment(\.dismiss) private var dismiss
 
     let index: MonthIndex
@@ -37,48 +43,35 @@ struct DayPickerSheet: View {
     /// Taps on each chevron, to kick its arrow.
     @State private var backKicks = 0
     @State private var forwardKicks = 0
-    /// Showing the year's months instead of the month's days.
-    @State private var choosingMonth = false
-    /// The year on show while choosing a month.
-    @State private var year: Int
+    @State private var mode: Mode = .days
+
+    /// Six rows of days under the header, and a margin under the last row
+    /// like the one above the header — no band of empty sheet below.
+    private static let sheetHeight: CGFloat = 450
 
     init(index: MonthIndex, initialMonth: Date, focusedDay: Date?, onSelect: @escaping (Date) -> Void) {
         self.index = index
         self.focusedDay = focusedDay
         self.onSelect = onSelect
         _month = State(initialValue: initialMonth)
-        _year = State(initialValue: Calendar.current.component(.year, from: initialMonth))
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 14) {
-                monthHeader
-                if choosingMonth {
-                    ZStack {
-                        monthGrid
-                            .id(year)
-                            .transition(.push(from: forward ? .trailing : .leading))
+                header
+                // A real container, so each mode comes and goes as one piece.
+                ZStack(alignment: .top) {
+                    switch mode {
+                    case .days:
+                        days.transition(Self.swap)
+                    case .months:
+                        monthGrid.transition(Self.swap)
+                    case .years:
+                        yearGrid.transition(Self.swap)
                     }
-                    .clipped()
-                    .transition(Self.modeTransition)
-                } else {
-                    VStack(spacing: 14) {
-                        weekdayRow
-                        ZStack {
-                            grid
-                                .id(month)
-                                .transition(.push(from: forward ? .trailing : .leading))
-                        }
-                        // Only the days are clipped, so the month slides within
-                        // the grid. Clipping the whole column also cut the top
-                        // off the chevrons' glass, which swells past its frame
-                        // when pressed.
-                        .clipped()
-                    }
-                    .transition(Self.modeTransition)
                 }
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
             .padding(.horizontal, 20)
             .padding(.top, 4)
@@ -95,7 +88,7 @@ struct DayPickerSheet: View {
                 }
             }
         }
-        .presentationDetents([.height(500), .large])
+        .presentationDetents([.height(Self.sheetHeight), .large])
         // Opaque, like the app's other sheets. At this height the default glass
         // let Home's black buttons show through as dark bars across a week,
         // which read as a selected range.
@@ -103,56 +96,85 @@ struct DayPickerSheet: View {
         .sensoryFeedback(.selection, trigger: picks)
     }
 
-    // MARK: - Month header
+    /// The outgoing choice fades straight out; the incoming one comes up out of
+    /// a blur a beat later, the way the rest of the app brings content in. Not
+    /// scaled and not slid: the two grids never share the space long enough
+    /// to be read over each other.
+    private static let swap = AnyTransition.asymmetric(
+        insertion: .modifier(active: BlurFade(shown: 0), identity: BlurFade(shown: 1))
+            .animation(.easeOut(duration: 0.22).delay(0.06)),
+        removal: .opacity.animation(.easeIn(duration: 0.1))
+    )
+
+    private func toggle(_ target: Mode) {
+        withAnimation(.smooth(duration: 0.22)) {
+            mode = mode == target ? .days : target
+        }
+    }
+
+    // MARK: - Header
 
     /// Laid out on the grid's own seven columns, so the chevrons sit exactly
     /// over Monday and Sunday instead of floating somewhere in between; the
-    /// title is centred across the whole row above them. The chevrons stay put
-    /// when the months are showing — they step years then — so nothing under
-    /// the thumb moves when the mode changes.
-    private var monthHeader: some View {
+    /// month and year buttons are centred across the whole row above them.
+    /// The chevrons step months, so they step aside while the months or years
+    /// are showing — there the two buttons are the controls.
+    private var header: some View {
         HStack(spacing: 0) {
             chevron("chevron-left", direction: -1, enabled: canGoBack)
-                .accessibilityLabel(choosingMonth ? "Prethodna godina" : "Prethodni mesec")
+                .accessibilityLabel("Prethodni mesec")
                 .frame(maxWidth: .infinity)
             ForEach(0..<5, id: \.self) { _ in
                 Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
             }
             chevron("chevron-right", direction: 1, enabled: canGoForward)
-                .accessibilityLabel(choosingMonth ? "Sledeća godina" : "Sledeći mesec")
+                .accessibilityLabel("Sledeći mesec")
                 .frame(maxWidth: .infinity)
         }
-        .overlay { titleButton }
+        .overlay {
+            HStack(spacing: 8) {
+                choiceButton(Self.monthNameFormatter.string(from: month).sentenceCased, open: mode == .months) {
+                    toggle(.months)
+                }
+                .accessibilityHint(mode == .months ? "Vraća na dane" : "Prikazuje mesece")
+
+                choiceButton(String(year(of: month)), open: mode == .years) {
+                    toggle(.years)
+                }
+                .accessibilityHint(mode == .years ? "Vraća na dane" : "Prikazuje godine")
+            }
+        }
         .sensoryFeedback(.selection, trigger: month)
-        .sensoryFeedback(.selection, trigger: year)
     }
 
-    /// The month's name, or the year while choosing a month. A chevron beside
-    /// it says it opens; it turns over while the months are showing.
-    private var titleButton: some View {
-        Button(action: toggleMonthChoice) {
-            HStack(spacing: 6) {
-                Text(choosingMonth ? String(year) : Self.monthFormatter.string(from: month).sentenceCased)
-                    .font(.system(.headline, design: .monospaced))
-                    .foregroundStyle(.primary)
-                    // The year rolls the way the month went.
-                    .contentTransition(.numericText(countsDown: !forward))
-                TablerIcon("chevron-down", size: 14)
-                    .foregroundStyle(.secondary)
-                    .rotationEffect(.degrees(choosingMonth ? 180 : 0))
+    /// Glass, and prominent — filled with the primary ink — while its choice is
+    /// the one showing, so it is plain which of the two is open.
+    @ViewBuilder
+    private func choiceButton(_ title: String, open: Bool, action: @escaping () -> Void) -> some View {
+        let label = Text(title)
+            .font(.system(.body, design: .monospaced, weight: .medium))
+            .lineLimit(1)
+            // Rolls the way the month went.
+            .contentTransition(.numericText(countsDown: !forward))
+
+        if open {
+            Button(action: action) {
+                label.foregroundStyle(Color(uiColor: .systemBackground))
             }
-            .padding(.vertical, 8)
-            .contentShape(Rectangle())
+            .buttonStyle(.glassProminent)
+        } else {
+            Button(action: action) {
+                label.foregroundStyle(.primary)
+            }
+            .buttonStyle(.glass)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel(choosingMonth ? "Godina \(year)" : Self.monthFormatter.string(from: month))
-        .accessibilityHint(choosingMonth ? "Vraća na dane" : "Prikazuje mesece za izbor")
     }
 
     /// Glass, like every other button in the app, so a press is felt: the
     /// glass gives under the finger, and the arrow kicks the way it points.
     private func chevron(_ icon: String, direction: CGFloat, enabled: Bool) -> some View {
         let kicks = direction < 0 ? backKicks : forwardKicks
+        let active = mode == .days
         return Button {
             if direction < 0 { backKicks += 1 } else { forwardKicks += 1 }
             step(Int(direction))
@@ -169,109 +191,36 @@ struct DayPickerSheet: View {
         }
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
-        .disabled(!enabled)
+        .disabled(!enabled || !active)
+        .opacity(active ? 1 : 0)
+        .accessibilityHidden(!active)
     }
 
-    private var canGoBack: Bool {
-        if choosingMonth { return firstYear.map { year > $0 } ?? false }
-        return index.months.first.map { month > $0 } ?? false
-    }
+    private var canGoBack: Bool { index.months.first.map { month > $0 } ?? false }
+    private var canGoForward: Bool { index.months.last.map { month < $0 } ?? false }
 
-    private var canGoForward: Bool {
-        if choosingMonth { return lastYear.map { year < $0 } ?? false }
-        return index.months.last.map { month < $0 } ?? false
-    }
-
-    private var firstYear: Int? { index.months.first.map { Calendar.current.component(.year, from: $0) } }
-    private var lastYear: Int? { index.months.last.map { Calendar.current.component(.year, from: $0) } }
-
-    /// A month in day mode, a year while choosing a month.
     private func step(_ delta: Int) {
-        forward = delta > 0
-        if choosingMonth {
-            withAnimation(.smooth(duration: 0.32)) { year += delta }
-            return
-        }
         guard let next = Calendar.current.date(byAdding: .month, value: delta, to: month) else { return }
+        forward = delta > 0
         withAnimation(.smooth(duration: 0.32)) { month = next }
     }
 
-    private func toggleMonthChoice() {
-        // Opens on the year of the month on show, whatever year was last
-        // browsed to.
-        if !choosingMonth { year = Calendar.current.component(.year, from: month) }
-        withAnimation(.smooth(duration: 0.3)) { choosingMonth.toggle() }
-    }
+    // MARK: - Days
 
-    private static let modeTransition = AnyTransition.opacity
-        .combined(with: .scale(scale: 0.96, anchor: .top))
-
-    // MARK: - Months
-
-    /// The year's twelve months, three to a row. A dot under each says how
-    /// much went on receipts that month, darker the more — the same reading
-    /// as the days, a level up. Months with no page on Home are dimmed.
-    private var monthGrid: some View {
-        let calendar = Calendar.current
-        let available = Set(index.months)
-        let months = (1...12).compactMap { calendar.date(from: DateComponents(year: year, month: $0)) }
-        let totals = months.map { available.contains($0) ? receiptsTotal(in: $0) : 0 }
-        let peak = totals.max() ?? 0
-
-        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 3), spacing: 8) {
-            ForEach(Array(months.enumerated()), id: \.offset) { offset, candidate in
-                monthCell(candidate, spent: totals[offset], peak: peak, enabled: available.contains(candidate))
+    private var days: some View {
+        VStack(spacing: 14) {
+            weekdayRow
+            ZStack {
+                grid
+                    .id(month)
+                    .transition(.push(from: forward ? .trailing : .leading))
             }
+            // Only the days are clipped, so the month slides within the grid.
+            // Clipping the whole column also cut the top off the chevrons'
+            // glass, which swells past its frame when pressed.
+            .clipped()
         }
     }
-
-    private func monthCell(_ candidate: Date, spent: Double, peak: Double, enabled: Bool) -> some View {
-        let calendar = Calendar.current
-        let isShown = calendar.isDate(candidate, equalTo: month, toGranularity: .month)
-        let isNow = calendar.isDate(candidate, equalTo: Date(), toGranularity: .month)
-
-        return Button {
-            forward = candidate > month
-            withAnimation(.smooth(duration: 0.3)) {
-                month = candidate
-                choosingMonth = false
-            }
-        } label: {
-            VStack(spacing: 4) {
-                Text(Self.shortMonthFormatter.string(from: candidate)
-                        .replacingOccurrences(of: ".", with: "").sentenceCased)
-                    .font(.system(.subheadline, design: .monospaced, weight: isNow ? .semibold : .regular))
-                    .foregroundStyle(isShown ? AnyShapeStyle(Color(uiColor: .systemBackground))
-                                     : enabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.quaternary))
-                Circle()
-                    .fill(isShown ? Color(uiColor: .systemBackground) : Color.primary)
-                    .frame(width: 4, height: 4)
-                    .opacity(spent > 0 && peak > 0 ? 0.3 + 0.7 * (spent / peak) : 0)
-            }
-            .frame(maxWidth: .infinity, minHeight: 56)
-            .background {
-                if isShown {
-                    Capsule().fill(Color.primary).frame(width: 76, height: 50)
-                } else if isNow {
-                    Capsule().strokeBorder(Color.primary.opacity(0.3), lineWidth: 1).frame(width: 76, height: 50)
-                }
-            }
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(CalendarCellButtonStyle(width: 76, height: 50))
-        .disabled(!enabled)
-        .accessibilityLabel(Self.monthFormatter.string(from: candidate))
-        .accessibilityValue(spent > 0 ? "\(MoneyFormat.grouped(Decimal(spent))) dinara" : "bez potrošnje")
-    }
-
-    /// Receipts only, as the day dots are — fixed costs land on every month
-    /// alike and would darken them all the same.
-    private func receiptsTotal(in month: Date) -> Double {
-        let total = index.figures(for: month).dailyTotals.reduce(Decimal(0), +)
-        return (total as NSDecimalNumber).doubleValue
-    }
-
-    // MARK: - Grid
 
     private var weekdayRow: some View {
         HStack(spacing: 0) {
@@ -327,10 +276,7 @@ struct DayPickerSheet: View {
                                      : isFuture ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.primary))
                 // Spending that day: a dot that darkens with the amount. No
                 // dot means nothing was bought.
-                Circle()
-                    .fill(isFocused ? Color(uiColor: .systemBackground) : Color.primary)
-                    .frame(width: 4, height: 4)
-                    .opacity(spent > 0 && peak > 0 ? 0.3 + 0.7 * (spent / peak) : 0)
+                spendDot(spent: spent, peak: peak, inverted: isFocused)
             }
             .frame(maxWidth: .infinity, minHeight: 46)
             .background {
@@ -355,6 +301,141 @@ struct DayPickerSheet: View {
         return calendar.date(from: components) ?? month
     }
 
+    // MARK: - Months
+
+    /// The shown year's twelve months, three to a row, with the same spending
+    /// dot as the days. Months Home has no page for — before the first receipt,
+    /// or still to come — are dimmed.
+    private var monthGrid: some View {
+        let calendar = Calendar.current
+        let available = Set(index.months)
+        let shownYear = year(of: month)
+        let months = (1...12).compactMap { calendar.date(from: DateComponents(year: shownYear, month: $0)) }
+        let totals = months.map { available.contains($0) ? receiptsTotal(in: $0) : 0 }
+        let peak = totals.max() ?? 0
+
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 3), spacing: 8) {
+            ForEach(Array(months.enumerated()), id: \.offset) { offset, candidate in
+                choiceCell(
+                    Self.shortMonthFormatter.string(from: candidate)
+                        .replacingOccurrences(of: ".", with: "").sentenceCased,
+                    spent: totals[offset], peak: peak,
+                    isShown: calendar.isDate(candidate, equalTo: month, toGranularity: .month),
+                    isNow: calendar.isDate(candidate, equalTo: Date(), toGranularity: .month),
+                    enabled: available.contains(candidate)
+                ) {
+                    show(candidate)
+                }
+                .accessibilityLabel(Self.monthFormatter.string(from: candidate))
+            }
+        }
+    }
+
+    // MARK: - Years
+
+    /// Every year there are receipts for, with a dot for how much went on them.
+    private var yearGrid: some View {
+        let calendar = Calendar.current
+        let years = yearRange
+        let totals = years.map { year in
+            index.months
+                .filter { calendar.component(.year, from: $0) == year }
+                .reduce(0) { $0 + receiptsTotal(in: $1) }
+        }
+        let peak = totals.max() ?? 0
+        let thisYear = calendar.component(.year, from: Date())
+        // Three to a row, but no more columns than years: two years share the
+        // width between them instead of huddling in the left two thirds.
+        let columns = max(1, min(3, years.count))
+
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: columns), spacing: 8) {
+            ForEach(Array(years.enumerated()), id: \.offset) { offset, candidate in
+                choiceCell(
+                    String(candidate),
+                    spent: totals[offset], peak: peak,
+                    isShown: candidate == year(of: month),
+                    isNow: candidate == thisYear,
+                    enabled: true
+                ) {
+                    show(sameMonth(inYear: candidate))
+                }
+                .accessibilityLabel("Godina \(candidate)")
+            }
+        }
+    }
+
+    /// The same month in another year — or, where that month has no page, the
+    /// nearest one that does: the first month with receipts, or this month.
+    private func sameMonth(inYear target: Int) -> Date {
+        let calendar = Calendar.current
+        let number = calendar.component(.month, from: month)
+        guard let candidate = calendar.date(from: DateComponents(year: target, month: number)),
+              let first = index.months.first, let last = index.months.last else { return month }
+        return min(max(candidate, first), last)
+    }
+
+    private var yearRange: [Int] {
+        guard let first = index.months.first, let last = index.months.last else { return [year(of: month)] }
+        return Array(year(of: first)...year(of: last))
+    }
+
+    // MARK: - Choosing
+
+    /// Back to the days, on the chosen month.
+    private func show(_ target: Date) {
+        forward = target > month
+        withAnimation(.smooth(duration: 0.22)) {
+            month = target
+            mode = .days
+        }
+    }
+
+    /// A month or a year in its grid: the word, the spending dot under it, the
+    /// one on show filled, the current one ringed.
+    private func choiceCell(_ title: String, spent: Double, peak: Double, isShown: Bool, isNow: Bool,
+                            enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Text(title)
+                    .font(.system(.subheadline, design: .monospaced, weight: isNow ? .semibold : .regular))
+                    .foregroundStyle(isShown ? AnyShapeStyle(Color(uiColor: .systemBackground))
+                                     : enabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.quaternary))
+                spendDot(spent: spent, peak: peak, inverted: isShown)
+            }
+            .frame(maxWidth: .infinity, minHeight: 56)
+            .background {
+                if isShown {
+                    Capsule().fill(Color.primary).frame(width: 76, height: 50)
+                } else if isNow {
+                    Capsule().strokeBorder(Color.primary.opacity(0.3), lineWidth: 1).frame(width: 76, height: 50)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(CalendarCellButtonStyle(width: 76, height: 50))
+        .disabled(!enabled)
+        .accessibilityValue(spent > 0 ? "\(MoneyFormat.grouped(Decimal(spent))) dinara" : "bez potrošnje")
+    }
+
+    /// Spending as a dot that darkens with the amount; none at all is no dot.
+    private func spendDot(spent: Double, peak: Double, inverted: Bool) -> some View {
+        Circle()
+            .fill(inverted ? Color(uiColor: .systemBackground) : Color.primary)
+            .frame(width: 4, height: 4)
+            .opacity(spent > 0 && peak > 0 ? 0.3 + 0.7 * (spent / peak) : 0)
+    }
+
+    /// Receipts only, as the day dots are — fixed costs land on every month
+    /// alike and would darken them all the same.
+    private func receiptsTotal(in month: Date) -> Double {
+        let total = index.figures(for: month).dailyTotals.reduce(Decimal(0), +)
+        return (total as NSDecimalNumber).doubleValue
+    }
+
+    private func year(of date: Date) -> Int {
+        Calendar.current.component(.year, from: date)
+    }
+
     // MARK: - Formatting
 
     /// "P U S Č P S N" — Serbian, week starting Monday.
@@ -372,7 +453,15 @@ struct DayPickerSheet: View {
         return f
     }()
 
-    /// "avg" — the month on its own, for the month grid.
+    /// "septembar" — the month on its own, for the header's month button.
+    private static let monthNameFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "sr_Latn_RS")
+        f.dateFormat = "LLLL"
+        return f
+    }()
+
+    /// "avg" — short, for the month grid.
     private static let shortMonthFormatter: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "sr_Latn_RS")
@@ -388,9 +477,20 @@ struct DayPickerSheet: View {
     }()
 }
 
-/// A day or a month under the finger: a soft disc (a capsule, for months)
-/// comes up behind it and the cell gives a little, so the press shows before
-/// anything happens on release.
+/// Opacity and blur together, 0 hidden to 1 shown.
+private struct BlurFade: ViewModifier {
+    let shown: Double
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown)
+            .blur(radius: (1 - shown) * 6)
+    }
+}
+
+/// A day, month or year under the finger: a soft disc (a capsule, for months
+/// and years) comes up behind it and the cell gives a little, so the press
+/// shows before anything happens on release.
 private struct CalendarCellButtonStyle: ButtonStyle {
     let width: CGFloat
     let height: CGFloat
