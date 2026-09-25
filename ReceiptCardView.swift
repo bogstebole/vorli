@@ -70,11 +70,7 @@ struct ReceiptCardView: View {
     }()
 
     private func formatCurrency(_ amount: Decimal) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "RSD"
-        formatter.locale = Locale(identifier: "sr_RS")
-        return formatter.string(from: amount as NSDecimalNumber) ?? "0 RSD"
+        MoneyFormat.signed(amount) + " RSD"
     }
 }
 

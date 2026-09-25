@@ -89,7 +89,7 @@ struct MonthTileView: View {
     
     private func formatCurrency(_ amount: Decimal) -> String {
         // Serbian grouping (45.000), consistent with the rest of the app.
-        MoneyFormat.grouped(amount) + " RSD"
+        MoneyFormat.signed(amount) + " RSD"
     }
 }
 

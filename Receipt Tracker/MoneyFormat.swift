@@ -10,7 +10,17 @@ import Foundation
 enum MoneyFormat {
     /// Whole-number digit string for a Decimal, e.g. 40000 → "40000".
     static func digits(_ value: Decimal) -> String {
-        String(NSDecimalNumber(decimal: value).int64Value)
+        String(NSDecimalNumber(decimal: rounded(value)).int64Value)
+    }
+
+    /// Nearest whole dinar, halves up. Every amount on screen goes through
+    /// here: `int64Value` alone truncates, so a day of 2.720,97 read 2.720
+    /// while its only receipt, rounded by a currency formatter, read 2.721.
+    static func rounded(_ value: Decimal) -> Decimal {
+        var input = value
+        var result = Decimal()
+        NSDecimalRound(&result, &input, 0, .plain)
+        return result
     }
 
     /// Groups a digit string with "." separators, e.g. "40000" → "40.000". Empty in → "".
@@ -38,8 +48,9 @@ enum MoneyFormat {
 
     /// Grouped string with a leading minus for negatives, e.g. -49814 → "-49.814".
     static func signed(_ value: Decimal) -> String {
-        let isNegative = value < 0
-        let magnitude = grouped(String(NSDecimalNumber(decimal: value.magnitude).int64Value))
+        let whole = rounded(value)
+        let isNegative = whole < 0
+        let magnitude = grouped(digits(whole.magnitude))
         let body = magnitude.isEmpty ? "0" : magnitude
         return isNegative ? "-" + body : body
     }
