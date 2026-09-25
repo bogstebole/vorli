@@ -249,12 +249,19 @@ struct ArticleRowView: View {
         .buttonStyle(.plain)
     }
 
+    /// Decimal comma like the prices beside it, and up to three places so a
+    /// weighed 0,824 kg isn't shortened to 0,82.
+    private static let quantityFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: "sr_Latn_RS")
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 3
+        return formatter
+    }()
+
     private func formatQuantity(_ quantity: Double) -> String {
-        if quantity.truncatingRemainder(dividingBy: 1) == 0 {
-            return String(format: "%.0f", quantity)
-        } else {
-            return String(format: "%.2f", quantity)
-        }
+        Self.quantityFormatter.string(from: quantity as NSNumber) ?? String(quantity)
     }
 }
 
