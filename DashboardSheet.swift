@@ -15,6 +15,7 @@ struct DashboardView: View {
 
     @Query(sort: \Receipt.timestamp, order: .reverse) private var receipts: [Receipt]
     @Query private var merchantCategories: [MerchantCategory]
+    @Query private var fixedCosts: [FixedCost]
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @State private var budgetEntries: [BudgetEntry] = []
     @State private var showPaywall = false
@@ -219,12 +220,10 @@ struct DashboardView: View {
     private var canGoBack: Bool { selectedYear > yearRange.lowerBound }
     private var canGoForward: Bool { selectedYear < yearRange.upperBound }
 
-    /// Receipts total for the selected year — same basis as the month tiles.
+    /// Spent in the selected year — the month tiles added up, fixed costs
+    /// included.
     private var yearTotalSpent: Decimal {
-        let calendar = Calendar.current
-        return receipts
-            .filter { calendar.component(.year, from: $0.timestamp) == selectedYear }
-            .reduce(Decimal(0)) { $0 + $1.totalAmount }
+        monthlyDataForYear.reduce(Decimal(0)) { $0 + $1.spent }
     }
 
     private func changeYear(by delta: Int) {
@@ -237,41 +236,65 @@ struct DashboardView: View {
 
     // MARK: - Computed Properties
 
+    /// The same month figures Home shows — receipts plus fixed costs against
+    /// the month's income — so a tile never disagrees with its Home page.
+    private var monthIndex: MonthIndex {
+        MonthIndex(
+            receipts: receipts,
+            budgetEntries: budgetEntries,
+            fixedCosts: FinanceCalculator.activeFixedTotal(fixedCosts),
+            including: Date()
+        )
+    }
+
     // Calculate monthly data for all 12 months of the selected year
     private var monthlyDataForYear: [MonthData] {
         let calendar = Calendar.current
-        
-        // Get all months for the selected year
+        let index = monthIndex
+        // Home's range: first month on record through the current one. Months
+        // outside it have nothing yet, fixed costs included.
+        let onRecord = Set(index.months)
+
         var allMonths: [MonthData] = []
-        
+
         for monthIndex in 1...12 {
             guard let monthDate = calendar.date(from: DateComponents(year: selectedYear, month: monthIndex, day: 1)) else {
                 continue
             }
-            
-            // Filter receipts for this specific month
-            let monthReceipts = receipts.filter { receipt in
+
+            let receiptCount = receipts.filter { receipt in
                 calendar.isDate(receipt.timestamp, equalTo: monthDate, toGranularity: .month)
+            }.count
+
+            var spent: Decimal = 0
+            var leftOverBalance: Decimal = 0
+            if onRecord.contains(monthDate) {
+                let figures = index.figures(for: monthDate)
+                spent = figures.spent
+                // Don't show negative values in the chart
+                leftOverBalance = max(figures.income - figures.spent, 0)
             }
-            
-            // Calculate spent amount
-            let spent = monthReceipts.reduce(Decimal(0)) { $0 + $1.totalAmount }
-            
-            // For demonstration, we'll use a placeholder for leftOverBalance
-            // In a real app, you'd calculate this from Budget history or other data
-            let leftOverBalance = calculateLeftOverBalance(for: monthDate, spent: spent)
-            
+
             allMonths.append(MonthData(
                 month: monthDate,
                 monthIndex: monthIndex,
                 monthName: formatMonthName(monthDate),
                 spent: spent,
                 leftOverBalance: leftOverBalance,
-                receiptCount: monthReceipts.count
+                receiptCount: receiptCount
             ))
         }
-        
+
         return allMonths
+    }
+
+    /// Fixed costs for the selected year: one month's worth for every month
+    /// on record in it, as the tiles count them.
+    private var yearFixedCosts: Decimal {
+        let perMonth = FinanceCalculator.activeFixedTotal(fixedCosts)
+        let calendar = Calendar.current
+        let months = monthIndex.months.filter { calendar.component(.year, from: $0) == selectedYear }
+        return perMonth * Decimal(months.count)
     }
     
     // MARK: - Category breakdown
@@ -298,6 +321,10 @@ struct DashboardView: View {
         )
 
         var totals: [String: Decimal] = [:]
+        // Same row the month's category breakdown has.
+        if yearFixedCosts > 0 {
+            totals["Fiksni troškovi"] = yearFixedCosts
+        }
         var uncategorized: Decimal = 0
         for receipt in yearReceipts {
             let key = PriceHistory.merchantKey(receipt.merchantName)
@@ -342,22 +369,6 @@ struct DashboardView: View {
         return formatter.string(from: date)
     }
     
-    private func calculateLeftOverBalance(for date: Date, spent: Decimal) -> Decimal {
-        let calendar = Calendar.current
-
-        // Get all budget entries for this month
-        let monthBudgetEntries = budgetEntries.filter { entry in
-            calendar.isDate(entry.timestamp, equalTo: date, toGranularity: .month)
-        }
-        
-        // Sum all budget entries added in this month
-        let totalBudgetAdded = monthBudgetEntries.reduce(Decimal(0)) { $0 + $1.amount }
-        
-        // Leftover balance = budget added this month - spent this month
-        let leftOver = totalBudgetAdded - spent
-        
-        return max(leftOver, 0) // Don't show negative values in the chart
-    }
 }
 
 // MARK: - Month Data Model
