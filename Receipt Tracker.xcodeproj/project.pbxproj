@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		E82F3CB62EF0655500ABCF0D /* ReceiptCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CB52EF0655500ABCF0D /* ReceiptCardView.swift */; };
-		E82F3CB82EF0656000ABCF0D /* MonthBalanceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CB72EF0656000ABCF0D /* MonthBalanceCard.swift */; };
 		E82F3CBA2EF0656800ABCF0D /* SectionDivider.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CB92EF0656800ABCF0D /* SectionDivider.swift */; };
 		E82F3CBC2EF0657700ABCF0D /* AddBalanceSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */; };
 		E82F3CBE2EF0658C00ABCF0D /* DashboardSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */; };
@@ -30,7 +29,6 @@
 /* Begin PBXFileReference section */
 		E82F3C8D2EF048AA00ABCF0D /* Receipt Tracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Receipt Tracker.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E82F3CB52EF0655500ABCF0D /* ReceiptCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptCardView.swift; sourceTree = "<group>"; };
-		E82F3CB72EF0656000ABCF0D /* MonthBalanceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthBalanceCard.swift; sourceTree = "<group>"; };
 		E82F3CB92EF0656800ABCF0D /* SectionDivider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionDivider.swift; sourceTree = "<group>"; };
 		E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddBalanceSheet.swift; sourceTree = "<group>"; };
 		E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardSheet.swift; sourceTree = "<group>"; };
@@ -97,7 +95,6 @@
 				E82F3C8E2EF048AA00ABCF0D /* Products */,
 				E8AA00012F70000000000001 /* Premium.storekit */,
 				E82F3CB52EF0655500ABCF0D /* ReceiptCardView.swift */,
-				E82F3CB72EF0656000ABCF0D /* MonthBalanceCard.swift */,
 				E82F3CB92EF0656800ABCF0D /* SectionDivider.swift */,
 				E82F3CBB2EF0657700ABCF0D /* AddBalanceSheet.swift */,
 				E82F3CBD2EF0658C00ABCF0D /* DashboardSheet.swift */,
@@ -245,7 +242,6 @@
 				E82F3CBC2EF0657700ABCF0D /* AddBalanceSheet.swift in Sources */,
 				E83903A52F1AC7A00065378F /* ReceiptOCRParser.swift in Sources */,
 				E8ECE1822F6218B8002B990C /* AddNewSheet.swift in Sources */,
-				E82F3CB82EF0656000ABCF0D /* MonthBalanceCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
