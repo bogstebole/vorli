@@ -12,11 +12,7 @@ import Foundation
 extension Decimal {
     /// Formats the decimal as Serbian currency (RSD)
     var asRSD: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "RSD"
-        formatter.locale = Locale(identifier: "sr_RS")
-        return formatter.string(from: self as NSDecimalNumber) ?? "0 RSD"
+        MoneyFormat.signed(self) + " RSD"
     }
     
     /// Formats the decimal with Serbian number format (1.234,56)
