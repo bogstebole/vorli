@@ -43,7 +43,7 @@ struct SettingsSheet: View {
                             .foregroundStyle(.secondary)
                         Spacer()
                         Text(premiumStore.isPremium ? "Premium aktivan" : "Besplatna verzija")
-                            .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                            .font(.system(.subheadline, design: .monospaced, weight: .medium))
                     }
                     if !premiumStore.isPremium {
                         Button {
@@ -104,7 +104,7 @@ struct SettingsSheet: View {
                                 .font(.system(.subheadline, design: .monospaced))
                                 .foregroundStyle(.primary)
                             Spacer()
-                            TablerIcon("arrow-up-right", size: 13)
+                            TablerIcon("arrow-up-right", size: 12)
                                 .foregroundStyle(.tertiary)
                         }
                     }
@@ -128,7 +128,7 @@ struct SettingsSheet: View {
                                 .font(.system(.subheadline, design: .monospaced))
                                 .foregroundStyle(.primary)
                             Spacer()
-                            TablerIcon("arrow-up-right", size: 13)
+                            TablerIcon("arrow-up-right", size: 12)
                                 .foregroundStyle(.tertiary)
                         }
                     }
@@ -164,11 +164,7 @@ struct SettingsSheet: View {
                     Button(role: .destructive) {
                         showDeleteConfirmation = true
                     } label: {
-                        Label {
-                            Text("Obriši sve podatke")
-                        } icon: {
-                            TablerIcon("trash", size: 16)
-                        }
+                        TablerLabel("Obriši sve podatke", icon: "trash")
                         .font(.system(.subheadline, design: .monospaced))
                     }
                 } footer: {
@@ -199,7 +195,7 @@ struct SettingsSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        TablerIcon("x", size: 18)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }

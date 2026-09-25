@@ -99,19 +99,21 @@ struct QRScannerView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {
+                    // White over the camera; the screen's own ink when there
+                    // is no camera to show — white on the light-mode
+                    // background read as nothing at all.
                     Text("Skeniraj")
-                        .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.5), radius: 3)
+                        .font(.system(.subheadline, design: .monospaced, weight: .medium))
+                        .foregroundStyle(isAuthorized ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
+                        .shadow(color: .black.opacity(isAuthorized ? 0.5 : 0), radius: 3)
                 }
                 ToolbarItem(placement: .cancellationAction) {
+                    // The bar's own glass, at the size every other screen's
+                    // close button has.
                     Button { onClose() } label: {
-                        TablerIcon("x", size: 16)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
-                            .frame(width: 36, height: 36)
-                            .glassEffect(.regular.interactive(), in: .circle)
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .alert("Greška", isPresented: $showError) {
@@ -161,7 +163,7 @@ struct QRScannerView: View {
             circleAction(icon: "file-text", title: "Račun", isActive: false) {
                 openDocScanner()
             }
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     circleIcon("photo", isActive: false)
                 }
@@ -173,7 +175,7 @@ struct QRScannerView: View {
     }
 
     private func circleAction(icon: String, title: String, isActive: Bool, action: @escaping () -> Void) -> some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 8) {
             Button(action: action) {
                 circleIcon(icon, isActive: isActive)
             }
@@ -185,7 +187,7 @@ struct QRScannerView: View {
     /// True circle: glassEffect applied directly (the glass button style adds
     /// its own horizontal padding and turns everything into a pill).
     private func circleIcon(_ icon: String, isActive: Bool) -> some View {
-        TablerIcon(icon, size: 22)
+        TablerIcon(icon, size: 24)
             .foregroundStyle(isActive ? Color(uiColor: .systemBackground) : .primary)
             .frame(width: 48, height: 48)
             .glassEffect(
@@ -315,7 +317,7 @@ struct QRScannerView: View {
                 .foregroundStyle(.gray)
 
             Text("Potreban pristup kameri")
-                .font(.system(.title2, design: .monospaced, weight: .bold))
+                .font(.system(.title2, design: .monospaced, weight: .medium))
 
             Text("Da bi skenirao račune, omogući pristup kameri u podešavanjima.")
                 .font(.system(.body, design: .monospaced))
@@ -329,7 +331,7 @@ struct QRScannerView: View {
                 }
             } label: {
                 Text("Otvori podešavanja")
-                    .font(.system(.body, design: .monospaced, weight: .semibold))
+                    .font(.system(.body, design: .monospaced, weight: .medium))
                     .foregroundStyle(.primary)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)

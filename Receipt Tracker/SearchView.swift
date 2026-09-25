@@ -76,12 +76,12 @@ struct SearchView: View {
                         showPaywall = true
                     } label: {
                         HStack(spacing: 8) {
-                            TablerIcon("lock", size: 13)
+                            TablerIcon("lock", size: 12)
                             Text("Stariji računi su deo Premium-a")
                                 .font(.system(.caption, design: .monospaced))
                         }
                         .foregroundStyle(.secondary)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
                 }
@@ -98,11 +98,11 @@ struct SearchView: View {
             // Styled principal title — default nav title isn't monospaced.
             ToolbarItem(placement: .principal) {
                 Text("Pretraga")
-                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 10) {
+            VStack(spacing: 12) {
                 HStack(spacing: 8) {
                     searchField
                     monthMenu
@@ -113,7 +113,7 @@ struct SearchView: View {
                     categoryChips
                 }
             }
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .background(Color(uiColor: .systemBackground))
         }
     }
@@ -122,7 +122,7 @@ struct SearchView: View {
 
     private var searchField: some View {
         HStack(spacing: 8) {
-            TablerIcon("search", size: 15)
+            TablerIcon("search", size: 16)
                 .foregroundStyle(.secondary)
 
             TextField("Pretraži račune...", text: $searchText)
@@ -135,7 +135,7 @@ struct SearchView: View {
                 Button {
                     searchText = ""
                 } label: {
-                    TablerIcon("circle-x", size: 18)
+                    TablerIcon("circle-x", size: 16)
                         .foregroundStyle(.primary)
                 }
                 .tint(.primary)
@@ -143,7 +143,7 @@ struct SearchView: View {
             }
         }
         .animation(.easeInOut(duration: 0.15), value: searchText.isEmpty)
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, minHeight: 44)
         .glassEffect(.regular.interactive(), in: .capsule)
     }
@@ -171,7 +171,7 @@ struct SearchView: View {
                 }
             }
         } label: {
-            TablerIcon(searchScope == .all ? "calendar" : "calendar-check", size: 19)
+            TablerIcon(searchScope == .all ? "calendar" : "calendar-check", size: 20)
                 .foregroundStyle(.primary)
                 .frame(width: 52, height: 44)
                 .glassEffect(.regular.interactive(), in: .capsule)
@@ -200,7 +200,7 @@ struct SearchView: View {
             if isSelected {
                 Button(action: action) {
                     Text(title)
-                        .font(.system(.caption, design: .monospaced, weight: .semibold))
+                        .font(.system(.caption, design: .monospaced, weight: .medium))
                         .foregroundStyle(Color(uiColor: .systemBackground))
                         .padding(.horizontal, 4)
                 }
@@ -259,7 +259,7 @@ struct SearchView: View {
         return HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
-                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
                 Text(scopeTitle)
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.secondary)
@@ -267,13 +267,13 @@ struct SearchView: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text(total.asRSD)
-                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
                 Text("\(count) \(count % 10 == 1 && count % 100 != 11 ? "račun" : "računa")")
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(14)
+        .padding(16)
         .background(Color(uiColor: .secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -336,18 +336,18 @@ struct SearchView: View {
         let count = groups.reduce(0) { $0 + $1.receipts.count + $1.entries.count }
         return HStack(alignment: .firstTextBaseline) {
             Text("\"\(searchText)\"")
-                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                .font(.system(.subheadline, design: .monospaced, weight: .medium))
                 .lineLimit(1)
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
                 Text(total.asRSD)
-                    .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                    .font(.system(.subheadline, design: .monospaced, weight: .medium))
                 Text("\(count) \(count == 1 ? "rezultat" : "rezultata")")
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(14)
+        .padding(16)
         .background(Color(uiColor: .secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -356,10 +356,10 @@ struct SearchView: View {
     private func monthHeader(month: Date, total: Decimal) -> some View {
         HStack {
             Text(month.monthYearString.capitalized)
-                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                .font(.system(.subheadline, design: .monospaced, weight: .medium))
             Spacer()
             Text(total.asRSD)
-                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                .font(.system(.subheadline, design: .monospaced, weight: .medium))
         }
         // Match the cards' inner padding so header text aligns with card text.
         .padding(.horizontal, 16)

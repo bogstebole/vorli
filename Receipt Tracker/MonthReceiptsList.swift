@@ -65,11 +65,11 @@ struct MonthReceiptsList: View {
         HStack {
             // Only the weekday is capitalised — Serbian months are lowercase.
             Text(Self.dayHeaderFormatter.string(from: day).sentenceCased)
-                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .font(.system(.caption, design: .monospaced, weight: .medium))
                 .foregroundStyle(.primary)
             Spacer()
             Text(MoneyFormat.grouped(total) + " RSD")
-                .font(.system(.caption, design: .monospaced, weight: .semibold))
+                .font(.system(.caption, design: .monospaced, weight: .medium))
                 .foregroundStyle(.secondary)
         }
         // Match ReceiptCardView's inner padding so the header lines up with

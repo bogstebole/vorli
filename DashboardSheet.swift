@@ -29,7 +29,7 @@ struct DashboardView: View {
                             Button {
                                 changeYear(by: -1)
                             } label: {
-                                TablerIcon("chevron-left", size: 22)
+                                TablerIcon("chevron-left", size: 20)
                                     .foregroundStyle(canGoBack ? .secondary : .quaternary)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
@@ -38,14 +38,14 @@ struct DashboardView: View {
                             .disabled(!canGoBack)
 
                             Text(String(format: "%d", selectedYear))
-                                .font(.system(.largeTitle, design: .monospaced, weight: .bold))
+                                .font(.system(.largeTitle, design: .monospaced, weight: .medium))
                                 .foregroundStyle(.primary)
                                 .contentTransition(.numericText())
 
                             Button {
                                 changeYear(by: 1)
                             } label: {
-                                TablerIcon("chevron-right", size: 22)
+                                TablerIcon("chevron-right", size: 20)
                                     .foregroundStyle(canGoForward ? .secondary : .quaternary)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
@@ -57,16 +57,16 @@ struct DashboardView: View {
                         // Total spent in the selected year
                         VStack(spacing: 2) {
                             Text(MoneyFormat.grouped(yearTotalSpent) + " RSD")
-                                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                                .font(.system(.subheadline, design: .monospaced, weight: .medium))
                                 .contentTransition(.numericText())
                             Text("ukupno potrošeno")
                                 .font(.system(.caption2, design: .monospaced))
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(.secondary)
                         }
 
                         // Legend
                         HStack(spacing: 20) {
-                            HStack(spacing: 6) {
+                            HStack(spacing: 8) {
                                 Circle()
                                     .fill(Color.cyan)
                                     .frame(width: 8, height: 8)
@@ -76,7 +76,7 @@ struct DashboardView: View {
                                     .foregroundStyle(.secondary)
                             }
                             
-                            HStack(spacing: 6) {
+                            HStack(spacing: 8) {
                                 Circle()
                                     .fill(Color.purple)
                                     .frame(width: 8, height: 8)
@@ -105,7 +105,7 @@ struct DashboardView: View {
                             )
                             .overlay(alignment: .topTrailing) {
                                 if !unlocked {
-                                    TablerIcon("lock", size: 13)
+                                    TablerIcon("lock", size: 12)
                                         .foregroundStyle(.secondary)
                                         .padding(8)
                                 }
@@ -129,8 +129,8 @@ struct DashboardView: View {
                             Button {
                                 showPaywall = true
                             } label: {
-                                HStack(spacing: 10) {
-                                    TablerIcon("lock", size: 15)
+                                HStack(spacing: 12) {
+                                    TablerIcon("lock", size: 16)
                                         .foregroundStyle(.secondary)
                                     Text("Raščlamba po kategorijama je deo Premium-a")
                                         .font(.system(.caption, design: .monospaced))
@@ -139,7 +139,7 @@ struct DashboardView: View {
                                     TablerIcon("chevron-right", size: 12)
                                         .foregroundStyle(.tertiary)
                                 }
-                                .padding(14)
+                                .padding(16)
                                 .background(Color(uiColor: .secondarySystemBackground))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                                 .contentShape(Rectangle())
@@ -152,7 +152,7 @@ struct DashboardView: View {
                             SectionDivider(title: "Po kategorijama")
 
                             ForEach(categoryBreakdown, id: \.name) { row in
-                                VStack(alignment: .leading, spacing: 6) {
+                                VStack(alignment: .leading, spacing: 8) {
                                     HStack {
                                         Text(row.name)
                                             .font(.system(.subheadline, design: .monospaced))

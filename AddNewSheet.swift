@@ -77,7 +77,7 @@ struct AddNewRow: View {
 
                 Spacer()
 
-                TablerIcon("chevron-right", size: 13)
+                TablerIcon("chevron-right", size: 12)
                     .foregroundStyle(.secondary)
             }
             .padding(16)
@@ -91,7 +91,7 @@ struct AddNewRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(configuration.isPressed ? Color.primary.opacity(0.08) : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }

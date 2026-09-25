@@ -82,7 +82,7 @@ struct ReceiptConfirmView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        TablerIcon("x", size: 18)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
@@ -91,7 +91,7 @@ struct ReceiptConfirmView: View {
                         if saving {
                             ProgressView()
                         } else {
-                            TablerIcon("check", size: 18)
+                            TablerIcon("check", size: 20)
                                 .foregroundStyle(.primary)
                         }
                     }

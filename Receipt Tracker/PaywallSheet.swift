@@ -44,7 +44,7 @@ struct PaywallSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
-                        TablerIcon("x", size: 18)
+                        TablerIcon("x", size: 20)
                             .foregroundStyle(.primary)
                     }
                 }
@@ -68,7 +68,7 @@ struct PaywallSheet: View {
 
             Text("Tekući i prošli mesec su uvek besplatni. Premium otključava sve starije od toga.")
                 .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -105,14 +105,14 @@ struct PaywallSheet: View {
                 ProgressView()
                     .padding(.vertical, 24)
             } else {
-                VStack(spacing: 10) {
+                VStack(spacing: 12) {
                     Text(store.lastError ?? "Proizvodi trenutno nisu dostupni.")
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(.secondary)
                     Button("Pokušaj ponovo") {
                         Task { await store.loadProducts() }
                     }
-                    .font(.system(.caption, design: .monospaced, weight: .semibold))
+                    .font(.system(.caption, design: .monospaced, weight: .medium))
                     .foregroundStyle(.primary)
                 }
                 .padding(.vertical, 16)
@@ -137,7 +137,7 @@ struct PaywallSheet: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title(for: product))
-                        .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                        .font(.system(.subheadline, design: .monospaced, weight: .medium))
                     if let note = note(for: product) {
                         Text(note)
                             .font(.system(.caption2, design: .monospaced))
@@ -150,7 +150,7 @@ struct PaywallSheet: View {
                 Text(price(for: product))
                     .font(.system(.subheadline, design: .monospaced))
             }
-            .padding(14)
+            .padding(16)
             .background(Color(uiColor: .secondarySystemBackground))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
@@ -177,7 +177,7 @@ struct PaywallSheet: View {
                                 .tint(Color(uiColor: .systemBackground))
                         } else {
                             Text(ctaTitle(for: product))
-                                .font(.system(.body, design: .monospaced, weight: .semibold))
+                                .font(.system(.body, design: .monospaced, weight: .medium))
                                 // The screen-level .tint(.primary) also fills
                                 // the prominent glass, so the label must be
                                 // the opposite color explicitly.
@@ -185,14 +185,14 @@ struct PaywallSheet: View {
                         }
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
                 }
                 .buttonStyle(.glassProminent)
                 .disabled(store.purchaseInFlight)
 
                 Text(ctaFootnote(for: product))
                     .font(.system(.caption2, design: .monospaced))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
 
                 if let error = store.lastError, !store.products.isEmpty {
@@ -202,8 +202,8 @@ struct PaywallSheet: View {
                 }
             }
             .padding(.horizontal)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
         }
     }
 
@@ -216,9 +216,9 @@ struct PaywallSheet: View {
                 Task { await store.restorePurchases() }
             } label: {
                 Text("Već si platio? Povrati kupovinu")
-                    .font(.system(.caption, design: .monospaced, weight: .semibold))
+                    .font(.system(.caption, design: .monospaced, weight: .medium))
                     .foregroundStyle(.primary)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 8)
                     .padding(.vertical, 4)
             }
             .buttonStyle(.glass)

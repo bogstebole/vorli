@@ -17,7 +17,7 @@ struct SectionDivider: View {
             
             // Title — never wraps; the dashed rules give up width instead.
             Text(title)
-                .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                .font(.system(.subheadline, design: .monospaced, weight: .medium))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .fixedSize()

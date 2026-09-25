@@ -25,7 +25,7 @@ private struct MonospacedNavigationTitle: ViewModifier {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(title)
-                        .font(.system(.subheadline, design: .monospaced, weight: .semibold))
+                        .font(.system(.subheadline, design: .monospaced, weight: .medium))
                         .foregroundStyle(.primary)
                 }
             }
@@ -59,7 +59,7 @@ enum SegmentedControlAppearance {
             [.font: UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)], for: .normal
         )
         proxy.setTitleTextAttributes(
-            [.font: UIFont.monospacedSystemFont(ofSize: 13, weight: .semibold)], for: .selected
+            [.font: UIFont.monospacedSystemFont(ofSize: 13, weight: .medium)], for: .selected
         )
         proxy.backgroundColor = UIColor { trackColor(for: $0) }
         proxy.selectedSegmentTintColor = .surfaceSelected

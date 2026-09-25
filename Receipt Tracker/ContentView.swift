@@ -496,12 +496,12 @@ struct EmptyReceiptsView: View {
                 .foregroundStyle(.tertiary)
 
             Text("Nema računa ovog meseca")
-                .font(.system(.headline, design: .monospaced))
+                .font(.system(.headline, design: .monospaced, weight: .medium))
                 .foregroundStyle(.secondary)
 
             Text("Skenirajte QR kod da dodate prvi račun")
                 .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
         }
