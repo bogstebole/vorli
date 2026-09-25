@@ -47,7 +47,11 @@ struct DayPickerSheet: View {
 
     /// Six rows of days under the header, and a margin under the last row
     /// like the one above the header — no band of empty sheet below.
-    private static let sheetHeight: CGFloat = 450
+    private static let sheetHeight: CGFloat = 468
+    /// Every control in the header, chevrons and choices alike, is this tall —
+    /// the close button's size, measured off the screen, so the header and the
+    /// bar above it read as one set of glass.
+    private static let controlSize: CGFloat = 42
 
     init(index: MonthIndex, initialMonth: Date, focusedDay: Date?, onSelect: @escaping (Date) -> Void) {
         self.index = index
@@ -73,8 +77,16 @@ struct DayPickerSheet: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
+            // Pinned to the top. Were the days ever a touch taller than the
+            // sheet, a centred column would ride up by half the overflow and
+            // the header would jump as the months came in.
+            .frame(maxHeight: .infinity, alignment: .top)
+            // The margin under the last row is set by the sheet's height, not
+            // left to the home-indicator inset on top of it.
+            .ignoresSafeArea(.container, edges: .bottom)
             .padding(.horizontal, 20)
-            .padding(.top, 4)
+            // Air between the title and the header.
+            .padding(.top, 20)
             .monoNavigationTitle("Izaberi dan")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -107,31 +119,24 @@ struct DayPickerSheet: View {
     )
 
     private func toggle(_ target: Mode) {
-        withAnimation(.smooth(duration: 0.22)) {
+        withAnimation(.snappy(duration: 0.24)) {
             mode = mode == target ? .days : target
         }
     }
 
     // MARK: - Header
 
-    /// Laid out on the grid's own seven columns, so the chevrons sit exactly
-    /// over Monday and Sunday instead of floating somewhere in between; the
-    /// month and year buttons are centred across the whole row above them.
-    /// The chevrons step months, so they step aside while the months or years
-    /// are showing — there the two buttons are the controls.
+    /// The chevrons at the ends, the month and year buttons centred between
+    /// them. The row reaches out to the navigation bar's own margin, so the
+    /// chevrons line up with the close button above instead of sitting a few
+    /// points inside it. The chevrons step months, so they step aside while
+    /// the months or years are showing — there the two buttons are the
+    /// controls.
     private var header: some View {
         HStack(spacing: 0) {
             chevron("chevron-left", direction: -1, enabled: canGoBack)
                 .accessibilityLabel("Prethodni mesec")
-                .frame(maxWidth: .infinity)
-            ForEach(0..<5, id: \.self) { _ in
-                Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
-            }
-            chevron("chevron-right", direction: 1, enabled: canGoForward)
-                .accessibilityLabel("Sledeći mesec")
-                .frame(maxWidth: .infinity)
-        }
-        .overlay {
+            Spacer(minLength: 8)
             HStack(spacing: 8) {
                 choiceButton(Self.monthNameFormatter.string(from: month).sentenceCased, open: mode == .months) {
                     toggle(.months)
@@ -143,32 +148,43 @@ struct DayPickerSheet: View {
                 }
                 .accessibilityHint(mode == .years ? "Vraća na dane" : "Prikazuje godine")
             }
+            Spacer(minLength: 8)
+            chevron("chevron-right", direction: 1, enabled: canGoForward)
+                .accessibilityLabel("Sledeći mesec")
         }
+        // Out to the close button's edge. The content sits 20pt in from the
+        // sheet, the close button's glass about 15pt, and a glass button draws
+        // its glass 4pt inside its own frame — so the row reaches 9pt past the
+        // content on each side. Measured to the pixel against the close button.
+        .padding(.horizontal, -9)
         .sensoryFeedback(.selection, trigger: month)
     }
 
-    /// Glass, and prominent — filled with the primary ink — while its choice is
-    /// the one showing, so it is plain which of the two is open.
-    @ViewBuilder
+    /// Plain glass whether open or not — only the chevron beside the word turns
+    /// over to say its choice is showing. Swapping to prominent glass on open
+    /// rebuilt the button and lagged a beat behind the tap.
     private func choiceButton(_ title: String, open: Bool, action: @escaping () -> Void) -> some View {
-        let label = Text(title)
-            .font(.system(.body, design: .monospaced, weight: .medium))
-            .lineLimit(1)
-            // Rolls the way the month went.
-            .contentTransition(.numericText(countsDown: !forward))
-
-        if open {
-            Button(action: action) {
-                label.foregroundStyle(Color(uiColor: .systemBackground))
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(.system(.body, design: .monospaced, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                    // Rolls the way the month went.
+                    .contentTransition(.numericText(countsDown: !forward))
+                TablerIcon("chevron-down", size: 14)
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(open ? 180 : 0))
             }
-            .buttonStyle(.glassProminent)
-        } else {
-            Button(action: action) {
-                label.foregroundStyle(.primary)
-            }
-            .buttonStyle(.glass)
+            .foregroundStyle(.primary)
+            .frame(height: Self.controlLabelSize)
         }
+        .buttonStyle(.glass)
     }
+
+    /// The label size that, with the glass button's own padding round it, makes
+    /// a control `controlSize` tall.
+    private static let controlLabelSize: CGFloat = controlSize - 12
 
     /// Glass, like every other button in the app, so a press is felt: the
     /// glass gives under the finger, and the arrow kicks the way it points.
@@ -187,7 +203,7 @@ struct DayPickerSheet: View {
                     SpringKeyframe(direction * 4, duration: 0.1, spring: .snappy)
                     SpringKeyframe(0, duration: 0.35, spring: .bouncy)
                 }
-                .frame(width: 26, height: 26)
+                .frame(width: Self.controlLabelSize, height: Self.controlLabelSize)
         }
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
