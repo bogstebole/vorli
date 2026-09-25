@@ -9,7 +9,7 @@ dužine su proverene u odnosu na Apple-ova ograničenja.
 
 | Polje | Vrednost |
 |---|---|
-| **Name** (max 30) | `Vorli: računi i troškovi` (24) — rezerva ako je zauzeto: `Vorli – gde odoše pare` (22) |
+| **Name** (max 30) | `Vorli: Track, Budget & Plan` (27) — „Vorli“ ispod ikonice je početak imena, kako Apple traži |
 | **Subtitle** (max 30) | `Skeniraj račun, vidi troškove` (29) — rezerva: `Fiskalni računi i troškovi` (26) |
 | **Primary category** | Finance |
 | **Secondary category** | Productivity (opciono) |
