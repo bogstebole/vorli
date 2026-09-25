@@ -47,11 +47,18 @@ struct DayPickerSheet: View {
 
     /// Six rows of days under the header, and a margin under the last row
     /// like the one above the header — no band of empty sheet below.
-    private static let sheetHeight: CGFloat = 468
+    private static let sheetHeight: CGFloat = 476
     /// Every control in the header, chevrons and choices alike, is this tall —
     /// the close button's size, measured off the screen, so the header and the
     /// bar above it read as one set of glass.
     private static let controlSize: CGFloat = 42
+    /// The vertical rhythm of the top of the sheet, on the 4pt grid: the gap
+    /// under the title is twice the gap under the header. Measured on screen,
+    /// glyph to glass: the navigation bar leaves 25pt under the title's
+    /// letters before our padding starts, so 16 here reads as 41pt, and the
+    /// header's 20 as 20pt — as near to two to one as the grid allows.
+    private static let titleToControls: CGFloat = 16
+    private static let controlsToContent: CGFloat = 20
 
     init(index: MonthIndex, initialMonth: Date, focusedDay: Date?, onSelect: @escaping (Date) -> Void) {
         self.index = index
@@ -62,7 +69,7 @@ struct DayPickerSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 14) {
+            VStack(spacing: Self.controlsToContent) {
                 header
                 // A real container, so each mode comes and goes as one piece.
                 ZStack(alignment: .top) {
@@ -77,16 +84,19 @@ struct DayPickerSheet: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
-            // Pinned to the top. Were the days ever a touch taller than the
-            // sheet, a centred column would ride up by half the overflow and
-            // the header would jump as the months came in.
-            .frame(maxHeight: .infinity, alignment: .top)
+            // Pinned to the top. Six weeks of days run a touch past the sheet,
+            // and a centred column rode up by half the overflow — the header
+            // sat 5pt higher in six-week months than in five-week ones and
+            // jumped as the months came in. The zero minimum matters: without
+            // it the frame grows to the column and is centred all the same.
+            .frame(minHeight: 0, maxHeight: .infinity, alignment: .top)
             // The margin under the last row is set by the sheet's height, not
             // left to the home-indicator inset on top of it.
             .ignoresSafeArea(.container, edges: .bottom)
             .padding(.horizontal, 20)
-            // Air between the title and the header.
-            .padding(.top, 20)
+            // Air between the title and the header — twice what separates the
+            // header from the days, so the header belongs to what it controls.
+            .padding(.top, Self.titleToControls)
             .monoNavigationTitle("Izaberi dan")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -165,14 +175,14 @@ struct DayPickerSheet: View {
     /// rebuilt the button and lagged a beat behind the tap.
     private func choiceButton(_ title: String, open: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 6) {
+            HStack(spacing: 4) {
                 Text(title)
                     .font(.system(.body, design: .monospaced, weight: .medium))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     // Rolls the way the month went.
                     .contentTransition(.numericText(countsDown: !forward))
-                TablerIcon("chevron-down", size: 14)
+                TablerIcon("chevron-down", size: 16)
                     .foregroundStyle(.secondary)
                     .rotationEffect(.degrees(open ? 180 : 0))
             }
@@ -183,7 +193,8 @@ struct DayPickerSheet: View {
     }
 
     /// The label size that, with the glass button's own padding round it, makes
-    /// a control `controlSize` tall.
+    /// a control `controlSize` tall. (42 is off the 4pt grid on purpose: it is
+    /// the system close button's size, which the header lines up with.)
     private static let controlLabelSize: CGFloat = controlSize - 12
 
     /// Glass, like every other button in the app, so a press is felt: the
@@ -195,7 +206,7 @@ struct DayPickerSheet: View {
             if direction < 0 { backKicks += 1 } else { forwardKicks += 1 }
             step(Int(direction))
         } label: {
-            TablerIcon(icon, size: 18)
+            TablerIcon(icon, size: 20)
                 .foregroundStyle(enabled ? .primary : .quaternary)
                 .keyframeAnimator(initialValue: CGFloat(0), trigger: kicks) { content, x in
                     content.offset(x: x)
@@ -224,7 +235,7 @@ struct DayPickerSheet: View {
     // MARK: - Days
 
     private var days: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
             weekdayRow
             ZStack {
                 grid
@@ -258,12 +269,12 @@ struct DayPickerSheet: View {
         // Monday first: weekday 2 lands in column 0, Sunday (1) in column 6.
         let leading = (calendar.component(.weekday, from: month) + 5) % 7
 
-        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 6) {
+        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 4) {
             // Blanks take negative ids and days positive ones. With both
             // counting from zero the grid treats day 1 and the first blank as
             // the same cell, and the 1st of the month goes missing.
             ForEach(-leading..<0, id: \.self) { _ in
-                Color.clear.frame(height: 46)
+                Color.clear.frame(height: 48)
             }
             ForEach(1...max(1, totals.count), id: \.self) { day in
                 dayCell(day: day, amount: totals.indices.contains(day - 1) ? totals[day - 1] : 0,
@@ -294,17 +305,17 @@ struct DayPickerSheet: View {
                 // dot means nothing was bought.
                 spendDot(spent: spent, peak: peak, inverted: isFocused)
             }
-            .frame(maxWidth: .infinity, minHeight: 46)
+            .frame(maxWidth: .infinity, minHeight: 48)
             .background {
                 if isFocused {
-                    Circle().fill(Color.primary).frame(width: 42, height: 42)
+                    Circle().fill(Color.primary).frame(width: 44, height: 44)
                 } else if isToday {
-                    Circle().strokeBorder(Color.primary.opacity(0.3), lineWidth: 1).frame(width: 42, height: 42)
+                    Circle().strokeBorder(Color.primary.opacity(0.3), lineWidth: 1).frame(width: 44, height: 44)
                 }
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(CalendarCellButtonStyle(width: 42, height: 42))
+        .buttonStyle(CalendarCellButtonStyle(width: 44, height: 44))
         .disabled(isFuture)
         .accessibilityLabel(Self.dayFormatter.string(from: date))
         .accessibilityValue(spent > 0 ? "\(MoneyFormat.grouped(amount)) dinara" : "bez potrošnje")
@@ -418,17 +429,17 @@ struct DayPickerSheet: View {
                                      : enabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.quaternary))
                 spendDot(spent: spent, peak: peak, inverted: isShown)
             }
-            .frame(maxWidth: .infinity, minHeight: 56)
+            .frame(maxWidth: .infinity, minHeight: 48)
             .background {
                 if isShown {
-                    Capsule().fill(Color.primary).frame(width: 76, height: 50)
+                    Capsule().fill(Color.primary).frame(width: 76, height: 48)
                 } else if isNow {
-                    Capsule().strokeBorder(Color.primary.opacity(0.3), lineWidth: 1).frame(width: 76, height: 50)
+                    Capsule().strokeBorder(Color.primary.opacity(0.3), lineWidth: 1).frame(width: 76, height: 48)
                 }
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(CalendarCellButtonStyle(width: 76, height: 50))
+        .buttonStyle(CalendarCellButtonStyle(width: 76, height: 48))
         .disabled(!enabled)
         .accessibilityValue(spent > 0 ? "\(MoneyFormat.grouped(Decimal(spent))) dinara" : "bez potrošnje")
     }
