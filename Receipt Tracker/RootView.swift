@@ -68,9 +68,8 @@ struct RootView: View {
                 NavigationStack { SearchView() }
             }
 
-            // Detached trailing circle. `.search` role gives that shape
-            // natively; nothing else does.
-            Tab("Skeniraj", image: "tab-scan", value: RootTab.scan, role: .search) {
+            // Detached trailing circle — see `scanRole`.
+            Tab("Skeniraj", image: "tab-scan", value: RootTab.scan, role: Self.scanRole) {
                 QRScannerView { url in
                     await processScannedReceipt(from: url)
                 } onReceiptParsed: { parsed in
@@ -99,6 +98,13 @@ struct RootView: View {
         // Monochrome selection — no Apple blue on the active tab.
         .tint(.primary)
         .environment(nav)
+    }
+
+    /// The role that sets Skeniraj apart as its own circle beside the pill.
+    /// iOS 26 only detaches a `.search` tab; iOS 27 folds that one into the
+    /// pill and gives the separate treatment to `.prominent` instead.
+    private static var scanRole: TabRole {
+        if #available(iOS 27.0, *) { .prominent } else { .search }
     }
 
     /// Runs while the scan tab is still on screen. Returns nil once the detail
