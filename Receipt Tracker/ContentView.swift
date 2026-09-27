@@ -96,7 +96,7 @@ struct ContentView: View {
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(uiColor: .systemGroupedBackground))
+            .background(Color(uiColor: .systemBackground))
             // Centre against the whole screen, not against whatever the tab
             // bar leaves behind. The bar is hidden for the opening animation
             // and slides in at the end; centring inside the safe area would
