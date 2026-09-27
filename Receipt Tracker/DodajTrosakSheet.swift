@@ -6,9 +6,12 @@
 import SwiftUI
 import SwiftData
 
+/// Adds a hand-entered expense, or edits one when given its receipt.
 struct DodajTrosakSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+
+    var receipt: Receipt? = nil
 
     @State private var naziv: String = ""
     @State private var iznosDisplay: String = ""
@@ -48,7 +51,7 @@ struct DodajTrosakSheet: View {
                         .font(.system(.subheadline, design: .monospaced))
                 }
             }
-            .monoNavigationTitle("Dodaj trošak")
+            .monoNavigationTitle(receipt == nil ? "Dodaj trošak" : "Izmeni trošak")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button { dismiss() } label: {
@@ -64,7 +67,16 @@ struct DodajTrosakSheet: View {
                     .disabled(!isValid)
                 }
             }
-            .onAppear { nameFocused = true }
+            .onAppear {
+                if let receipt {
+                    naziv = receipt.merchantName
+                    iznosRaw = MoneyFormat.digits(receipt.totalAmount)
+                    iznosDisplay = MoneyFormat.grouped(iznosRaw)
+                    datum = receipt.timestamp
+                } else {
+                    nameFocused = true
+                }
+            }
         }
     }
 
@@ -78,6 +90,15 @@ struct DodajTrosakSheet: View {
         let trimmed = naziv.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
 
+        if let receipt {
+            receipt.merchantName = trimmed
+            receipt.totalAmount = amount
+            receipt.timestamp = datum
+            try? modelContext.save()
+            dismiss()
+            return
+        }
+
         let receipt = Receipt(
             url: "",
             merchantName: trimmed,
@@ -86,7 +107,7 @@ struct DodajTrosakSheet: View {
             timestamp: datum,
             totalAmount: amount,
             totalTax: 0,
-            paymentMethod: "Ručni unos",
+            paymentMethod: Receipt.manualPaymentMethod,
             receiptNumber: "",
             cashRegisterNumber: ""
         )
@@ -94,4 +115,11 @@ struct DodajTrosakSheet: View {
         try? modelContext.save()
         dismiss()
     }
+}
+
+extension Receipt {
+    static let manualPaymentMethod = "Ručni unos"
+
+    /// Entered by hand in Dodaj trošak — no QR link, no items, editable.
+    var isManual: Bool { url.isEmpty && paymentMethod == Self.manualPaymentMethod }
 }
