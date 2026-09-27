@@ -25,6 +25,7 @@ struct ReceiptDetailView: View {
     @State private var historyItem: ReceiptItem?
     @State private var showCategoryPicker = false
     @State private var showPaywall = false
+    @State private var showEdit = false
 
     var body: some View {
         ScrollView {
@@ -90,14 +91,17 @@ struct ReceiptDetailView: View {
                                 .foregroundStyle(.primary)
                         }
                         
-                        HStack {
-                            Text("PDV (20%):")
-                                .font(.system(.subheadline, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                            Spacer()
-                            Text(receipt.totalTax.asRSD)
-                                .font(.system(.subheadline, design: .monospaced))
-                                .foregroundStyle(.primary)
+                        // A hand-entered expense has no tax on record.
+                        if !receipt.isManual {
+                            HStack {
+                                Text("PDV (20%):")
+                                    .font(.system(.subheadline, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                                Spacer()
+                                Text(receipt.totalTax.asRSD)
+                                    .font(.system(.subheadline, design: .monospaced))
+                                    .foregroundStyle(.primary)
+                            }
                         }
                         
                         HStack {
@@ -116,7 +120,8 @@ struct ReceiptDetailView: View {
                 .frame(maxWidth: .infinity)
                 
             
-                // Articles Section
+                // Articles Section — nothing to list for an itemless entry.
+                if !receipt.items.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     SectionDivider(title: "Artikli")
                         
@@ -141,9 +146,8 @@ struct ReceiptDetailView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                
-                
-                
+                }
+
                 // Receipt Number
                 VStack(spacing: 4) {
                     if !receipt.receiptNumber.isEmpty {
@@ -162,7 +166,7 @@ struct ReceiptDetailView: View {
             }
             .padding()
         }
-        .monoNavigationTitle("Račun")
+        .monoNavigationTitle(receipt.isManual ? "Trošak" : "Račun")
         .sheet(item: $historyItem) { item in
             PriceHistorySheet(item: item)
         }
@@ -171,6 +175,20 @@ struct ReceiptDetailView: View {
         }
         .sheet(isPresented: $showPaywall) {
             PaywallSheet()
+        }
+        .sheet(isPresented: $showEdit) {
+            DodajTrosakSheet(receipt: receipt)
+        }
+        .toolbar {
+            if receipt.isManual {
+                ToolbarItem(placement: .primaryAction) {
+                    Button { showEdit = true } label: {
+                        TablerIcon("pencil", size: 20)
+                            .foregroundStyle(.primary)
+                    }
+                    .accessibilityLabel("Izmeni trošak")
+                }
+            }
         }
         // Share button removed until sharing is actually implemented —
         // non-functional controls are an App Review rejection risk.
