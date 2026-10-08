@@ -32,7 +32,10 @@ struct QRScannerView: View {
     /// is no `dismiss()` to call — the owner decides where "away" is.
     let onClose: () -> Void
 
-    @State private var isAuthorized = false
+    /// nil until the answer is known — including while the system prompt is
+    /// up. Starting at false put "go to Settings" behind the prompt before
+    /// the user had answered it.
+    @State private var isAuthorized: Bool?
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var showError = false
     @State private var errorMessage = ""
@@ -58,7 +61,7 @@ struct QRScannerView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                if isAuthorized {
+                if isAuthorized == true {
                     if docScannerRequested {
                         Color.black.ignoresSafeArea()
                     } else {
@@ -68,7 +71,7 @@ struct QRScannerView: View {
                         .id(scanAttempt)
                         .ignoresSafeArea()
                     }
-                } else {
+                } else if isAuthorized == false {
                     permissionView
                 }
 
@@ -87,7 +90,7 @@ struct QRScannerView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if isAuthorized {
+                if isAuthorized == true {
                     actionBar
                         .padding(.horizontal, 16)
                         .padding(.bottom, 8)
@@ -104,8 +107,8 @@ struct QRScannerView: View {
                     // background read as nothing at all.
                     Text("Skeniraj")
                         .font(.system(.subheadline, design: .monospaced, weight: .medium))
-                        .foregroundStyle(isAuthorized ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
-                        .shadow(color: .black.opacity(isAuthorized ? 0.5 : 0), radius: 3)
+                        .foregroundStyle(isAuthorized == true ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
+                        .shadow(color: .black.opacity(isAuthorized == true ? 0.5 : 0), radius: 3)
                 }
                 ToolbarItem(placement: .cancellationAction) {
                     // The bar's own glass, at the size every other screen's
