@@ -21,6 +21,7 @@
 
 import SwiftUI
 import SwiftData
+import StoreKit
 
 enum RootTab: Hashable {
     case home, dashboard, planiranje, pretraga, scan
@@ -40,6 +41,7 @@ final class AppNavigation {
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.requestReview) private var requestReview
     @State private var nav = AppNavigation()
 
     /// The tab bar arrives last, once Home has finished assembling itself.
@@ -126,6 +128,12 @@ struct RootView: View {
             }
             // Let that settle before the scanner hands control back.
             await Task.yield()
+            if ReviewPrompt.recordScan() {
+                Task {
+                    try? await Task.sleep(for: ReviewPrompt.delay)
+                    requestReview()
+                }
+            }
             return nil
         } catch {
             return error.localizedDescription
